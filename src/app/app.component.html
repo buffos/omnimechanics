@@ -1,0 +1,147 @@
+<div class="app-layout">
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="logo-group">
+      <div class="logo-mark">BEM</div>
+      <div class="title-meta">
+        <h1>BemApp Platform</h1>
+        <span class="subtitle">BEM Predictor &middot; FEM Corrector for Inhomogeneous Elastodynamics</span>
+      </div>
+    </div>
+
+    <!-- Dimension & Mode Switchers -->
+    <div class="header-controls">
+      <div class="segmented-control">
+        <button
+          type="button"
+          [class.active]="activeDimension() === '2D'"
+          (click)="setDimension('2D')"
+        >
+          2D Continuum
+        </button>
+        <button
+          type="button"
+          [class.active]="activeDimension() === '3D'"
+          (click)="setDimension('3D')"
+        >
+          3D Solid
+        </button>
+      </div>
+
+      <div class="segmented-control">
+        <button
+          type="button"
+          [class.active]="activeDomain() === 'Static'"
+          (click)="setDomain('Static')"
+        >
+          Static
+        </button>
+        <button
+          type="button"
+          [class.active]="activeDomain() === 'TimeDomain'"
+          (click)="setDomain('TimeDomain')"
+        >
+          Time Domain
+        </button>
+        <button
+          type="button"
+          [class.active]="activeDomain() === 'LaplaceTalbot'"
+          (click)="setDomain('LaplaceTalbot')"
+        >
+          Laplace (Talbot)
+        </button>
+      </div>
+    </div>
+
+    <!-- Backend Status Chip -->
+    <div class="status-chip">
+      <span class="pulse-indicator"></span>
+      <span>{{ backendStatus() }}</span>
+    </div>
+  </header>
+
+  <!-- Main Body: Sidebar + 3D Viewport -->
+  <main class="main-workspace">
+    <!-- Left Inspector Panel -->
+    <aside class="sidebar-panel">
+      <!-- Section: Model & Presets -->
+      <section class="panel-section">
+        <h2 class="section-title">Model Geometry</h2>
+        <div class="control-row">
+          <label>Preset Geometry</label>
+          <select class="styled-select">
+            <option>Cantilever Beam (Benchmark)</option>
+            <option>Simply Supported Beam</option>
+            <option>Plate with Circular Cavity</option>
+            <option>3D Block with Spherical Cavity</option>
+          </select>
+        </div>
+        <div class="button-row">
+          <button type="button" class="btn btn-secondary">Import DXF/STEP</button>
+          <button type="button" class="btn btn-primary">Generate Mesh</button>
+        </div>
+      </section>
+
+      <!-- Section: Inhomogeneity Field (Open-Closed) -->
+      <section class="panel-section">
+        <h2 class="section-title">Material &amp; Inhomogeneity</h2>
+        
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Inhomogeneity Ratio (&alpha;)</span>
+            <span class="slider-value">{{ inhomogeneityRatio() }}%</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="60"
+            step="1"
+            [value]="inhomogeneityRatio()"
+            (input)="onInhomogeneityChange($event)"
+            class="styled-range"
+          />
+        </div>
+
+        <div class="control-row">
+          <label>Field Distribution Strategy</label>
+          <select class="styled-select">
+            <option>Directional Gradient (FGM): &mu;(y) = &mu;0(1+&alpha;y/L)^2</option>
+            <option>Analytical Math Expression</option>
+            <option>Discrete Cylindrical/Spherical Inclusion</option>
+          </select>
+        </div>
+
+        <div class="property-grid">
+          <div class="property-item">
+            <span class="prop-label">E0 (Ref)</span>
+            <span class="prop-val">2.1 &times; 10<sup>5</sup> MPa</span>
+          </div>
+          <div class="property-item">
+            <span class="prop-label">&nu;0</span>
+            <span class="prop-val">0.30</span>
+          </div>
+          <div class="property-item">
+            <span class="prop-label">&rho;0</span>
+            <span class="prop-val">7850 kg/m<sup>3</sup></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Solver Execution -->
+      <section class="panel-section action-section">
+        <h2 class="section-title">Execution</h2>
+        <button type="button" class="btn btn-action-solve">
+          Run BEM Predictor &middot; FEM Corrector
+        </button>
+        <button type="button" class="btn btn-action-purefem">
+          Run Pure FEM Baseline (Verification)
+        </button>
+      </section>
+    </aside>
+
+    <!-- Center / Right: Three.js Interactive Canvas -->
+    <div class="viewport-wrapper">
+      <app-viewport />
+    </div>
+  </main>
+</div>

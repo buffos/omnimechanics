@@ -1,0 +1,35 @@
+# Build output
+/bin
+
+# Temp folder
+/tmp
+
+# Runtime data
+**/data/
+
+# Editor / IDE
+/.vscode
+
+# External code references
+docs/external-reference
+
+# Executables
+*.exe
+
+# Logs
+*.log
+
+# Papers
+/papers
+
+# Old Code
+/old-code
+
+# Skills
+/.agents
+
+# Dependencies & build artifacts
+/node_modules
+/dist
+/.angular
+/src-tauri/target
