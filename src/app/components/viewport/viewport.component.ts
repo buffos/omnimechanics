@@ -10,6 +10,7 @@ import {
 } from "@angular/core";
 import * as THREE from "three";
 import { MeshData, BoundaryElement, VolumeElement } from "../../services/mesh.service";
+import { MaterialFieldResponse } from "../../services/material.service";
 
 // Color mapping for boundary tags
 const TAG_COLORS: Record<string, number> = {
@@ -22,6 +23,28 @@ const TAG_COLORS: Record<string, number> = {
   Back: 0x6366f1,    // Indigo
   Default: 0x94a3b8, // Slate gray
 };
+
+/**
+ * High-quality Scientific Turbo Colormap: maps normalized t in [0, 1] to RGB.
+ * Blue (min) -> Cyan -> Green -> Yellow -> Orange -> Red (max).
+ */
+function turboColormap(t: number): [number, number, number] {
+  const clampT = Math.max(0, Math.min(1, t));
+
+  // Polynomial fit for Google Turbo colormap (visually linear & accessible)
+  const kRed = [0.13572138, 4.61539260, -42.66032258, 132.13108234, -152.94239396, 59.28637943];
+  const kGreen = [0.09140261, 2.19418839, 4.84296658, -14.18503327, 4.27729857, 2.82956604];
+  const kBlue = [0.10667330, 12.64194608, -60.58204836, 110.36276771, -89.90310912, 27.34824973];
+
+  const evalPoly = (c: number[], x: number) =>
+    c[0] + x * (c[1] + x * (c[2] + x * (c[3] + x * (c[4] + x * c[5]))));
+
+  const r = Math.max(0, Math.min(1, evalPoly(kRed, clampT)));
+  const g = Math.max(0, Math.min(1, evalPoly(kGreen, clampT)));
+  const b = Math.max(0, Math.min(1, evalPoly(kBlue, clampT)));
+
+  return [r, g, b];
+}
 
 @Component({
   selector: "app-viewport",
@@ -62,8 +85,31 @@ const TAG_COLORS: Record<string, number> = {
         </div>
       }
 
+      <!-- Material Inhomogeneity Colorbar -->
+      @if (materialField() && showColormap()) {
+        <div class="colorbar-panel">
+          <div class="colorbar-title">{{ materialField()!.property_name }}</div>
+          <div class="colorbar-content">
+            <div class="colorbar-gradient"></div>
+            <div class="colorbar-labels">
+              <span class="label-max">{{ materialField()!.max_val.toFixed(1) }} {{ materialField()!.unit }}</span>
+              <span class="label-mid">{{ ((materialField()!.max_val + materialField()!.min_val) / 2).toFixed(1) }}</span>
+              <span class="label-min">{{ materialField()!.min_val.toFixed(1) }} {{ materialField()!.unit }}</span>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Viewport Display Toggles -->
       <div class="hud-toggles">
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="showColormap()"
+          (click)="toggleColormap()"
+        >
+          Material Colormap
+        </button>
         <button
           type="button"
           class="toggle-btn"
@@ -204,6 +250,62 @@ const TAG_COLORS: Record<string, number> = {
       border-radius: 2px;
     }
 
+    /* Colorbar Panel */
+    .colorbar-panel {
+      position: absolute;
+      right: 16px;
+      top: 70px;
+      background: rgba(18, 22, 34, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 12px 14px;
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 130px;
+    }
+
+    .colorbar-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #38bdf8;
+      text-align: center;
+    }
+
+    .colorbar-content {
+      display: flex;
+      gap: 10px;
+      height: 180px;
+    }
+
+    .colorbar-gradient {
+      width: 14px;
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(
+        to bottom,
+        #f43f5e 0%,
+        #fb923c 25%,
+        #facc15 50%,
+        #2dd4bf 75%,
+        #3b82f6 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .colorbar-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 0.725rem;
+      font-family: monospace;
+      color: #cbd5e1;
+    }
+
     .hud-toggles {
       position: absolute;
       top: 16px;
@@ -247,10 +349,12 @@ const TAG_COLORS: Record<string, number> = {
 export class ViewportComponent implements OnDestroy {
   canvasContainer = viewChild.required<ElementRef<HTMLDivElement>>("canvasContainer");
 
-  // Input mesh from MeshService
+  // Inputs
   mesh = input<MeshData | null>(null);
+  materialField = input<MaterialFieldResponse | null>(null);
 
   // Display toggles
+  showColormap = signal<boolean>(true);
   showWireframe = signal<boolean>(true);
   showBoundaries = signal<boolean>(true);
   showNodes = signal<boolean>(false);
@@ -266,6 +370,7 @@ export class ViewportComponent implements OnDestroy {
 
   // Active mesh 3D root group
   private meshGroup: THREE.Group | null = null;
+  private volumeMesh: THREE.Mesh | null = null;
   private wireframeMesh: THREE.LineSegments | null = null;
   private boundaryGroup: THREE.Group | null = null;
   private nodePoints: THREE.Points | null = null;
@@ -286,11 +391,13 @@ export class ViewportComponent implements OnDestroy {
       }
     });
 
-    // Re-render mesh whenever mesh input changes
+    // Re-render mesh whenever mesh or materialField changes
     effect(() => {
       const currentMesh = this.mesh();
+      const field = this.materialField();
+      const colormapActive = this.showColormap();
       if (this.scene && currentMesh) {
-        this.renderMesh(currentMesh);
+        this.renderMesh(currentMesh, field, colormapActive);
       }
     });
 
@@ -315,6 +422,10 @@ export class ViewportComponent implements OnDestroy {
         this.nodePoints.visible = nds;
       }
     });
+  }
+
+  toggleColormap(): void {
+    this.showColormap.update((v) => !v);
   }
 
   toggleWireframe(): void {
@@ -364,6 +475,7 @@ export class ViewportComponent implements OnDestroy {
 
     const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.85);
     dirLight1.position.set(20, 40, 30);
+    dirLight1.castShadow = true;
     this.scene.add(dirLight1);
 
     const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 0.45);
@@ -395,12 +507,17 @@ export class ViewportComponent implements OnDestroy {
     this.animate();
   }
 
-  private renderMesh(meshData: MeshData): void {
-    // Remove previous mesh objects
+  private renderMesh(
+    meshData: MeshData,
+    field: MaterialFieldResponse | null,
+    colormapActive: boolean
+  ): void {
+    // Clean up previous mesh objects
     if (this.meshGroup) {
       this.scene.remove(this.meshGroup);
       this.meshGroup.clear();
       this.meshGroup = null;
+      this.volumeMesh = null;
       this.wireframeMesh = null;
       this.boundaryGroup = null;
       this.nodePoints = null;
@@ -410,26 +527,33 @@ export class ViewportComponent implements OnDestroy {
 
     this.meshGroup = new THREE.Group();
 
-    // 1. Build triangles for Volume Elements (FEM domain)
-    const { volumeGeometry, edgeGeometry } = this.buildVolumeGeometry(meshData);
+    // 1. Build volume geometry with optional vertex colors
+    const { volumeGeometry, edgeGeometry } = this.buildVolumeGeometry(
+      meshData,
+      field,
+      colormapActive
+    );
+
+    const hasColors = colormapActive && field && field.values.length === meshData.nodes.length;
 
     const volumeMaterial = new THREE.MeshStandardMaterial({
-      color: meshData.dimension === 2 ? 0x1e293b : 0x243047,
-      roughness: 0.5,
+      color: hasColors ? 0xffffff : (meshData.dimension === 2 ? 0x1e293b : 0x243047),
+      vertexColors: !!hasColors,
+      roughness: 0.4,
       metalness: 0.1,
       side: THREE.DoubleSide,
       polygonOffset: true,
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1,
     });
-    const volumeMesh = new THREE.Mesh(volumeGeometry, volumeMaterial);
-    this.meshGroup.add(volumeMesh);
+    this.volumeMesh = new THREE.Mesh(volumeGeometry, volumeMaterial);
+    this.meshGroup.add(this.volumeMesh);
 
     // 2. Wireframe lines
     const wireframeMat = new THREE.LineBasicMaterial({
-      color: 0x475569,
+      color: hasColors ? 0x0f172a : 0x475569,
       transparent: true,
-      opacity: 0.45,
+      opacity: hasColors ? 0.35 : 0.45,
     });
     this.wireframeMesh = new THREE.LineSegments(edgeGeometry, wireframeMat);
     this.wireframeMesh.visible = this.showWireframe();
@@ -440,10 +564,8 @@ export class ViewportComponent implements OnDestroy {
     const tagMap = new Map<string, number>();
 
     if (meshData.dimension === 2) {
-      // 2D Boundaries are Line2 segments
       this.buildBoundaryLines2D(meshData, tagMap);
     } else {
-      // 3D Boundaries are surface triangles (Tri3)
       this.buildBoundarySurfaces3D(meshData, tagMap);
     }
 
@@ -478,11 +600,15 @@ export class ViewportComponent implements OnDestroy {
     });
     this.detectedTags.set(tagsList);
 
-    // Fit camera to view entire mesh
+    // Fit camera
     this.fitCameraToMesh(meshData);
   }
 
-  private buildVolumeGeometry(meshData: MeshData): {
+  private buildVolumeGeometry(
+    meshData: MeshData,
+    field: MaterialFieldResponse | null,
+    colormapActive: boolean
+  ): {
     volumeGeometry: THREE.BufferGeometry;
     edgeGeometry: THREE.BufferGeometry;
   } {
@@ -513,12 +639,10 @@ export class ViewportComponent implements OnDestroy {
           break;
 
         case "Tet4":
-          // 4 faces of a tetrahedron
           indices.push(n[0], n[1], n[2]);
           indices.push(n[0], n[2], n[3]);
           indices.push(n[0], n[3], n[1]);
           indices.push(n[1], n[3], n[2]);
-          // 6 edges
           addEdge(n[0], n[1]);
           addEdge(n[1], n[2]);
           addEdge(n[2], n[0]);
@@ -528,20 +652,18 @@ export class ViewportComponent implements OnDestroy {
           break;
 
         case "Hex8":
-          // 6 faces of a hexahedron (2 triangles each)
           const hexFaces = [
-            [n[0], n[1], n[2], n[3]], // bottom
-            [n[4], n[7], n[6], n[5]], // top
-            [n[0], n[4], n[5], n[1]], // front
-            [n[2], n[6], n[7], n[3]], // back
-            [n[0], n[3], n[7], n[4]], // left
-            [n[1], n[5], n[6], n[2]], // right
+            [n[0], n[1], n[2], n[3]],
+            [n[4], n[7], n[6], n[5]],
+            [n[0], n[4], n[5], n[1]],
+            [n[2], n[6], n[7], n[3]],
+            [n[0], n[3], n[7], n[4]],
+            [n[1], n[5], n[6], n[2]],
           ];
           for (const f of hexFaces) {
             indices.push(f[0], f[1], f[2]);
             indices.push(f[0], f[2], f[3]);
           }
-          // 12 edges
           addEdge(n[0], n[1]); addEdge(n[1], n[2]); addEdge(n[2], n[3]); addEdge(n[3], n[0]);
           addEdge(n[4], n[5]); addEdge(n[5], n[6]); addEdge(n[6], n[7]); addEdge(n[7], n[4]);
           addEdge(n[0], n[4]); addEdge(n[1], n[5]); addEdge(n[2], n[6]); addEdge(n[3], n[7]);
@@ -559,6 +681,23 @@ export class ViewportComponent implements OnDestroy {
     const volumeGeometry = new THREE.BufferGeometry();
     volumeGeometry.setAttribute("position", new THREE.BufferAttribute(flatPositions, 3));
     volumeGeometry.setIndex(indices);
+
+    // Compute scientific vertex colormap if material field is active
+    if (colormapActive && field && field.values.length === meshData.nodes.length) {
+      const colors = new Float32Array(meshData.nodes.length * 3);
+      const span = field.max_val - field.min_val;
+
+      for (let i = 0; i < meshData.nodes.length; i++) {
+        const val = field.values[i];
+        const t = span > 1e-9 ? (val - field.min_val) / span : 0.5;
+        const [r, g, b] = turboColormap(t);
+        colors[i * 3 + 0] = r;
+        colors[i * 3 + 1] = g;
+        colors[i * 3 + 2] = b;
+      }
+      volumeGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    }
+
     volumeGeometry.computeVertexNormals();
 
     const edgeGeometry = new THREE.BufferGeometry();
@@ -579,7 +718,7 @@ export class ViewportComponent implements OnDestroy {
       const arr = groupedLines.get(bnd.tag)!;
       for (const nodeIdx of bnd.nodes) {
         const pt = meshData.nodes[nodeIdx];
-        arr.push(pt[0], pt[1], pt[2] + 0.005); // slight z-offset to render crisp
+        arr.push(pt[0], pt[1], pt[2] + 0.005);
       }
     }
 
@@ -605,7 +744,6 @@ export class ViewportComponent implements OnDestroy {
         groupedTriangles.set(bnd.tag, []);
       }
       const arr = groupedTriangles.get(bnd.tag)!;
-      // In 3D, boundary elements are Tri3 surface facets
       if (bnd.nodes.length >= 3) {
         const p0 = meshData.nodes[bnd.nodes[0]];
         const p1 = meshData.nodes[bnd.nodes[1]];
@@ -660,10 +798,9 @@ export class ViewportComponent implements OnDestroy {
     const dz = maxZ - minZ;
     const maxDim = Math.max(dx, dy, dz, 1.0);
 
-    // If 2D (dz is ~0), position camera perpendicular with slight elevation
     if (meshData.dimension === 2) {
       this.spherical.theta = 0;
-      this.spherical.phi = Math.PI / 2.05; // almost flat looking straight on XY
+      this.spherical.phi = Math.PI / 2.05;
       this.spherical.radius = maxDim * 1.8;
     } else {
       this.spherical.theta = Math.PI / 4;
@@ -697,13 +834,11 @@ export class ViewportComponent implements OnDestroy {
       this.previousMousePosition = { x: e.clientX, y: e.clientY };
 
       if (this.isDragging) {
-        // Orbit rotation
         this.spherical.theta -= deltaX * 0.008;
         this.spherical.phi -= deltaY * 0.008;
         this.spherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, this.spherical.phi));
         this.updateCameraFromSpherical();
       } else if (this.isRightDragging) {
-        // Pan
         const panSpeed = this.spherical.radius * 0.0015;
         const forward = new THREE.Vector3();
         this.camera.getWorldDirection(forward);

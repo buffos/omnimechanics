@@ -292,46 +292,241 @@
 
       <!-- Section: Inhomogeneity Field (Open-Closed) -->
       <section class="panel-section">
-        <h2 class="section-title">Material &amp; Inhomogeneity</h2>
-        
-        <div class="slider-group">
-          <div class="slider-header">
-            <span>Inhomogeneity Ratio (&alpha;)</span>
-            <span class="slider-value">{{ inhomogeneityRatio() }}%</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="60"
-            step="1"
-            [value]="inhomogeneityRatio()"
-            (input)="onInhomogeneityChange($event)"
-            class="styled-range"
-          />
-        </div>
+        <h2 class="section-title">Material &amp; Inhomogeneity Engine</h2>
 
         <div class="control-row">
-          <label>Field Distribution Strategy</label>
-          <select class="styled-select">
-            <option>Directional Gradient (FGM): &mu;(y) = &mu;0(1+&alpha;y/L)^2</option>
-            <option>Analytical Math Expression</option>
-            <option>Discrete Cylindrical/Spherical Inclusion</option>
-            <option>Vecchio-Collins Non-Linear Concrete Model</option>
+          <label>Constitutive Model &amp; Spatial Strategy</label>
+          <select
+            class="styled-select"
+            [value]="selectedStrategy()"
+            (change)="onStrategyChange($event)"
+          >
+            <option value="DirectionalGradient">Directional Gradient (FGM / Continuous)</option>
+            <option value="AnalyticalExpression">Analytical Math Expression f(x,y,z)</option>
+            <option value="Inclusion">Discrete Inclusion / Defect Subdomain</option>
+            <option value="VecchioCollinsConcrete">Vecchio-Collins Non-Linear Concrete (MCFT)</option>
+            <option value="J2Plasticity">J2 von Mises Elastoplasticity</option>
           </select>
         </div>
 
+        <!-- Strategy Specific Controls -->
+        @if (selectedStrategy() === 'DirectionalGradient') {
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Inhomogeneity Ratio (&alpha;)</span>
+              <span class="slider-value">{{ gradientAlpha() }}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              [value]="gradientAlpha()"
+              (input)="onAlphaChange($event)"
+              class="styled-range"
+            />
+          </div>
+
+          <div class="param-grid">
+            <div class="param-item">
+              <label>Gradient Axis</label>
+              <select
+                class="styled-select"
+                [value]="gradientAxis()"
+                (change)="gradientAxis.set($any($event.target).value); evaluateCurrentMaterial()"
+              >
+                <option value="X">X-Axis</option>
+                <option value="Y">Y-Axis</option>
+                <option value="Z">Z-Axis</option>
+              </select>
+            </div>
+            <div class="param-item">
+              <label>Variation Form</label>
+              <select
+                class="styled-select"
+                [value]="gradientForm()"
+                (change)="gradientForm.set($any($event.target).value); evaluateCurrentMaterial()"
+              >
+                <option value="Linear">Linear (1 + &alpha;x/L)</option>
+                <option value="Quadratic">Power (1 + &alpha;x/L)^p</option>
+                <option value="Exponential">Exponential e^(&alpha;x/L)</option>
+              </select>
+            </div>
+          </div>
+        }
+
+        @if (selectedStrategy() === 'AnalyticalExpression') {
+          <div class="param-item full-width">
+            <label>Spatial Function: E(x,y,z)</label>
+            <input
+              type="text"
+              class="styled-input"
+              [value]="mathExpression()"
+              (input)="mathExpression.set($any($event.target).value)"
+            />
+            <span class="prop-label">Tokens: x, y, z, E0, nu0, rho0, pi, sin, cos, exp, sqrt</span>
+          </div>
+        }
+
+        @if (selectedStrategy() === 'Inclusion') {
+          <div class="param-grid">
+            <div class="param-item">
+              <label>Inclusion Shape</label>
+              <select
+                class="styled-select"
+                [value]="inclusionShape()"
+                (change)="inclusionShape.set($any($event.target).value); evaluateCurrentMaterial()"
+              >
+                <option value="CylinderZ">Cylinder (Z-Axis)</option>
+                <option value="Sphere">Sphere (3D)</option>
+                <option value="Box">Cuboid Box</option>
+              </select>
+            </div>
+            <div class="param-item">
+              <label>Radius (R)</label>
+              <input
+                type="number"
+                step="0.1"
+                class="styled-input"
+                [value]="inclusionRadius()"
+                (input)="inclusionRadius.set(+$any($event.target).value); evaluateCurrentMaterial()"
+              />
+            </div>
+            <div class="param-item full-width">
+              <label>Inclusion Modulus E1 (GPa)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="inclusionE()"
+                (input)="inclusionE.set(+$any($event.target).value); evaluateCurrentMaterial()"
+              />
+            </div>
+          </div>
+          <div class="checkbox-row">
+            <label class="styled-checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="inclusionSmooth()"
+                (change)="inclusionSmooth.set($any($event.target).checked); evaluateCurrentMaterial()"
+              />
+              <span>Smooth Sigmoid Interface Transition</span>
+            </label>
+          </div>
+        }
+
+        @if (selectedStrategy() === 'VecchioCollinsConcrete') {
+          <div class="param-grid">
+            <div class="param-item">
+              <label>Strength f'c (MPa)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="vcFc()"
+                (input)="vcFc.set(+$any($event.target).value); evaluateCurrentMaterial()"
+              />
+            </div>
+            <div class="param-item">
+              <label>Peak Strain &epsilon;0</label>
+              <input
+                type="number"
+                step="0.0005"
+                class="styled-input"
+                [value]="vcEps0()"
+                (input)="vcEps0.set(+$any($event.target).value); evaluateCurrentMaterial()"
+              />
+            </div>
+            <div class="param-item full-width">
+              <label>Tensile Cracking Strain &epsilon;1</label>
+              <input
+                type="number"
+                step="0.001"
+                class="styled-input"
+                [value]="vcSimStrain()"
+                (input)="vcSimStrain.set(+$any($event.target).value); evaluateCurrentMaterial()"
+              />
+            </div>
+          </div>
+        }
+
+        @if (selectedStrategy() === 'J2Plasticity') {
+          <div class="param-grid">
+            <div class="param-item">
+              <label>Yield &sigma;y0 (MPa)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="j2SigmaY()"
+                (input)="j2SigmaY.set(+$any($event.target).value); evaluateCurrentMaterial()"
+              />
+            </div>
+            <div class="param-item">
+              <label>Hardening H (MPa)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="j2Hardening()"
+                (input)="j2Hardening.set(+$any($event.target).value); evaluateCurrentMaterial()"
+              />
+            </div>
+            <div class="param-item full-width">
+              <label>Plastic Strain &epsilon;p</label>
+              <input
+                type="number"
+                step="0.005"
+                class="styled-input"
+                [value]="j2PlasticStrain()"
+                (input)="j2PlasticStrain.set(+$any($event.target).value); evaluateCurrentMaterial()"
+              />
+            </div>
+          </div>
+        }
+
+        <!-- Property to display on Colormap -->
+        <div class="control-row">
+          <label>Visualized Field Metric</label>
+          <select
+            class="styled-select"
+            [value]="activeMetric()"
+            (change)="onMetricChange($event)"
+          >
+            <option value="YoungsModulus">Young's Modulus E(x)</option>
+            <option value="ShearModulus">Shear Modulus &mu;(x)</option>
+            <option value="PoissonRatio">Poisson's Ratio &nu;(x)</option>
+            <option value="Density">Mass Density &rho;(x)</option>
+            <option value="WaveSpeedP">P-Wave Speed cp(x)</option>
+            <option value="WaveSpeedS">S-Wave Speed cs(x)</option>
+            @if (selectedStrategy() === 'VecchioCollinsConcrete') {
+              <option value="SecantModulus">Non-Linear Secant Modulus Es</option>
+            }
+            @if (selectedStrategy() === 'J2Plasticity') {
+              <option value="YieldStrength">Yield Strength &sigma;y(x)</option>
+            }
+          </select>
+        </div>
+
+        <div class="button-row">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="evaluateCurrentMaterial()"
+          >
+            Update Material Field
+          </button>
+        </div>
+
+        <!-- Baseline Reference Properties -->
         <div class="property-grid">
           <div class="property-item">
             <span class="prop-label">E0 (Ref)</span>
-            <span class="prop-val">2.1 &times; 10<sup>5</sup> MPa</span>
+            <span class="prop-val">{{ (materialService.reference().e0 * 1e-6).toFixed(0) }} MPa</span>
           </div>
           <div class="property-item">
             <span class="prop-label">&nu;0</span>
-            <span class="prop-val">0.30</span>
+            <span class="prop-val">{{ materialService.reference().nu0.toFixed(2) }}</span>
           </div>
           <div class="property-item">
             <span class="prop-label">&rho;0</span>
-            <span class="prop-val">7850 kg/m<sup>3</sup></span>
+            <span class="prop-val">{{ materialService.reference().rho0 }} kg/m³</span>
           </div>
         </div>
       </section>
@@ -356,7 +551,10 @@
 
     <!-- Center / Right: Three.js Interactive Canvas -->
     <div class="viewport-wrapper">
-      <app-viewport [mesh]="meshService.currentMesh()" />
+      <app-viewport
+        [mesh]="meshService.currentMesh()"
+        [materialField]="materialService.fieldResult()"
+      />
     </div>
   </main>
 </div>

@@ -4,9 +4,11 @@ title: Material Modeling & Open-Closed Spatial Inhomogeneity Engine
 description: Definition of reference homogeneous elasticity and extensible spatial perturbation fields (gradients, mathematical expressions, localized inclusions) conforming to the Open-Closed Principle.
 tags: [materials, fgm, inhomogeneity, open-closed, elasticity, stiffness-field]
 timestamp: 2026-10-28T05:18:00Z
-state: bounded
+state: implemented
 project: /project.md
 parent: /project.md
+issues:
+  - docs/agents/issues/done/20261028-003-material-inhomogeneity-field.md
 ---
 
 # Intent
