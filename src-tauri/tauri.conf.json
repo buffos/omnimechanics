@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "com.buffo.bem-app",
   "build": {
-    "beforeDevCommand": "pnpm run start",
-    "devUrl": "http://localhost:4200",
+    "beforeDevCommand": "pnpm run start --port 42200",
+    "devUrl": "http://localhost:42200",
     "beforeBuildCommand": "pnpm run build",
     "frontendDist": "../dist/bem-app/browser"
   },

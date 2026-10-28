@@ -66,20 +66,228 @@
     <aside class="sidebar-panel">
       <!-- Section: Model & Presets -->
       <section class="panel-section">
-        <h2 class="section-title">Model Geometry</h2>
+        <h2 class="section-title">Geometry &amp; Conformal Meshing</h2>
+        
         <div class="control-row">
-          <label>Preset Geometry</label>
-          <select class="styled-select">
-            <option>Cantilever Beam (Benchmark)</option>
-            <option>Simply Supported Beam</option>
-            <option>Plate with Circular Cavity</option>
-            <option>3D Block with Spherical Cavity</option>
+          <label>Benchmark Preset</label>
+          <select
+            class="styled-select"
+            [value]="selectedPreset()"
+            (change)="onPresetChange($event)"
+          >
+            <option value="Beam2D">2D Cantilever Beam (Hex/Tri)</option>
+            <option value="PlateWithHole2D">2D Plate with Circular Hole (Graded)</option>
+            <option value="Beam3D">3D Solid Cantilever Beam (Hex/Tet)</option>
+            <option value="BlockWithCavity3D">3D Solid Block (Conformal)</option>
           </select>
         </div>
+
+        <!-- Dynamic Parameters based on Preset -->
+        @if (selectedPreset() === 'Beam2D') {
+          <div class="param-grid">
+            <div class="param-item">
+              <label>Length (L)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="beamLength()"
+                (input)="beamLength.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Height (H)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="beamHeight()"
+                (input)="beamHeight.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Divs X (nx)</label>
+              <input
+                type="number"
+                min="2"
+                max="100"
+                class="styled-input"
+                [value]="beamNx()"
+                (input)="beamNx.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Divs Y (ny)</label>
+              <input
+                type="number"
+                min="2"
+                max="50"
+                class="styled-input"
+                [value]="beamNy()"
+                (input)="beamNy.set(+$any($event.target).value)"
+              />
+            </div>
+          </div>
+          <div class="checkbox-row">
+            <label class="styled-checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="beamUseTriangles()"
+                (change)="beamUseTriangles.set($any($event.target).checked)"
+              />
+              <span>Triangular Elements (Tri3)</span>
+            </label>
+          </div>
+        }
+
+        @if (selectedPreset() === 'PlateWithHole2D') {
+          <div class="param-grid">
+            <div class="param-item">
+              <label>Width (W)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="plateWidth()"
+                (input)="plateWidth.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Height (H)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="plateHeight()"
+                (input)="plateHeight.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Hole Radius (R)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="plateRadius()"
+                (input)="plateRadius.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Radial Rings (nr)</label>
+              <input
+                type="number"
+                min="2"
+                max="30"
+                class="styled-input"
+                [value]="plateRadialDivs()"
+                (input)="plateRadialDivs.set(+$any($event.target).value)"
+              />
+            </div>
+          </div>
+          <div class="param-item full-width">
+            <label>Angular Divs (n&theta;)</label>
+            <input
+              type="number"
+              min="8"
+              step="4"
+              max="64"
+              class="styled-input"
+              [value]="plateAngularDivs()"
+              (input)="plateAngularDivs.set(+$any($event.target).value)"
+            />
+          </div>
+        }
+
+        @if (selectedPreset() === 'Beam3D' || selectedPreset() === 'BlockWithCavity3D') {
+          <div class="param-grid">
+            <div class="param-item">
+              <label>Length (L)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="beam3dLength()"
+                (input)="beam3dLength.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Height (H)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="beam3dHeight()"
+                (input)="beam3dHeight.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Depth (D)</label>
+              <input
+                type="number"
+                class="styled-input"
+                [value]="beam3dDepth()"
+                (input)="beam3dDepth.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Divs X (nx)</label>
+              <input
+                type="number"
+                min="1"
+                max="40"
+                class="styled-input"
+                [value]="beam3dNx()"
+                (input)="beam3dNx.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Divs Y (ny)</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                class="styled-input"
+                [value]="beam3dNy()"
+                (input)="beam3dNy.set(+$any($event.target).value)"
+              />
+            </div>
+            <div class="param-item">
+              <label>Divs Z (nz)</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                class="styled-input"
+                [value]="beam3dNz()"
+                (input)="beam3dNz.set(+$any($event.target).value)"
+              />
+            </div>
+          </div>
+          <div class="checkbox-row">
+            <label class="styled-checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="beam3dUseTets()"
+                (change)="beam3dUseTets.set($any($event.target).checked)"
+              />
+              <span>Tetrahedral Mesh (Tet4) via Kuhn Triangulation</span>
+            </label>
+          </div>
+        }
+
         <div class="button-row">
-          <button type="button" class="btn btn-secondary">Import DXF/STEP</button>
-          <button type="button" class="btn btn-primary">Generate Mesh</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="meshService.isGenerating()"
+            (click)="generateCurrentMesh()"
+          >
+            @if (meshService.isGenerating()) {
+              Generating Mesh...
+            } @else {
+              Generate Conformal Mesh
+            }
+          </button>
         </div>
+
+        @if (meshService.generationError()) {
+          <div class="error-banner">
+            {{ meshService.generationError() }}
+          </div>
+        }
       </section>
 
       <!-- Section: Inhomogeneity Field (Open-Closed) -->
@@ -108,6 +316,7 @@
             <option>Directional Gradient (FGM): &mu;(y) = &mu;0(1+&alpha;y/L)^2</option>
             <option>Analytical Math Expression</option>
             <option>Discrete Cylindrical/Spherical Inclusion</option>
+            <option>Vecchio-Collins Non-Linear Concrete Model</option>
           </select>
         </div>
 
@@ -129,19 +338,25 @@
 
       <!-- Section: Solver Execution -->
       <section class="panel-section action-section">
-        <h2 class="section-title">Execution</h2>
+        <h2 class="section-title">Execution Mode</h2>
+        <div class="solver-mode-selector">
+          <span class="prop-label">Solver Pipeline:</span>
+          <select class="styled-select solver-select">
+            <option>BEM Predictor &middot; FEM Corrector (Coupled)</option>
+            <option>FEM Predictor &middot; BEM Corrector</option>
+            <option>Standalone Pure BEM</option>
+            <option>Standalone Pure FEM</option>
+          </select>
+        </div>
         <button type="button" class="btn btn-action-solve">
-          Run BEM Predictor &middot; FEM Corrector
-        </button>
-        <button type="button" class="btn btn-action-purefem">
-          Run Pure FEM Baseline (Verification)
+          Run Selected Solver
         </button>
       </section>
     </aside>
 
     <!-- Center / Right: Three.js Interactive Canvas -->
     <div class="viewport-wrapper">
-      <app-viewport />
+      <app-viewport [mesh]="meshService.currentMesh()" />
     </div>
   </main>
 </div>

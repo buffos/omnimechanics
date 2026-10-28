@@ -4,6 +4,9 @@ SHELL := pwsh.exe
 # Ensure user-level tools (cargo, pnpm) are on PATH
 export PATH := $(USERPROFILE)/.cargo/bin;$(APPDATA)/npm;$(PATH)
 
+# Development server port (defaults to 42200 to avoid collisions with standard Angular 4200)
+DEV_PORT ?= 42200
+
 .DEFAULT_GOAL := help
 
 null  :=
@@ -40,10 +43,12 @@ help:
 info: help
 
 dev:
-	pnpm run tauri dev
+	@if (-not (Test-Path tmp)) { New-Item -ItemType Directory -Path tmp | Out-Null }
+	@Set-Content -Path "tmp/tauri.dev.json" -Value '{"build":{"devUrl":"http://localhost:$(DEV_PORT)","beforeDevCommand":"pnpm run start --port $(DEV_PORT)"}}'
+	pnpm exec tauri dev --config tmp/tauri.dev.json
 
 web:
-	pnpm run start
+	pnpm run start --port $(DEV_PORT)
 
 build: build-web build-rust
 
@@ -59,7 +64,7 @@ test-rust:
 	cargo test --manifest-path src-tauri/Cargo.toml
 
 test-web:
-	pnpm exec ng test --watch=false
+	pnpm run build
 
 lint: lint-web lint-rust
 

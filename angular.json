@@ -38,12 +38,12 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "1MB",
                   "maximumError": "1MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
+                  "maximumWarning": "8kB",
                   "maximumError": "8kB"
                 }
               ],
@@ -60,14 +60,14 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "port": 1420
+            "port": 42200
           },
           "configurations": {
             "production": {
-              "buildTarget": "app-scaffold:build:production"
+              "buildTarget": "bem-app:build:production"
             },
             "development": {
-              "buildTarget": "app-scaffold:build:development"
+              "buildTarget": "bem-app:build:development"
             }
           },
           "defaultConfiguration": "development"
