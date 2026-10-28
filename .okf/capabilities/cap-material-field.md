@@ -22,6 +22,8 @@ Provide a rigorous, modular material definition framework where the baseline hom
   - **Type 1 (Directional Gradient / FGM):** Continuous linear, quadratic, or exponential gradient along coordinate axes (e.g. $\mu(y) = \mu_0 (1 + \alpha y/L)^2$).
   - **Type 2 (Math Parser Expression):** User-defined mathematical expressions evaluated at Gauss points (e.g., $E(x,y) = E_0 (1 + 0.2 \sin(\pi x/L))$).
   - **Type 3 (Localized Inclusions / Geometric Defects):** Subdomains (circles, spheres, cylinders) possessing distinct moduli $(E_1, \nu_1, \rho_1)$ representing inclusions, voids, or localized damage.
+  - **Type 4 (Non-Linear Vecchio-Collins Concrete / MCFT):** Modified Compression Field Theory modeling non-linear concrete in compression, tension stiffening, and cracked shear response based on Vecchio & Collins (1986).
+  - **Type 5 (J2 von Mises Elastoplasticity):** Metal plasticity with yield surface, isotropic/kinematic hardening, and radial return-mapping algorithm.
   - **Extensibility:** Interface permits new material strategies without modifying solver loops.
 - **Evaluation & Field Sampling:**
   - Fast point-evaluation at numerical quadrature points (Gauss points of FEM volume elements).

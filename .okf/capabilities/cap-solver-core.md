@@ -21,11 +21,11 @@ Execute high-accuracy elastodynamic simulations by combining the boundary effici
   - $\mathbf{K}$: Volume perturbation operator evaluated via FEM ($\mathbf{F} = -\mathbf{K}_{\text{FEM}}\mathbf{u} - \mathbf{M}_{\text{FEM}}\ddot{\mathbf{u}}$) without matrix inversion.
   - $\mathbf{S}_{\text{shape}}$: Boundary consistency mass matrix converting nodal forces to surface tractions ($\mathbf{t}_\Gamma = \mathbf{S}_{\text{shape}}^{-1}\mathbf{F}_\Gamma$).
 - **Solver Regimes:**
-  - **Static Regime:** Successive Picard iterations with incremental back-substitution until $\|\mathbf{F}_{\text{res}}\| < \epsilon$.
-  - **Time-Domain Transient Regime:** Time-stepping with discrete boundary convolution history and within-step BEM-FEM corrector iterations.
-  - **Transformed Complex Laplace Regime:** Modified Talbot contour integration in the complex plane with BEM-preconditioned GMRES, guaranteeing unconditional convergence and avoiding fictitious eigenfrequencies.
-- **Reference Ground-Truth Solver:**
-  - Pure FEM direct sparse solver ($\mathbf{K}_{\text{total}}\mathbf{u} = \mathbf{F}$) for comparative verification, error norm calculation, and benchmarking.
+  - **1. Standalone BEM Solver:** Pure boundary element solution for homogeneous elastic and elastodynamic domains.
+  - **2. Standalone FEM Solver:** Pure finite element solution for linear, inhomogeneous, and non-linear domains (with direct sparse LU and Arc-Length / Newton-Raphson solvers).
+  - **3. BEM-FEM Hybrid Solver (BEM Predictor -- FEM Corrector):** BEM solves homogeneous reference field $\mathbf{E}_0$, FEM evaluates internal residual forces $\mathbf{F}_{\text{res}} = \mathbf{F}_{\text{ext}} - \int \mathbf{B}^T \boldsymbol{\sigma} d\Omega$.
+  - **4. FEM-BEM Hybrid Solver (FEM Predictor -- BEM Corrector):** FEM solves global predictor $\mathbf{K} \mathbf{u} = \mathbf{F}$, BEM computes boundary reaction/radiation corrections.
+  - **Transformed Complex Laplace Mode:** Modified Talbot contour integration with BEM-preconditioned GMRES for dynamic frequency/time response without resonance poles.
 - **Hardware Acceleration:**
   - SIMD multi-threading via `rayon` for Gauss quadrature assembly.
   - Optional GPU compute kernels (via `wgpu`) for BEM dense matrix generation.
