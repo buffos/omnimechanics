@@ -7,7 +7,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "check:limits": "node scripts/check-code-limits.mjs"
   },
   "private": true,
   "dependencies": {
