@@ -6,6 +6,20 @@ import {
   inject,
 } from "@angular/core";
 import { ViewportComponent } from "./components/viewport/viewport.component";
+import { BottomDockComponent } from "./dock/bottom-dock.component";
+import { DialogHostComponent } from "./shared/dialog-host.component";
+import { NotificationHostComponent } from "./shared/notification-host.component";
+import { HeaderComponent } from "./components/header/header.component";
+import { GeometryTabComponent } from "./components/sidebar/geometry-tab/geometry-tab.component";
+import { MaterialTabComponent } from "./components/sidebar/material-tab/material-tab.component";
+import { SolverTabComponent } from "./components/sidebar/solver-tab/solver-tab.component";
+import { NotificationService } from "./shared/notification.service";
+import { DialogService } from "./shared/dialog.service";
+import {
+  SurroundingMediumDialogComponent,
+  SurroundingMediumConfig,
+} from "./dialogs/surrounding-medium-dialog.component";
+import { SolverMethodsDialogComponent } from "./dialogs/solver-methods-dialog.component";
 import { MeshService, MeshGeneratorRequest } from "./services/mesh.service";
 import {
   MaterialService,
@@ -15,6 +29,7 @@ import {
   GradientForm,
   InclusionShape,
 } from "./services/material.service";
+import { SolverService, SolverMode, HarmonicSolverMode, BemElementType, StressState2D, HybridAccelerationType, TransientExcitation, TransientMethod } from "./services/solver.service";
 import { invoke } from "@tauri-apps/api/core";
 
 export type PresetKey =
@@ -32,7 +47,17 @@ export type StrategyKey =
 
 @Component({
   selector: "app-root",
-  imports: [ViewportComponent],
+  standalone: true,
+  imports: [
+    ViewportComponent,
+    BottomDockComponent,
+    DialogHostComponent,
+    NotificationHostComponent,
+    HeaderComponent,
+    GeometryTabComponent,
+    MaterialTabComponent,
+    SolverTabComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
@@ -40,10 +65,24 @@ export type StrategyKey =
 export class AppComponent implements OnInit {
   readonly meshService = inject(MeshService);
   readonly materialService = inject(MaterialService);
+  readonly solverService = inject(SolverService);
+  readonly dialogService = inject(DialogService);
+  readonly notificationService = inject(NotificationService);
+
+  // Workflow Sidebar Navigation Tab
+  activeSidebarTab = signal<"mesh" | "material" | "solver">("solver");
 
   activeDimension = signal<"2D" | "3D">("2D");
   activeDomain = signal<"Static" | "TimeDomain" | "LaplaceTalbot">("Static");
   backendStatus = signal<string>("Connecting to Rust Core...");
+
+  mediumConfig = signal<SurroundingMediumConfig>({
+    enabled: false,
+    boundaryTag: "Bottom",
+    eMediumMpa: 100.0,
+    nuMedium: 0.35,
+    rhoMedium: 2000.0,
+  });
 
   // Geometry Preset Selection
   selectedPreset = signal<PresetKey>("Beam2D");
@@ -98,6 +137,34 @@ export class AppComponent implements OnInit {
   j2Hardening = signal<number>(1000.0); // 1000 MPa
   j2PlasticStrain = signal<number>(0.015);
 
+  // Multi-Domain Solver Configuration
+  solverMode = signal<SolverMode>("PureFEM");
+  bemElementType = signal<BemElementType>("QuadraticDiscontinuous");
+  stressState = signal<StressState2D>("PlaneStress");
+  hybridAccelerationType = signal<HybridAccelerationType>("Anderson");
+  andersonDepth = signal<number>(3);
+  andersonBeta = signal<number>(0.65);
+  relaxationOmega = signal<number>(0.85);
+  loadMagnitude = signal<number>(50000.0); // 50 kN applied traction
+  maxIterations = signal<number>(50);
+  solverTolerance = signal<number>(1e-4);
+
+  // Dynamic Parameters
+  harmonicSolverMode = signal<HarmonicSolverMode>("PureFEM");
+  dynamicFrequency = signal<number>(3.0); // 3 Hz default
+  useRobinCoupling = signal<boolean>(false); // Impedance-matched Robin transmission condition
+  transientSolverMode = signal<'PureFEM' | 'PureBEM'>('PureFEM');
+  transientMethod = signal<TransientMethod>("Talbot");
+  transientExcitation = signal<TransientExcitation>("HarmonicSine");
+  transientFrequency = signal<number>(3.0); // 3 Hz for direct comparison with Harmonic
+  dynamicTotalTime = signal<number>(0.50); // 500 ms (several wave periods)
+  dynamicTimeSteps = signal<number>(25);
+  dynamicPulseDuration = signal<number>(0.05); // 50 ms
+  dynamicNumTalbotPoints = signal<number>(32);
+  hhtAlpha = signal<number>(0.0);
+  rayleighAlpha = signal<number>(0.05);
+  rayleighBeta = signal<number>(0.0002);
+
   ngOnInit(): void {
     // 1. Verify Rust Core IPC
     invoke<string>("greet", { name: "Antigravity Engineer" })
@@ -126,8 +193,35 @@ export class AppComponent implements OnInit {
     this.activeDomain.set(domain);
   }
 
-  onPresetChange(event: Event): void {
-    const val = (event.target as HTMLSelectElement).value as PresetKey;
+  openSolverMethodsDialog(): void {
+    this.dialogService.open<void, void>(
+      SolverMethodsDialogComponent,
+      {
+        title: "Platform Solvers Taxonomy & Methodological Roles",
+        eyebrow: "Theoretical Classification · Paper Reference",
+        description: "Comprehensive classification of proprietary BEM-FEM operator splitting, subdomain coupling, and reference benchmarks.",
+        size: "wide",
+      }
+    );
+  }
+
+  async openSurroundingMediumDialog(): Promise<void> {
+    const ref = this.dialogService.open<SurroundingMediumConfig, SurroundingMediumConfig>(
+      SurroundingMediumDialogComponent,
+      {
+        title: "Soil / Surrounding Medium Interaction",
+        eyebrow: "Unbounded Domain Boundary Condition",
+        description: "Configure dynamic impedance Z(s) for soil foundation or far-field radiation.",
+        data: this.mediumConfig(),
+      }
+    );
+    const result = await ref.closed;
+    if (result) {
+      this.mediumConfig.set(result);
+    }
+  }
+
+  onPresetChange(val: PresetKey): void {
     this.selectedPreset.set(val);
     if (val === "Beam3D" || val === "BlockWithCavity3D") {
       this.activeDimension.set("3D");
@@ -137,8 +231,7 @@ export class AppComponent implements OnInit {
     this.generateCurrentMesh();
   }
 
-  onStrategyChange(event: Event): void {
-    const val = (event.target as HTMLSelectElement).value as StrategyKey;
+  onStrategyChange(val: StrategyKey): void {
     this.selectedStrategy.set(val);
     if (val === "VecchioCollinsConcrete") {
       this.activeMetric.set("SecantModulus");
@@ -160,8 +253,7 @@ export class AppComponent implements OnInit {
     this.evaluateCurrentMaterial();
   }
 
-  onMetricChange(event: Event): void {
-    const val = (event.target as HTMLSelectElement).value as PropertyMetric;
+  onMetricChange(val: PropertyMetric): void {
     this.activeMetric.set(val);
     this.evaluateCurrentMaterial();
   }
@@ -172,7 +264,38 @@ export class AppComponent implements OnInit {
     this.evaluateCurrentMaterial();
   }
 
+  onSolverModeChange(val: SolverMode): void {
+    this.solverMode.set(val);
+    this.solverService.selectedMode.set(val);
+  }
+
+  onHarmonicSolverModeChange(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value as HarmonicSolverMode;
+    this.harmonicSolverMode.set(val);
+    this.solverService.harmonicSolverMode.set(val);
+  }
+
+  onBemElementTypeChange(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value as BemElementType;
+    this.bemElementType.set(val);
+    this.solverService.bemElementType.set(val);
+  }
+
+  onStressStateChange(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value as StressState2D;
+    this.stressState.set(val);
+    this.solverService.stressState.set(val);
+  }
+
+  onHybridAccelerationChange(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value as HybridAccelerationType;
+    this.hybridAccelerationType.set(val);
+    this.solverService.hybridAccelerationType.set(val);
+  }
+
   async generateCurrentMesh(): Promise<void> {
+    this.solverService.clearResult();
+
     const preset = this.selectedPreset();
     let request: MeshGeneratorRequest;
 
@@ -232,16 +355,12 @@ export class AppComponent implements OnInit {
     }
   }
 
-  async evaluateCurrentMaterial(nodesInput?: [number, number, number][]): Promise<void> {
-    const nodes = nodesInput ?? this.meshService.currentMesh()?.nodes ?? [];
-    if (nodes.length === 0) return;
-
+  buildCurrentStrategyConfig(): MaterialStrategyConfig {
     const strat = this.selectedStrategy();
-    let strategyConfig: MaterialStrategyConfig;
 
     if (strat === "DirectionalGradient") {
       const lengthScale = this.activeDimension() === "2D" ? this.beamLength() : this.beam3dLength();
-      strategyConfig = {
+      return {
         type: "DirectionalGradient",
         params: {
           axis: this.gradientAxis(),
@@ -252,7 +371,7 @@ export class AppComponent implements OnInit {
         },
       };
     } else if (strat === "AnalyticalExpression") {
-      strategyConfig = {
+      return {
         type: "AnalyticalExpression",
         params: {
           expression: this.mathExpression(),
@@ -263,7 +382,7 @@ export class AppComponent implements OnInit {
       const cy = this.activeDimension() === "2D" ? this.beamHeight() / 2.0 : this.beam3dHeight() / 2.0;
       const cz = this.activeDimension() === "2D" ? 0.0 : this.beam3dDepth() / 2.0;
 
-      strategyConfig = {
+      return {
         type: "Inclusion",
         params: {
           shape: this.inclusionShape(),
@@ -277,7 +396,7 @@ export class AppComponent implements OnInit {
         },
       };
     } else if (strat === "VecchioCollinsConcrete") {
-      strategyConfig = {
+      return {
         type: "VecchioCollinsConcrete",
         params: {
           fc_prime: this.vcFc() * 1e6, // MPa to Pa
@@ -288,7 +407,7 @@ export class AppComponent implements OnInit {
         },
       };
     } else {
-      strategyConfig = {
+      return {
         type: "J2Plasticity",
         params: {
           sigma_y0: this.j2SigmaY() * 1e6, // MPa to Pa
@@ -297,6 +416,13 @@ export class AppComponent implements OnInit {
         },
       };
     }
+  }
+
+  async evaluateCurrentMaterial(nodesInput?: [number, number, number][]): Promise<void> {
+    const nodes = nodesInput ?? this.meshService.currentMesh()?.nodes ?? [];
+    if (nodes.length === 0) return;
+
+    const strategyConfig = this.buildCurrentStrategyConfig();
 
     try {
       await this.materialService.evaluateField(
@@ -307,6 +433,69 @@ export class AppComponent implements OnInit {
       );
     } catch (e) {
       console.error("Failed to evaluate material field:", e);
+    }
+  }
+
+  async runSolver(): Promise<void> {
+    const mesh = this.meshService.currentMesh();
+    if (!mesh) return;
+
+    const strategyConfig = this.buildCurrentStrategyConfig();
+    const domain = this.activeDomain();
+
+    if (domain === "Static") {
+      this.solverService.simulationRegime.set("static");
+      this.solverService.selectedMode.set(this.solverMode());
+      this.solverService.bemElementType.set(this.bemElementType());
+      this.solverService.stressState.set(this.stressState());
+      this.solverService.hybridAccelerationType.set(this.hybridAccelerationType());
+      this.solverService.andersonDepth.set(this.andersonDepth());
+      this.solverService.andersonBeta.set(this.andersonBeta());
+      this.solverService.relaxationOmega.set(this.relaxationOmega());
+      this.solverService.loadMagnitude.set(this.loadMagnitude());
+      this.solverService.maxIterations.set(this.maxIterations());
+      this.solverService.tolerance.set(this.solverTolerance());
+
+      await this.solverService.runSimulation(
+        mesh,
+        this.materialService.reference(),
+        strategyConfig
+      );
+    } else if (domain === "LaplaceTalbot") {
+      this.solverService.simulationRegime.set("harmonic");
+      this.solverService.harmonicSolverMode.set(this.harmonicSolverMode());
+      this.solverService.frequencyHz.set(this.dynamicFrequency());
+      this.solverService.loadMagnitude.set(this.loadMagnitude());
+      this.solverService.tolerance.set(this.solverTolerance());
+      this.solverService.bemElementType.set(this.bemElementType());
+      this.solverService.stressState.set(this.stressState());
+
+      await this.solverService.runHarmonicSimulation(
+        mesh,
+        this.materialService.reference(),
+        strategyConfig
+      );
+    } else if (domain === "TimeDomain") {
+      this.solverService.simulationRegime.set("transient");
+      this.solverService.transientSolverMode.set(this.transientSolverMode());
+      this.solverService.transientMethod.set(this.transientMethod());
+      this.solverService.bemElementType.set(this.bemElementType());
+      this.solverService.loadMagnitude.set(this.loadMagnitude());
+      this.solverService.totalTime.set(this.dynamicTotalTime());
+      this.solverService.timeSteps.set(this.dynamicTimeSteps());
+      this.solverService.numTalbotPoints.set(this.dynamicNumTalbotPoints());
+      this.solverService.pulseDuration.set(this.dynamicPulseDuration());
+      this.solverService.transientExcitation.set(this.transientExcitation());
+      this.solverService.transientFrequency.set(this.transientFrequency());
+      this.solverService.hhtAlpha.set(this.hhtAlpha());
+      this.solverService.rayleighAlpha.set(this.rayleighAlpha());
+      this.solverService.rayleighBeta.set(this.rayleighBeta());
+
+      await this.solverService.runTransientSimulation(
+        mesh,
+        this.materialService.reference(),
+        strategyConfig
+      );
     }
   }
 }

@@ -1,0 +1,238 @@
+<section class="panel-section">
+  <h2 class="section-title">Material &amp; Inhomogeneity Engine</h2>
+
+  <div class="control-row">
+    <label>Constitutive Model &amp; Spatial Strategy</label>
+    <select
+      class="styled-select"
+      [value]="selectedStrategy()"
+      (change)="onStrategyChange($event)"
+    >
+      <option value="DirectionalGradient">Directional Gradient (FGM / Continuous)</option>
+      <option value="AnalyticalExpression">Analytical Math Expression f(x,y,z)</option>
+      <option value="Inclusion">Discrete Inclusion / Defect Subdomain</option>
+      <option value="VecchioCollinsConcrete">Vecchio-Collins Non-Linear Concrete (MCFT)</option>
+      <option value="J2Plasticity">J2 von Mises Elastoplasticity</option>
+    </select>
+  </div>
+
+  <!-- Strategy Specific Controls -->
+  @if (selectedStrategy() === 'DirectionalGradient') {
+    <div class="slider-group">
+      <div class="slider-header">
+        <span>Inhomogeneity Ratio (&alpha;)</span>
+        <span class="slider-value">{{ gradientAlpha() }}%</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        [value]="gradientAlpha()"
+        (input)="onAlphaChange($event)"
+        class="styled-range"
+      />
+    </div>
+
+    <div class="param-grid">
+      <div class="param-item">
+        <label>Gradient Axis</label>
+        <select
+          class="styled-select"
+          [value]="gradientAxis()"
+          (change)="gradientAxis.set($any($event.target).value); evaluateMaterial.emit()"
+        >
+          <option value="X">X-Axis</option>
+          <option value="Y">Y-Axis</option>
+          <option value="Z">Z-Axis</option>
+        </select>
+      </div>
+      <div class="param-item">
+        <label>Variation Form</label>
+        <select
+          class="styled-select"
+          [value]="gradientForm()"
+          (change)="gradientForm.set($any($event.target).value); evaluateMaterial.emit()"
+        >
+          <option value="Linear">Linear (1 + &alpha;x/L)</option>
+          <option value="Quadratic">Power (1 + &alpha;x/L)^p</option>
+          <option value="Exponential">Exponential e^(&alpha;x/L)</option>
+        </select>
+      </div>
+    </div>
+  }
+
+  @if (selectedStrategy() === 'AnalyticalExpression') {
+    <div class="param-item full-width">
+      <label>Spatial Function: E(x,y,z)</label>
+      <input
+        type="text"
+        class="styled-input"
+        [formField]="expressionForm.mathExpression"
+      />
+      <span class="prop-label">Tokens: x, y, z, E0, nu0, rho0, pi, sin, cos, exp, sqrt</span>
+    </div>
+  }
+
+  @if (selectedStrategy() === 'Inclusion') {
+    <div class="param-grid">
+      <div class="param-item">
+        <label>Inclusion Shape</label>
+        <select
+          class="styled-select"
+          [formField]="inclusionForm.shape"
+          (change)="evaluateMaterial.emit()"
+        >
+          <option value="CylinderZ">Cylinder (Z-Axis)</option>
+          <option value="Sphere">Sphere (3D)</option>
+          <option value="Box">Cuboid Box</option>
+        </select>
+      </div>
+      <div class="param-item">
+        <label>Radius (R)</label>
+        <input
+          type="number"
+          step="0.1"
+          class="styled-input"
+          [formField]="inclusionForm.radius"
+          (change)="evaluateMaterial.emit()"
+        />
+      </div>
+      <div class="param-item full-width">
+        <label>Inclusion Modulus E1 (GPa)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="inclusionForm.e"
+          (change)="evaluateMaterial.emit()"
+        />
+      </div>
+    </div>
+    <div class="checkbox-row">
+      <label class="styled-checkbox-label">
+        <input
+          type="checkbox"
+          [formField]="inclusionForm.smooth"
+          (change)="evaluateMaterial.emit()"
+        />
+        <span>Smooth Sigmoid Interface Transition</span>
+      </label>
+    </div>
+  }
+
+  @if (selectedStrategy() === 'VecchioCollinsConcrete') {
+    <div class="param-grid">
+      <div class="param-item">
+        <label>Strength f'c (MPa)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="concreteForm.fc"
+          (change)="evaluateMaterial.emit()"
+        />
+      </div>
+      <div class="param-item">
+        <label>Peak Strain &epsilon;0</label>
+        <input
+          type="number"
+          step="0.0005"
+          class="styled-input"
+          [formField]="concreteForm.eps0"
+          (change)="evaluateMaterial.emit()"
+        />
+      </div>
+      <div class="param-item full-width">
+        <label>Tensile Cracking Strain &epsilon;1</label>
+        <input
+          type="number"
+          step="0.001"
+          class="styled-input"
+          [formField]="concreteForm.simStrain"
+          (change)="evaluateMaterial.emit()"
+        />
+      </div>
+    </div>
+  }
+
+  @if (selectedStrategy() === 'J2Plasticity') {
+    <div class="param-grid">
+      <div class="param-item">
+        <label>Yield &sigma;y0 (MPa)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="plasticityForm.sigmaY"
+          (change)="evaluateMaterial.emit()"
+        />
+      </div>
+      <div class="param-item">
+        <label>Hardening H (MPa)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="plasticityForm.hardening"
+          (change)="evaluateMaterial.emit()"
+        />
+      </div>
+      <div class="param-item full-width">
+        <label>Plastic Strain &epsilon;p</label>
+        <input
+          type="number"
+          step="0.005"
+          class="styled-input"
+          [formField]="plasticityForm.plasticStrain"
+          (change)="evaluateMaterial.emit()"
+        />
+      </div>
+    </div>
+  }
+
+  <!-- Property to display on Colormap -->
+  <div class="control-row">
+    <label>Visualized Field Metric</label>
+    <select
+      class="styled-select"
+      [value]="activeMetric()"
+      (change)="onMetricChange($event)"
+    >
+      <option value="YoungsModulus">Young's Modulus E(x)</option>
+      <option value="ShearModulus">Shear Modulus &mu;(x)</option>
+      <option value="PoissonRatio">Poisson's Ratio &nu;(x)</option>
+      <option value="Density">Mass Density &rho;(x)</option>
+      <option value="WaveSpeedP">P-Wave Speed cp(x)</option>
+      <option value="WaveSpeedS">S-Wave Speed cs(x)</option>
+      @if (selectedStrategy() === 'VecchioCollinsConcrete') {
+        <option value="SecantModulus">Non-Linear Secant Modulus Es</option>
+      }
+      @if (selectedStrategy() === 'J2Plasticity') {
+        <option value="YieldStrength">Yield Strength &sigma;y(x)</option>
+      }
+    </select>
+  </div>
+
+  <div class="button-row">
+    <button
+      type="button"
+      class="btn btn-secondary"
+      (click)="evaluateMaterial.emit()"
+    >
+      Update Material Field
+    </button>
+  </div>
+
+  <!-- Baseline Reference Properties -->
+  <div class="property-grid">
+    <div class="property-item">
+      <span class="prop-label">E0 (Ref)</span>
+      <span class="prop-val">{{ (materialService.reference().e0 * 1e-6).toFixed(0) }} MPa</span>
+    </div>
+    <div class="property-item">
+      <span class="prop-label">&nu;0</span>
+      <span class="prop-val">{{ materialService.reference().nu0.toFixed(2) }}</span>
+    </div>
+    <div class="property-item">
+      <span class="prop-label">&rho;0</span>
+      <span class="prop-val">{{ materialService.reference().rho0 }} kg/m³</span>
+    </div>
+  </div>
+</section>

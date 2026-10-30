@@ -1,0 +1,274 @@
+<div class="dock-container" [class.collapsed]="!isExpanded()">
+  <!-- Dock Header Bar -->
+  <div class="dock-header">
+    <div class="dock-tabs">
+      <button
+        type="button"
+        class="dock-tab-btn"
+        [class.active]="activeTab() === 'history'"
+        (click)="activeTab.set('history'); isExpanded.set(true)"
+      >
+        <span class="tab-icon">📈</span>
+        <span>Response History u<sub>y</sub>(t)</span>
+      </button>
+
+      <button
+        type="button"
+        class="dock-tab-btn"
+        [class.active]="activeTab() === 'diagnostics'"
+        (click)="activeTab.set('diagnostics'); isExpanded.set(true)"
+      >
+        <span class="tab-icon">📊</span>
+        <span>Convergence & Diagnostics</span>
+      </button>
+    </div>
+
+    <!-- Active Legend Badges -->
+    <div class="dock-legend" *ngIf="isExpanded() && activeTab() === 'history'">
+      @if (solverService.talbotTransientResult(); as talbot) {
+        <span class="legend-badge talbot">
+          <span class="legend-dot"></span>
+          <span>Talbot: {{ (talbot.max_overall_displacement * 1000).toFixed(3) }} mm</span>
+        </span>
+      }
+
+      @if (solverService.newmarkTransientResult(); as newmark) {
+        <span class="legend-badge newmark">
+          <span class="legend-dot"></span>
+          <span>Newmark-&beta;: {{ (newmark.max_overall_displacement * 1000).toFixed(3) }} mm</span>
+        </span>
+      }
+
+      @if (staticEulerBernoulliMm(); as staticVal) {
+        <span class="legend-badge static">
+          <span class="legend-line"></span>
+          <span>Static EB: {{ staticVal.toFixed(3) }} mm</span>
+        </span>
+      }
+    </div>
+
+    <!-- Right Controls -->
+    <div class="dock-actions">
+      <button
+        type="button"
+        class="dock-action-btn"
+        (click)="exportCsv()"
+        title="Export response time-series as CSV for Excel/Origin"
+        [disabled]="!solverService.talbotTransientResult() && !solverService.newmarkTransientResult()"
+      >
+        <span>📥 CSV</span>
+      </button>
+
+      <button
+        type="button"
+        class="dock-action-btn"
+        (click)="exportSvg()"
+        title="Export vector chart as SVG for publication"
+        [disabled]="!solverService.talbotTransientResult() && !solverService.newmarkTransientResult()"
+      >
+        <span>📷 SVG</span>
+      </button>
+
+      <button
+        type="button"
+        class="dock-action-btn toggle-dock-btn"
+        (click)="toggleExpand()"
+        [title]="isExpanded() ? 'Collapse Engineering Dock' : 'Expand Engineering Dock'"
+      >
+        <span>{{ isExpanded() ? '▾' : '▴' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Dock Body -->
+  @if (isExpanded()) {
+    <div class="dock-body">
+      @if (activeTab() === 'history') {
+        <div class="chart-wrapper">
+          @if (!solverService.talbotTransientResult() && !solverService.newmarkTransientResult()) {
+            <div class="empty-chart-state">
+              <span class="empty-icon">📈</span>
+              <span>No transient simulation data yet. Select <strong>Transient</strong> and click <strong>Run Solver</strong> to generate side-by-side benchmarking curves.</span>
+            </div>
+          } @else {
+            <svg
+              id="transient-response-svg"
+              class="response-svg"
+              viewBox="0 0 900 180"
+              preserveAspectRatio="none"
+              (click)="onChartClick($event)"
+            >
+              <defs>
+                <linearGradient id="talbotGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.3" />
+                  <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
+                </linearGradient>
+                <linearGradient id="newmarkGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.25" />
+                  <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.0" />
+                </linearGradient>
+              </defs>
+
+              <!-- Grid lines -->
+              <g class="grid-lines" stroke="rgba(255, 255, 255, 0.07)" stroke-dasharray="3,3">
+                <line x1="55" y1="25" x2="870" y2="25" />
+                <line x1="55" y1="62" x2="870" y2="62" />
+                <line x1="55" y1="100" x2="870" y2="100" />
+                <line x1="55" y1="137" x2="870" y2="137" />
+                <line x1="55" y1="150" x2="870" y2="150" stroke="rgba(255, 255, 255, 0.2)" stroke-dasharray="none" />
+                <line x1="55" y1="25" x2="55" y2="150" stroke="rgba(255, 255, 255, 0.2)" stroke-dasharray="none" />
+              </g>
+
+              <!-- Y-Axis Labels (Displacement mm) -->
+              <g class="axis-labels" fill="#94a3b8" font-size="10" font-family="monospace">
+                <text x="48" y="28" text-anchor="end">{{ plotBounds().maxDispMm.toFixed(3) }} mm</text>
+                <text x="48" y="88" text-anchor="end">{{ (plotBounds().maxDispMm * 0.5).toFixed(3) }} mm</text>
+                <text x="48" y="153" text-anchor="end">0.000 mm</text>
+              </g>
+
+              <!-- X-Axis Labels (Time s) -->
+              <g class="axis-labels" fill="#94a3b8" font-size="10" font-family="monospace">
+                <text x="55" y="168" text-anchor="middle">t = 0 s</text>
+                <text x="258" y="168" text-anchor="middle">{{ (plotBounds().maxT * 0.25).toFixed(2) }} s</text>
+                <text x="462" y="168" text-anchor="middle">{{ (plotBounds().maxT * 0.50).toFixed(2) }} s</text>
+                <text x="666" y="168" text-anchor="middle">{{ (plotBounds().maxT * 0.75).toFixed(2) }} s</text>
+                <text x="870" y="168" text-anchor="middle">t = {{ plotBounds().maxT.toFixed(2) }} s</text>
+              </g>
+
+              <!-- Static Euler-Bernoulli Reference Line -->
+              @if (staticLineY(); as sY) {
+                <g class="static-ref-line">
+                  <line
+                    x1="55"
+                    [attr.y1]="sY"
+                    x2="870"
+                    [attr.y2]="sY"
+                    stroke="#a855f7"
+                    stroke-dasharray="6,4"
+                    stroke-width="1.5"
+                  />
+                  <text
+                    x="865"
+                    [attr.y]="sY - 4"
+                    fill="#a855f7"
+                    font-size="9"
+                    font-weight="bold"
+                    font-family="monospace"
+                    text-anchor="end"
+                  >
+                    Static EB: {{ staticEulerBernoulliMm()?.toFixed(3) }} mm
+                  </text>
+                </g>
+              }
+
+              <!-- Talbot Contour Curve (Cyan) -->
+              @if (talbotPath(); as tPath) {
+                <path
+                  [attr.d]="tPath"
+                  fill="none"
+                  stroke="#38bdf8"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  filter="drop-shadow(0 0 4px rgba(56, 189, 248, 0.5))"
+                />
+              }
+
+              <!-- Newmark-β Direct Curve (Amber) -->
+              @if (newmarkPath(); as nPath) {
+                <path
+                  [attr.d]="nPath"
+                  fill="none"
+                  stroke="#f59e0b"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  filter="drop-shadow(0 0 3px rgba(245, 158, 11, 0.4))"
+                />
+
+                <!-- Markers at each discrete Newmark time step -->
+                @for (pt of newmarkPoints(); track pt.time) {
+                  <circle
+                    [attr.cx]="pt.cx"
+                    [attr.cy]="pt.cy"
+                    r="3"
+                    fill="#f59e0b"
+                    stroke="#1e293b"
+                    stroke-width="1.5"
+                  />
+                }
+              }
+
+              <!-- Interactive Frame Cursor Line (tracks animation scrubbing) -->
+              @if (currentCursorX(); as curX) {
+                <g class="playback-cursor">
+                  <line
+                    [attr.x1]="curX"
+                    y1="20"
+                    [attr.x2]="curX"
+                    y2="155"
+                    stroke="#ffffff"
+                    stroke-width="1.5"
+                    stroke-dasharray="2,2"
+                  />
+                  <polygon
+                    [attr.points]="(curX - 4) + ',20 ' + (curX + 4) + ',20 ' + curX + ',26'"
+                    fill="#ffffff"
+                  />
+                </g>
+              }
+            </svg>
+          }
+        </div>
+      } @else {
+        <!-- Diagnostics & Convergence Tab -->
+        <div class="diagnostics-panel">
+          <div class="diag-cards">
+            <div class="diag-card">
+              <span class="card-label">Last Mode Executed</span>
+              <span class="card-value">{{ solverService.simulationRegime() | uppercase }} ({{ solverService.transientMethod() }})</span>
+            </div>
+            <div class="diag-card">
+              <span class="card-label">Execution Wall Time</span>
+              <span class="card-value highlight">
+                {{ solverService.transientResult()?.execution_time_ms?.toFixed(1) ?? solverService.currentResult()?.execution_time_ms?.toFixed(1) ?? '—' }} ms
+              </span>
+            </div>
+            <div class="diag-card">
+              <span class="card-label">Euler-Bernoulli Analytical</span>
+              <span class="card-value">{{ staticEulerBernoulliMm()?.toFixed(3) ?? '—' }} mm</span>
+            </div>
+            <div class="diag-card">
+              <span class="card-label">Mesh Total DOFs</span>
+              <span class="card-value">{{ (meshService.currentMesh()?.nodes?.length ?? 0) * (meshService.currentMesh()?.dimension ?? 2) }}</span>
+            </div>
+          </div>
+
+          <!-- Iteration logs if static solver ran -->
+          @if (solverService.currentResult()?.convergence_history; as history) {
+            <div class="history-table-wrapper">
+              <table class="diag-table">
+                <thead>
+                  <tr>
+                    <th>Iter</th>
+                    <th>Residual Norm ||r||</th>
+                    <th>Relative Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (log of history; track log.iteration) {
+                    <tr>
+                      <td>{{ log.iteration }}</td>
+                      <td>{{ log.residual_norm.toExponential(4) }}</td>
+                      <td>{{ log.relative_error.toExponential(4) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,193 @@
+<section class="panel-section">
+  <h2 class="section-title">Geometry &amp; Conformal Meshing</h2>
+
+  <div class="control-row">
+    <label>Benchmark Preset</label>
+    <select
+      class="styled-select"
+      [value]="selectedPreset()"
+      (change)="onPresetChange($event)"
+    >
+      <option value="Beam2D">2D Cantilever Beam (Hex/Tri)</option>
+      <option value="PlateWithHole2D">2D Plate with Circular Hole (Graded)</option>
+      <option value="Beam3D">3D Solid Cantilever Beam (Hex/Tet)</option>
+      <option value="BlockWithCavity3D">3D Solid Block (Conformal)</option>
+    </select>
+  </div>
+
+  <!-- Dynamic Parameters based on Preset (Signal Forms) -->
+  @if (selectedPreset() === 'Beam2D') {
+    <div class="param-grid">
+      <div class="param-item">
+        <label>Length (L)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beamForm.length"
+        />
+      </div>
+      <div class="param-item">
+        <label>Height (H)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beamForm.height"
+        />
+      </div>
+      <div class="param-item">
+        <label>Divs X (nx)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beamForm.nx"
+        />
+      </div>
+      <div class="param-item">
+        <label>Divs Y (ny)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beamForm.ny"
+        />
+      </div>
+    </div>
+    <div class="checkbox-row">
+      <label class="styled-checkbox-label">
+        <input
+          type="checkbox"
+          [formField]="beamForm.useTriangles"
+        />
+        <span>Triangular Elements (Tri3)</span>
+      </label>
+    </div>
+  }
+
+  @if (selectedPreset() === 'PlateWithHole2D') {
+    <div class="param-grid">
+      <div class="param-item">
+        <label>Width (W)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="plateForm.width"
+        />
+      </div>
+      <div class="param-item">
+        <label>Height (H)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="plateForm.height"
+        />
+      </div>
+      <div class="param-item">
+        <label>Hole Radius (R)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="plateForm.radius"
+        />
+      </div>
+      <div class="param-item">
+        <label>Radial Rings (nr)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="plateForm.radialDivs"
+        />
+      </div>
+    </div>
+    <div class="param-item full-width">
+      <label>Angular Divs (n&theta;)</label>
+      <input
+        type="number"
+        step="4"
+        class="styled-input"
+        [formField]="plateForm.angularDivs"
+      />
+    </div>
+  }
+
+  @if (selectedPreset() === 'Beam3D' || selectedPreset() === 'BlockWithCavity3D') {
+    <div class="param-grid">
+      <div class="param-item">
+        <label>Length (L)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beam3dForm.length"
+        />
+      </div>
+      <div class="param-item">
+        <label>Height (H)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beam3dForm.height"
+        />
+      </div>
+      <div class="param-item">
+        <label>Depth (D)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beam3dForm.depth"
+        />
+      </div>
+      <div class="param-item">
+        <label>Divs X (nx)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beam3dForm.nx"
+        />
+      </div>
+      <div class="param-item">
+        <label>Divs Y (ny)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beam3dForm.ny"
+        />
+      </div>
+      <div class="param-item">
+        <label>Divs Z (nz)</label>
+        <input
+          type="number"
+          class="styled-input"
+          [formField]="beam3dForm.nz"
+        />
+      </div>
+    </div>
+    <div class="checkbox-row">
+      <label class="styled-checkbox-label">
+        <input
+          type="checkbox"
+          [formField]="beam3dForm.useTets"
+        />
+        <span>Tetrahedral Mesh (Tet4) via Kuhn Triangulation</span>
+      </label>
+    </div>
+  }
+
+  <div class="button-row">
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="meshService.isGenerating()"
+      (click)="generateCurrentMesh()"
+    >
+      @if (meshService.isGenerating()) {
+        Generating Mesh...
+      } @else {
+        Generate Conformal Mesh
+      }
+    </button>
+  </div>
+
+  @if (meshService.generationError()) {
+    <div class="error-banner">
+      {{ meshService.generationError() }}
+    </div>
+  }
+</section>

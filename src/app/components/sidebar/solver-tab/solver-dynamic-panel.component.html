@@ -1,0 +1,229 @@
+@if (activeDomain() === 'LaplaceTalbot') {
+  <div class="control-row">
+    <label>Solver Pipeline</label>
+    <select
+      class="styled-select"
+      [value]="harmonicSolverMode()"
+      (change)="onHarmonicSolverModeChange($event)"
+    >
+      <option value="PureFEM">Standalone Pure FEM (Complex GMRES)</option>
+      <option value="PureBEM">Standalone Pure BEM (Dynamic Kelvin Kernels)</option>
+      <option value="Robin">Robin Transmission (Soil-Structure Interaction)</option>
+    </select>
+  </div>
+
+  @if (harmonicSolverMode() === 'PureBEM') {
+    @if (activeDimension() === '2D') {
+      <div class="control-row">
+        <label>2D BEM Element Type</label>
+        <select
+          class="styled-select"
+          [value]="bemElementType()"
+          (change)="bemElementType.set($any($event.target).value)"
+        >
+          <option value="Constant">Constant (Center Collocation)</option>
+          <option value="Linear">Linear Continuous (Line2)</option>
+          <option value="LinearDoubleNodes">Linear with Double Nodes</option>
+          <option value="QuadraticDiscontinuous">Quadratic Discontinuous (Line3 &middot; High Accuracy)</option>
+          <option value="Quadratic">Quadratic Continuous (Line3)</option>
+        </select>
+      </div>
+    } @else {
+      <div class="control-row">
+        <label>3D BEM Surface Discretization</label>
+        <select
+          class="styled-select"
+          [value]="bemElementType()"
+          (change)="bemElementType.set($any($event.target).value)"
+        >
+          <option value="Quad4">Quad4 Surface Patches</option>
+          <option value="Tri3">Tri3 Triangular Surface Patches</option>
+        </select>
+      </div>
+    }
+  }
+
+  <div class="control-row">
+    <label>Excitation Frequency (Hz)</label>
+    <input
+      type="number"
+      step="5"
+      class="styled-input"
+      [formField]="dynamicForm.frequency"
+    />
+  </div>
+
+  @if (harmonicSolverMode() === 'Robin') {
+    <div class="control-row" style="margin-top: 10px;">
+      <button
+        type="button"
+        class="btn btn-secondary full-width"
+        style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8125rem; padding: 0.6rem;"
+        (click)="openMediumDialog.emit()"
+      >
+        <span>⚙️ Soil / Medium Interaction...</span>
+        @if (mediumConfig().enabled) {
+          <span style="background: #0284c7; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">ACTIVE</span>
+        }
+      </button>
+    </div>
+  }
+}
+
+@if (activeDomain() === 'TimeDomain') {
+  <div class="control-row">
+    <label>Integration Method</label>
+    <div class="segmented-control domain-sidebar-control">
+      <button
+        type="button"
+        [class.active]="transientMethod() === 'Talbot'"
+        (click)="transientMethod.set('Talbot')"
+      >
+        Talbot (Laplace)
+      </button>
+      <button
+        type="button"
+        [class.active]="transientMethod() === 'Newmark'"
+        (click)="transientMethod.set('Newmark')"
+      >
+        Newmark-&beta; Direct
+      </button>
+    </div>
+  </div>
+
+  @if (transientMethod() === 'Talbot') {
+    <div class="control-row">
+      <label>Solver Pipeline</label>
+      <div class="segmented-control domain-sidebar-control">
+        <button
+          type="button"
+          [class.active]="transientSolverMode() === 'PureFEM'"
+          (click)="transientSolverMode.set('PureFEM')"
+        >
+          Pure FEM
+        </button>
+        <button
+          type="button"
+          [class.active]="transientSolverMode() === 'PureBEM'"
+          (click)="transientSolverMode.set('PureBEM')"
+        >
+          Pure BEM
+        </button>
+      </div>
+    </div>
+
+    @if (transientSolverMode() === 'PureBEM') {
+      <div class="control-row">
+        <label>BEM Element Type</label>
+        @if (activeDimension() === '3D') {
+          <select
+            class="styled-select"
+            [value]="bemElementType()"
+            (change)="bemElementType.set($any($event.target).value)"
+          >
+            <option value="Quad4">Quad4 Surface Patches (Analytic Singular + Gauss)</option>
+            <option value="Tri3">Tri3 Surface Patches (Hammer Quadrature)</option>
+          </select>
+        } @else {
+          <select
+            class="styled-select"
+            [value]="bemElementType()"
+            (change)="bemElementType.set($any($event.target).value)"
+          >
+            <option value="Constant">Constant Elements (Midpoint Collocation)</option>
+            <option value="Linear">Linear Elements (2 Nodes Continuous)</option>
+            <option value="LinearDoubleNodes">Linear Double Nodes (Corners)</option>
+            <option value="Quadratic">Quadratic Elements (3 Nodes Continuous)</option>
+            <option value="QuadraticDiscontinuous">Quadratic Discontinuous (Sub-element collocation)</option>
+          </select>
+        }
+      </div>
+    }
+  }
+
+  <div class="control-row">
+    <label>Excitation Waveform</label>
+    <select
+      class="styled-select"
+      [value]="transientExcitation()"
+      (change)="transientExcitation.set($any($event.target).value)"
+    >
+      <option value="HarmonicSine">Harmonic Sine &middot; sin(2&pi;ft)</option>
+      <option value="HalfSine">Half-Sine Pulse &middot; sin(&pi;t/&Delta;t)</option>
+      <option value="Pulse">Rectangular Pulse &middot; Duration &Delta;t</option>
+      <option value="Step">Heaviside Step &middot; Sustained Load</option>
+    </select>
+  </div>
+
+  <div class="param-grid">
+    @if (transientExcitation() === 'HarmonicSine') {
+      <div class="param-item">
+        <label>Frequency (Hz)</label>
+        <input
+          type="number"
+          step="0.5"
+          class="styled-input"
+          [formField]="dynamicForm.transientFreq"
+        />
+      </div>
+    } @else if (transientExcitation() === 'Pulse' || transientExcitation() === 'HalfSine') {
+      <div class="param-item">
+        <label>Pulse Duration (s)</label>
+        <input
+          type="number"
+          step="0.005"
+          class="styled-input"
+          [formField]="dynamicForm.pulseDuration"
+        />
+      </div>
+    }
+
+    <div class="param-item">
+      <label>Total Time (s)</label>
+      <input
+        type="number"
+        step="0.05"
+        class="styled-input"
+        [formField]="dynamicForm.totalTime"
+      />
+    </div>
+    <div class="param-item">
+      <label>Time Steps</label>
+      <input
+        type="number"
+        class="styled-input"
+        [formField]="dynamicForm.timeSteps"
+      />
+    </div>
+    @if (transientMethod() === 'Talbot') {
+      <div class="param-item">
+        <label>Talbot Nodes</label>
+        <input
+          type="number"
+          step="8"
+          class="styled-input"
+          [formField]="dynamicForm.talbotPoints"
+        />
+      </div>
+    } @else {
+      <div class="param-item">
+        <label>HHT-&alpha; Dissipation</label>
+        <input
+          type="number"
+          step="0.05"
+          class="styled-input"
+          [formField]="dynamicForm.hhtAlpha"
+        />
+      </div>
+      <div class="param-item">
+        <label>Rayleigh &alpha;<sub>R</sub></label>
+        <input
+          type="number"
+          step="0.01"
+          class="styled-input"
+          [formField]="dynamicForm.rayleighAlpha"
+        />
+      </div>
+    }
+  </div>
+}

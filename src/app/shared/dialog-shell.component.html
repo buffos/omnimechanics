@@ -1,0 +1,43 @@
+<div
+  class="bem-backdrop"
+  [class.bem-dialog-inactive]="!active()"
+  [attr.aria-hidden]="active() ? null : 'true'"
+  [attr.inert]="active() ? null : ''"
+>
+  <button
+    class="bem-backdrop-dismiss"
+    type="button"
+    tabindex="-1"
+    [attr.aria-label]="'Close ' + dialog().config.title"
+    (click)="dismiss()"
+  ></button>
+  <section
+    class="bem-dialog"
+    [class.bem-dialog--wide]="dialog().config.size === 'wide'"
+    role="dialog"
+    tabindex="-1"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleID()"
+    (keydown.escape)="dismiss()"
+    (keydown)="trapFocus($event)"
+  >
+    <button
+      class="bem-close"
+      type="button"
+      [attr.aria-label]="'Close ' + dialog().config.title"
+      (click)="dismiss()"
+    >
+      ×
+    </button>
+    @if (dialog().config.eyebrow; as eyebrow) {
+      <p class="bem-eyebrow">{{ eyebrow }}</p>
+    }
+    <h2 [id]="titleID()">{{ dialog().config.title }}</h2>
+    @if (dialog().config.description; as description) {
+      <p class="bem-dialog-description">{{ description }}</p>
+    }
+    <div class="bem-dialog-body">
+      <ng-content />
+    </div>
+  </section>
+</div>
