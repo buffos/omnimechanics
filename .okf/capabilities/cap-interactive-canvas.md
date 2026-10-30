@@ -21,16 +21,17 @@ Provide an intuitive, responsive, and aesthetically modern visual workspace for 
 - **3D / 2D Viewport (Three.js):**
   - Smooth orbit controls, perspective / orthographic cameras, lighting, and coordinate axes.
   - Mesh rendering modes: Surface solid, wireframe overlay, volume element edges.
-  - 3D Interactive Face / Edge Picking: Click directly on boundary facets to apply fixed displacements ($\bar{u}_i = 0$) or prescribed tractions ($\bar{t}_i = P$).
+  - 3D Interactive Face / Edge Picking: Click directly on boundary facets to apply fixed displacements ($\bar{u}_i = 0$), prescribed tractions ($\bar{t}_i = P$), or Radiating / Robin Interface ($\mathbf{t} + \mathbf{Z}\mathbf{u} = \mathbf{g}$).
   - 3D Dynamic Clipping Plane Slider: Slice into the 3D volume to inspect internal stress fields and material variation.
 - **Physical Field Visualization:**
   - Material stiffness heatmap $\mu(\mathbf{x})$ rendered over undeformed mesh.
   - Deformed mesh representation with interactive displacement exaggeration slider ($\times 1, \times 10, \times 100, \times 1000$).
-  - Continuous colormaps (Viridis, Coolwarm, Jet) for von Mises stress $\sigma_{\text{vM}}$, principal stresses, and displacement magnitudes $\|\mathbf{u}\|$.
+  - Continuous colormaps (Viridis, Coolwarm, Turbo, Jet) for von Mises stress $\sigma_{\text{vM}}$, principal stresses, and displacement magnitudes $\|\mathbf{u}\|$.
   - Vector glyph arrows depicting applied loads and reaction tractions.
-- **Scientific Analytics Dashboard (Angular 20+ Signals):**
+- **Scientific Analytics & Minimalist UI Architecture (Angular 20+ Signals):**
   - Live streaming residual convergence plot (updated live on each iteration via Tauri IPC).
-  - Benchmark sweep comparison charts.
+  - Transient wave playback bar with slider scrubbing, play/pause, and frame stepping.
+  - **Modular Dialog & Toast System:** Standalone `DialogService` / `DialogHost` and `NotificationService` / `NotificationHost` (adapted from `code.teacher`) to declutter sidebars and present advanced modal configuration (external soil medium, Talbot parameters, time marching, material expressions) without visual noise.
   - Parameter control sidebars with reactive forms and instant validation.
 
 ### Excluded:

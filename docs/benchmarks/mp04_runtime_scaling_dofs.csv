@@ -1,0 +1,5 @@
+resolution,num_nodes,total_dofs,pure_fem_cpu_ms,operator_splitting_cpu_ms,speedup,avg_fem_gmres_iters,avg_splitting_iters
+8x2,27,54,1.55,3.47,0.45,41.0,7.8
+16x4,85,170,5.30,17.65,0.30,86.1,8.1
+32x8,297,594,15.89,197.39,0.08,100.0,30.0
+64x16,1105,2210,111.62,1074.99,0.10,100.0,30.0

@@ -1,0 +1,17 @@
+study_name,parameter_label,parameter_value,contrast_ratio,method_name,omega,converged,iterations,spectral_radius_est,final_rel_error,max_disp_bemfem_m,max_disp_pure_fem_m,rel_l2_disp_error,cpu_time_ms
+Soft_Inclusion_Cavity,E_cavity/E_rock,1.000000,1.000000,BEMFEM (Unrelaxed w=1.00),1.00,true,1,0.000000,1.937762e-7,1.679036e-5,1.679036e-5,1.127400e-11,0.350
+Soft_Inclusion_Cavity,E_cavity/E_rock,1.000000,1.000000,BEMFEM (Relaxed w=0.85),0.85,true,1,0.000000,1.895007e-7,1.679036e-5,1.679036e-5,0.000000e0,0.323
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.800000,0.800000,BEMFEM (Unrelaxed w=1.00),1.00,true,6,0.176783,7.156942e-5,1.683487e-5,1.683487e-5,1.235128e-7,1.135
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.800000,0.800000,BEMFEM (Relaxed w=0.85),0.85,true,8,0.299512,9.099024e-5,1.683487e-5,1.683487e-5,1.770377e-7,1.552
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.500000,0.500000,BEMFEM (Unrelaxed w=1.00),1.00,true,13,0.443177,5.820930e-5,1.692074e-5,1.692074e-5,1.434204e-7,2.637
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.500000,0.500000,BEMFEM (Relaxed w=0.85),0.85,true,16,0.526720,6.754942e-5,1.692074e-5,1.692074e-5,1.668513e-7,3.398
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.200000,0.200000,BEMFEM (Unrelaxed w=1.00),1.00,true,30,0.709130,7.632826e-5,1.706261e-5,1.706262e-5,3.548926e-7,5.850
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.200000,0.200000,BEMFEM (Relaxed w=0.85),0.85,true,36,0.753060,7.842373e-5,1.706261e-5,1.706262e-5,3.647078e-7,7.170
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.100000,0.100000,BEMFEM (Unrelaxed w=1.00),1.00,true,45,0.797994,8.858934e-5,1.715129e-5,1.715130e-5,5.890197e-7,8.346
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.100000,0.100000,BEMFEM (Relaxed w=0.85),0.85,true,54,0.828451,8.379615e-5,1.715129e-5,1.715130e-5,5.570905e-7,11.519
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.050000,0.050000,BEMFEM (Unrelaxed w=1.00),1.00,true,59,0.842142,9.134266e-5,1.722089e-5,1.722090e-5,7.746760e-7,12.038
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.050000,0.050000,BEMFEM (Relaxed w=0.85),0.85,true,70,0.865983,9.351145e-5,1.722089e-5,1.722090e-5,7.928695e-7,15.321
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.010000,0.010000,BEMFEM (Unrelaxed w=1.00),1.00,true,77,0.877809,9.971546e-5,1.730460e-5,1.730461e-5,1.084351e-6,15.873
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.010000,0.010000,BEMFEM (Relaxed w=0.85),0.85,false,80,0.896160,3.451044e-4,1.730457e-5,1.730461e-5,-1.000000e0,14.843
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.001000,0.001000,BEMFEM (Unrelaxed w=1.00),1.00,false,80,0.885795,1.390779e-4,1.732943e-5,1.732945e-5,-1.000000e0,16.643
+Soft_Inclusion_Cavity,E_cavity/E_rock,0.001000,0.001000,BEMFEM (Relaxed w=0.85),0.85,false,80,0.902934,6.318319e-4,1.732937e-5,1.732945e-5,-1.000000e0,13.159

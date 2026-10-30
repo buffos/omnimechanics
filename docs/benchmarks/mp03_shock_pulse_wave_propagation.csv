@@ -1,0 +1,7 @@
+method,parameter_label,parameter_value,peak_tip_disp_mm,wavefront_arrival_time_s,max_von_mises_mpa,cpu_time_ms
+Newmark (Undamped),Alpha_HHT / Damping,0.0000,0.136170,0.0030,0.0000,22.97
+Newmark (Rayleigh Damped),Alpha_HHT / Damping,0.0000,0.132415,0.0030,0.0000,21.18
+HHT-Alpha (Dissipative a=-0.05),Alpha_HHT / Damping,-0.0500,0.133590,0.0030,0.0000,21.71
+HHT-Alpha (Dissipative a=-0.10),Alpha_HHT / Damping,-0.1000,0.132869,0.0030,0.0000,21.39
+Deformed Talbot (32 nodes),Contour Nodes,32.0000,0.133671,0.0030,0.0000,5.68
+Deformed Talbot (64 nodes),Contour Nodes,64.0000,0.135538,0.0030,0.0000,7.22
