@@ -24,37 +24,40 @@ Derived navigation roadmap based on Open Knowledge Format (`.okf/`) capability g
 
 | Capability Node | Specification | Implementation | Review Gate | Overall State |
 |---|---|---|---|---|
-| `cap-geometry-meshing` | Complete (Rollup) | Partial (Children) | In Progress | `foggy` (rollup) |
+| `cap-geometry-meshing` | Complete (Rollup) | Partial (Children) | In Progress | `specified` (rollup) |
 | ↳ `cap-geometry-presets` | Complete | Verified (2D/3D conformal tessellation) | Approved | `implemented` |
-| ↳ `cap-geometry-cad-import` | Draft Intent | Not Started | Needs Discovery | `foggy` |
-| ↳ `cap-geometry-canvas-sketcher` | Draft Intent | Not Started | Needs Discovery | `foggy` |
+| ↳ `cap-geometry-cad-import` | Complete | Pending Implementation | Specified | `specified` |
+| ↳ `cap-geometry-canvas-sketcher` | Complete | Pending Implementation | Specified | `specified` |
 | `cap-material-field` | Complete | Verified (5 Open-Closed FGM strategies) | Approved | `implemented` |
 | `cap-solver-core` | Complete | Verified (Static, Dynamic GMRES, Talbot, Newmark) | Approved | `implemented` |
 | `cap-interactive-canvas` | Ready | In Progress (Viewport, Modal Dialogs active) | Visual Review | `bounded` |
-| `cap-parametric-benchmarking` | Bounded | Ready for implementation | Pending | `bounded` |
+| `cap-parametric-benchmarking` | Complete | Verified (Mini-Papers 1-5, Issues 008-013) | Approved | `implemented` |
 | `cap-project-persistence` | Bounded | Blocked on CAD / canvas state | Pending | `bounded` |
-| `cap-structural-mechanics-teaching` | Draft Intent | Not Started | Needs Discovery | `foggy` |
-| `cap-eurocode-rc-design` | Draft Intent | Not Started | Needs Discovery | `foggy` |
+| `cap-structural-mechanics-teaching` | Complete | Slice 1 Verified (Issue 014 closed) | Approved | `in-progress` |
+| `cap-eurocode-rc-design` | Complete | Ready for Slicing | Specified | `specified` |
 
 ---
 
 ## Active Delivery Frontier & Next Transitions
 
-### 1. Mode 1 Frontier: Interactive Response History & Benchmarking Curves (`cap-parametric-benchmarking`)
-- **Capability Owner:** `cap-parametric-benchmarking` & `cap-interactive-canvas`
-- **Focus:** Collapsible Bottom Engineering Dock with dynamic response history plotting ($u_{\text{tip}}(t)$), comparing Talbot contour vs Newmark-$\beta$.
+### 1. Mode 2 Frontier: Interactive Canvas Sketcher (`cap-geometry-canvas-sketcher`) [RECOMMENDED NEXT STEP]
+- **Capability Owner:** `cap-geometry-canvas-sketcher` (Parent: `cap-geometry-meshing`)
+- **Status:** Specified and ready for issue generation / implementation.
+- **Scope:** Interactive 2D drawing studio directly in the viewport:
+  - Click-and-drag drawing of 1D members (beams, columns, truss bars) with orthogonal lock and magnetic snapping.
+  - Support palette (fixed, pinned, roller, internal hinges).
+  - Load palette (point loads, distributed loads, concentrated moments).
+  - Seamless handoff to Mode 3 Teaching Engine (solving user-drawn custom frames) and Mode 1 continuum mesher.
+- **Why Now:** Solves the key user requirement: *"πώς θα γίνεται η εισαγωγή φορέα; Δεν έχουμε κάνει ακόμη τον Interactive Canvas Sketcher... Θα γίνει μετά λογικά."*
 
-### 2. Mode 2 Frontier: Canvas Sketcher & CAD Ingestion (`cap-geometry-meshing`)
-- **Capability Owner:** `cap-geometry-canvas-sketcher` & `cap-geometry-cad-import`
-- **Transition:** Clear fog on interactive 2D drafting canvas (lines, polygons, holes, snapping) and DXF polyline ingestion into conformal meshes.
-
-### 3. Mode 3 Frontier: Structural Mechanics & Eurocode Teaching Engine (`cap-structural-mechanics-teaching`)
-- **Capability Owner:** `cap-structural-mechanics-teaching` & `cap-eurocode-rc-design`
-- **Transition:** Clear fog on 2D frame analytical step-by-step solver:
-  - Isostatic: Method of Sections, Method of Joints, Beam analytical equations ($M, Q, N$).
-  - Hyperstatic: Force Method, 3-Moment Clapeyron, Slope-Deflection, Cross, Kani.
-  - Energy: Principle of Virtual Work (ΑΔΕ), Castigliano.
-  - Module 3B: Eurocode 2 (EN 1992-1-1) reinforced concrete beam/column cross-section dimensioning & rebar detailing.
+### 2. Mode 3 Frontier: Advanced Analytical Structural Mechanics & Eurocode
+- **Alternative A (`cap-structural-mechanics-teaching` Slice 2):**
+  - Force Method (Μέθοδος Δυνάμεων) with primary isostatic system & Vereshchagin/Mohr integration $\delta_{ik}$.
+  - Principle of Virtual Work (Αρχή Δυνατών Έργων - ΑΔΕ) for deflection calculations.
+  - Clapeyron 3-moment equation.
+- **Alternative B (`cap-eurocode-rc-design` Slice 1):**
+  - Eurocode 2 (EN 1992-1-1) cross-sectional concrete design:
+  - Bending ULS ($M_{Ed} \to A_s$), shear ($V_{Ed} \to \rho_w$, stirrups), interaction diagrams ($N-M$), and detailing drawings.
 
 ---
 
