@@ -3,10 +3,12 @@ type: capability
 title: Interactive 2D/3D Canvas Drafting & Custom Geometry Sketcher
 description: Interactive visual drafting studio inside the application viewport enabling engineers and students to sketch custom structural frames, draw arbitrary polygonal continuum domains, insert cutouts, and assign boundary conditions directly on custom geometry.
 tags: [sketcher, cad, drafting, drawing, interactive, 2d, 3d, viewport, boundary-tagging]
-timestamp: 2026-10-30T21:15:00Z
-state: specified
+timestamp: 2026-10-31T02:30:00Z
+state: in-progress
 project: /project.md
 parent: /capabilities/cap-geometry-meshing.md
+issues:
+  - docs/agents/issues/pending/20261031-015-interactive-canvas-sketcher.md
 ---
 
 # Intent

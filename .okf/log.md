@@ -62,3 +62,7 @@
   - Completed user visual and interaction review: added variable point load position slider $x_P$, rendered visible load arrows, ensured strictly vertical shear step boundaries, restored segmented-control styling, pinned preview SVG canvas with independent scrollable derivation pane and sticky toolbar, added full hyperstatic reactions and continuous M, Q, N diagrams to the Cross solver, and fixed LaTeX ampersand escaping.
   - Archived Issue 014 to `docs/agents/issues/done/20261030-014-structural-mechanics-teaching-slice1.md` and removed it from active registry `docs/agents/issues/issues.md`.
   - All automated checks verified (11/11 Rust teaching tests, 0 Angular build errors, all files <= 1000 lines).
+- Created Issue 015 (`cap-geometry-canvas-sketcher`):
+  - Formulated Vertical Slice 1 for Mode 2 Interactive 2D Canvas Drafting & Custom Geometry Sketcher.
+  - Scope: 2D drawing canvas with magnetic snapping, orthogonal lock, support palette (Fixed, Pinned, Roller, Hinge), load palette (Point load, Distributed load, Moments), and seamless handoff to Mode 3 Teaching Studio.
+  - Registered in active registry `docs/agents/issues/issues.md` as `ready`.
