@@ -13,6 +13,7 @@ import { HeaderComponent } from "./components/header/header.component";
 import { GeometryTabComponent } from "./components/sidebar/geometry-tab/geometry-tab.component";
 import { MaterialTabComponent } from "./components/sidebar/material-tab/material-tab.component";
 import { SolverTabComponent } from "./components/sidebar/solver-tab/solver-tab.component";
+import { TeachingStudioComponent } from "./features/teaching/teaching-studio.component";
 import { NotificationService } from "./shared/notification.service";
 import { DialogService } from "./shared/dialog.service";
 import {
@@ -57,6 +58,7 @@ export type StrategyKey =
     GeometryTabComponent,
     MaterialTabComponent,
     SolverTabComponent,
+    TeachingStudioComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./app.component.html",
@@ -68,6 +70,9 @@ export class AppComponent implements OnInit {
   readonly solverService = inject(SolverService);
   readonly dialogService = inject(DialogService);
   readonly notificationService = inject(NotificationService);
+
+  // Top-Level Application Workspace Mode: Mode 1 (Continuum) vs Mode 3 (Teaching Studio)
+  activeWorkspaceMode = signal<"continuum" | "teaching">("continuum");
 
   // Workflow Sidebar Navigation Tab
   activeSidebarTab = signal<"mesh" | "material" | "solver">("solver");

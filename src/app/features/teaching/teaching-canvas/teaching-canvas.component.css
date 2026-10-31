@@ -1,0 +1,156 @@
+.canvas-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.structural-svg {
+  width: 100%;
+  height: 320px;
+  background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: block;
+}
+
+.member-line {
+  stroke: #94a3b8;
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: all 0.3s ease;
+}
+
+.member-line.active-member {
+  stroke: #38bdf8;
+  stroke-width: 8;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+}
+
+.member-label {
+  fill: #cbd5e1;
+  font-size: 11.5px;
+  font-family: system-ui, sans-serif;
+  text-anchor: middle;
+  font-weight: 500;
+}
+
+.node-circle {
+  fill: #f8fafc;
+  stroke: #0284c7;
+  stroke-width: 3;
+  transition: all 0.3s ease;
+}
+
+.node-circle.active-node {
+  fill: #38bdf8;
+  stroke: #fff;
+  stroke-width: 4;
+  r: 10;
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 1));
+}
+
+.node-label {
+  fill: #f8fafc;
+  font-size: 14px;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.support-triangle {
+  fill: #475569;
+  stroke: #cbd5e1;
+  stroke-width: 2;
+}
+
+.reaction-text {
+  fill: #34d399;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: system-ui, sans-serif;
+}
+
+.point-load-line {
+  stroke: #ef4444;
+  stroke-width: 3.5;
+  transition: all 0.2s ease;
+}
+
+.dist-load-line {
+  stroke: #f97316;
+  stroke-width: 2.5;
+}
+
+.dist-load-tick {
+  stroke: #f97316;
+  stroke-width: 1.5;
+  opacity: 0.85;
+}
+
+.load-text {
+  fill: #ef4444;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: system-ui, sans-serif;
+  text-anchor: middle;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+}
+
+.load-pos-text {
+  fill: #fca5a5;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: monospace;
+  text-anchor: middle;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.dist-load-text {
+  fill: #f97316;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: system-ui, sans-serif;
+  text-anchor: middle;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+}
+
+.diagram-m {
+  fill: rgba(59, 130, 246, 0.28);
+  stroke: #3b82f6;
+  stroke-width: 2.5;
+}
+
+.diagram-q {
+  fill: rgba(16, 185, 129, 0.28);
+  stroke: #10b981;
+  stroke-width: 2.5;
+}
+
+.diagram-n {
+  fill: rgba(245, 158, 11, 0.28);
+  stroke: #f59e0b;
+  stroke-width: 2.5;
+}
+
+.diagram-truss-tension {
+  fill: rgba(245, 158, 11, 0.28);
+  stroke: #f59e0b;
+  stroke-width: 1.5;
+}
+
+.diagram-truss-compression {
+  fill: rgba(56, 189, 248, 0.28);
+  stroke: #38bdf8;
+  stroke-width: 1.5;
+}
+
+.diagram-val-text {
+  fill: #38bdf8;
+  font-size: 12px;
+  font-weight: 700;
+  text-anchor: middle;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
+
+

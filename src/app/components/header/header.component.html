@@ -9,46 +9,78 @@
 
   <!-- Dimension & Mode Switchers -->
   <div class="header-controls">
-    <div class="segmented-control">
+    <!-- Top-Level Application Mode Switcher -->
+    <div class="segmented-control mode-switcher">
       <button
         type="button"
-        [class.active]="activeDimension() === '2D'"
-        (click)="dimensionChange.emit('2D')"
+        [class.active]="activeWorkspaceMode() === 'continuum'"
+        (click)="modeChange.emit('continuum')"
+        title="Mode 1: Continuum BEM-FEM Simulation Workbench"
       >
-        2D Continuum
+        {{ i18n.t('nav.continuum') }}
       </button>
       <button
         type="button"
-        [class.active]="activeDimension() === '3D'"
-        (click)="dimensionChange.emit('3D')"
+        [class.active]="activeWorkspaceMode() === 'teaching'"
+        (click)="modeChange.emit('teaching')"
+        title="Mode 3: Educational Structural Mechanics Studio"
       >
-        3D Solid
+        {{ i18n.t('nav.teaching') }}
       </button>
     </div>
 
-    <div class="segmented-control">
-      <button
-        type="button"
-        [class.active]="activeDomain() === 'Static'"
-        (click)="domainChange.emit('Static')"
-      >
-        Static
-      </button>
-      <button
-        type="button"
-        [class.active]="activeDomain() === 'TimeDomain'"
-        (click)="domainChange.emit('TimeDomain')"
-      >
-        Time Domain
-      </button>
-      <button
-        type="button"
-        [class.active]="activeDomain() === 'LaplaceTalbot'"
-        (click)="domainChange.emit('LaplaceTalbot')"
-      >
-        Laplace (Talbot)
-      </button>
-    </div>
+    <!-- Language Switcher Toggle -->
+    <button
+      type="button"
+      class="lang-switcher-btn"
+      (click)="i18n.toggleLanguage()"
+      [title]="i18n.currentLang() === 'el' ? 'Switch to English' : 'Αλλαγή σε Ελληνικά'"
+    >
+      <span>{{ i18n.currentLang() === 'el' ? '🇬🇷 EL' : '🇬🇧 EN' }}</span>
+    </button>
+
+    @if (activeWorkspaceMode() === 'continuum') {
+      <div class="segmented-control">
+        <button
+          type="button"
+          [class.active]="activeDimension() === '2D'"
+          (click)="dimensionChange.emit('2D')"
+        >
+          2D Continuum
+        </button>
+        <button
+          type="button"
+          [class.active]="activeDimension() === '3D'"
+          (click)="dimensionChange.emit('3D')"
+        >
+          3D Solid
+        </button>
+      </div>
+
+      <div class="segmented-control">
+        <button
+          type="button"
+          [class.active]="activeDomain() === 'Static'"
+          (click)="domainChange.emit('Static')"
+        >
+          Static
+        </button>
+        <button
+          type="button"
+          [class.active]="activeDomain() === 'TimeDomain'"
+          (click)="domainChange.emit('TimeDomain')"
+        >
+          Time Domain
+        </button>
+        <button
+          type="button"
+          [class.active]="activeDomain() === 'LaplaceTalbot'"
+          (click)="domainChange.emit('LaplaceTalbot')"
+        >
+          Laplace (Talbot)
+        </button>
+      </div>
+    }
   </div>
 
   <!-- Backend Status Chip -->

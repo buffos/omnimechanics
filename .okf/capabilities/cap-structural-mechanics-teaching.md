@@ -4,9 +4,11 @@ title: Structural Mechanics Step-by-Step Educational & Analysis Engine
 description: Pedagogical structural mechanics analysis platform for 2D isostatic and hyperstatic frames, trusses, and beams, offering interactive step-by-step analytical derivations, equilibrium cuts, internal force diagrams (M, Q, N), Cross & Kani iterative tables, virtual work deflections, and exportable handout sheets.
 tags: [teaching, structural-mechanics, isostatic, hyperstatic, clapeyron, cross, kani, slope-deflection, virtual-work, castigliano, m-q-n-diagrams, step-walker, latex-export]
 timestamp: 2026-10-30T21:15:00Z
-state: specified
+state: in-progress
 project: /project.md
 parent: /project.md
+issues:
+  - docs/agents/issues/done/20261030-014-structural-mechanics-teaching-slice1.md
 ---
 
 # Intent

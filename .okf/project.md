@@ -14,6 +14,8 @@ children:
   - /capabilities/cap-project-persistence.md
   - /capabilities/cap-structural-mechanics-teaching.md
   - /capabilities/cap-eurocode-rc-design.md
+verification:
+  policy: required
 ---
 
 # Intent

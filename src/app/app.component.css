@@ -31,6 +31,14 @@
   overflow: hidden;
 }
 
+app-teaching-studio {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  height: calc(100% - 62px);
+  overflow: hidden;
+}
+
 /* Left Sidebar */
 .sidebar-panel {
   width: 360px;

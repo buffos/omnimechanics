@@ -1,18 +1,24 @@
 <div class="app-layout">
   <!-- Top Navigation Bar Component -->
   <app-header
+    [activeWorkspaceMode]="activeWorkspaceMode()"
     [activeDimension]="activeDimension()"
     [activeDomain]="activeDomain()"
     [backendStatus]="backendStatus()"
+    (modeChange)="activeWorkspaceMode.set($event)"
     (dimensionChange)="setDimension($event)"
     (domainChange)="setDomain($event)"
     (openGuide)="openSolverMethodsDialog()"
   />
 
-  <!-- Main Body: Sidebar + 3D Viewport -->
-  <main class="main-workspace">
-    <!-- Left Inspector Panel -->
-    <aside class="sidebar-panel">
+  <!-- Mode 3: Structural Mechanics Teaching Studio -->
+  @if (activeWorkspaceMode() === 'teaching') {
+    <app-teaching-studio />
+  } @else {
+    <!-- Mode 1: Continuum Mechanics Simulation Workspace -->
+    <main class="main-workspace">
+      <!-- Left Inspector Panel -->
+      <aside class="sidebar-panel">
       <!-- Workflow Navigation Tabs -->
       <div class="sidebar-tabs">
         <button
@@ -146,6 +152,7 @@
       <app-bottom-dock />
     </div>
   </main>
+  }
 
   <app-dialog-host />
   <app-notification-host />

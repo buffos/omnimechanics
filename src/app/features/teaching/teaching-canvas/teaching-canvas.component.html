@@ -1,0 +1,202 @@
+<div class="canvas-container" *ngIf="teaching.solution() as solution">
+  <!-- Interactive SVG Canvas -->
+  <svg
+    class="structural-svg"
+    [attr.viewBox]="'0 0 ' + viewWidth + ' ' + viewHeight"
+    preserveAspectRatio="xMidYMid meet"
+  >
+    <defs>
+      <!-- Arrowhead Marker for Loads and Reactions -->
+      <marker id="load-arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+      </marker>
+      <marker id="reaction-arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+      </marker>
+
+      <!-- Shading pattern for ground / supports -->
+      <pattern id="hatch-pattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#64748b" stroke-width="1.5" />
+      </pattern>
+    </defs>
+
+    <!-- Background Grid -->
+    <g class="grid-layer">
+      <line *ngFor="let g of [1,2,3,4,5,6,7,8]" [attr.x1]="g * 100" y1="0" [attr.x2]="g * 100" [attr.y2]="viewHeight" stroke="rgba(255,255,255,0.03)" stroke-width="1" />
+      <line *ngFor="let g of [1,2,3,4]" x1="0" [attr.y1]="g * 100" [attr.x2]="viewWidth" [attr.y2]="g * 100" stroke="rgba(255,255,255,0.03)" stroke-width="1" />
+    </g>
+
+    <!-- Internal Force Diagram Overlays (M, Q, N) -->
+    <g class="diagram-layer" *ngIf="solution.diagrams && solution.diagrams.length > 0">
+      <g *ngFor="let diag of solution.diagrams">
+        <path
+          [attr.d]="getDiagramPath(diag, solution)"
+          [ngClass]="getDiagramClass(diag, solution)"
+        />
+        <!-- Extreme M values badges -->
+        <g *ngFor="let xz of diag.q_zero_locations; let idx = index">
+          <circle [attr.cx]="getStationGlobalX(diag, xz, solution)" [attr.cy]="mapY(0)" r="4" fill="#38bdf8" />
+          <text [attr.x]="getStationGlobalX(diag, xz, solution)" [attr.y]="mapY(0) + 85" class="diagram-val-text">
+            M_max = {{ diag.m_extreme_values[idx] | number:'1.2-2' }} kNm
+          </text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Structural Members -->
+    <g class="members-layer">
+      <g *ngFor="let mem of solution.members">
+        <!-- Structural line -->
+        <line
+          [attr.x1]="mapX(solution.nodes[mem.start_node].x)"
+          [attr.y1]="mapY(solution.nodes[mem.start_node].y)"
+          [attr.x2]="mapX(solution.nodes[mem.end_node].x)"
+          [attr.y2]="mapY(solution.nodes[mem.end_node].y)"
+          class="member-line"
+          [class.active-member]="isMemberActive(mem.id)"
+        />
+        <!-- Member Label -->
+        <text
+          [attr.x]="(mapX(solution.nodes[mem.start_node].x) + mapX(solution.nodes[mem.end_node].x)) / 2"
+          [attr.y]="(mapY(solution.nodes[mem.start_node].y) + mapY(solution.nodes[mem.end_node].y)) / 2 - 12"
+          class="member-label"
+        >
+          {{ mem.label }} (L={{ mem.length | number:'1.1-1' }}m)
+        </text>
+      </g>
+    </g>
+
+    <!-- Supports Layer -->
+    <g class="supports-layer">
+      <g *ngFor="let sup of solution.supports">
+        <g [attr.transform]="'translate(' + mapX(solution.nodes[sup.node_id].x) + ',' + mapY(solution.nodes[sup.node_id].y) + ')'">
+          <!-- Pinned Support (Triangle + Ground) -->
+          <g *ngIf="sup.condition === 'Pinned'">
+            <polygon points="0,0 -14,24 14,24" class="support-triangle" />
+            <line x1="-20" y1="24" x2="20" y2="24" stroke="#94a3b8" stroke-width="2" />
+            <rect x="-20" y="24" width="40" height="8" fill="url(#hatch-pattern)" />
+          </g>
+
+          <!-- Roller Support (Triangle + Rollers + Ground) -->
+          <g *ngIf="sup.condition === 'RollerX'">
+            <polygon points="0,0 -12,20 12,20" class="support-triangle" />
+            <circle cx="-6" cy="24" r="3" fill="#cbd5e1" />
+            <circle cx="6" cy="24" r="3" fill="#cbd5e1" />
+            <line x1="-18" y1="27" x2="18" y2="27" stroke="#94a3b8" stroke-width="2" />
+            <rect x="-18" y="27" width="36" height="8" fill="url(#hatch-pattern)" />
+          </g>
+
+          <!-- Clamped Support (Wall) -->
+          <g *ngIf="sup.condition === 'Clamped'">
+            <line x1="0" y1="-30" x2="0" y2="30" stroke="#f8fafc" stroke-width="4" />
+            <rect x="-14" y="-30" width="14" height="60" fill="url(#hatch-pattern)" />
+          </g>
+        </g>
+      </g>
+    </g>
+
+    <!-- Applied Loads Layer (Point loads & Distributed loads) -->
+    <g class="loads-layer">
+      <!-- Distributed Loads q -->
+      <g *ngFor="let dl of solution.applied_dist_loads">
+        <!-- Top load line -->
+        <line
+          [attr.x1]="mapX(solution.nodes[solution.members[dl.member_id].start_node].x)"
+          [attr.y1]="mapY(solution.nodes[solution.members[dl.member_id].start_node].y) - 35"
+          [attr.x2]="mapX(solution.nodes[solution.members[dl.member_id].end_node].x)"
+          [attr.y2]="mapY(solution.nodes[solution.members[dl.member_id].end_node].y) - 35"
+          class="dist-load-line"
+        />
+        <!-- Downward load arrows along member -->
+        <g *ngFor="let xt of getDistLoadTicks(solution.members[dl.member_id].length)">
+          <line
+            [attr.x1]="mapX(solution.nodes[solution.members[dl.member_id].start_node].x + xt)"
+            [attr.y1]="mapY(0) - 35"
+            [attr.x2]="mapX(solution.nodes[solution.members[dl.member_id].start_node].x + xt)"
+            [attr.y2]="mapY(0) - 4"
+            class="dist-load-tick"
+            marker-end="url(#load-arrow)"
+          />
+        </g>
+        <!-- Distributed load label -->
+        <text
+          [attr.x]="(mapX(solution.nodes[solution.members[dl.member_id].start_node].x) + mapX(solution.nodes[solution.members[dl.member_id].end_node].x)) / 2"
+          [attr.y]="mapY(0) - 42"
+          class="dist-load-text"
+        >
+          q = {{ dl.q_start | number:'1.1-2' }} kN/m
+        </text>
+      </g>
+
+      <!-- Point Loads P -->
+      <g *ngFor="let pl of solution.applied_point_loads">
+        <!-- Downward arrow onto beam/joint -->
+        <line
+          [attr.x1]="mapX(pl.distance_from_start)"
+          [attr.y1]="mapY(0) - 65"
+          [attr.x2]="mapX(pl.distance_from_start)"
+          [attr.y2]="mapY(0) - 6"
+          class="point-load-line"
+          marker-end="url(#load-arrow)"
+        />
+        <!-- Load text label -->
+        <text
+          [attr.x]="mapX(pl.distance_from_start)"
+          [attr.y]="mapY(0) - 72"
+          class="load-text"
+        >
+          P = {{ pl.p | number:'1.1-2' }} kN
+        </text>
+        <text
+          *ngIf="solution.system_type !== 'truss'"
+          [attr.x]="mapX(pl.distance_from_start)"
+          [attr.y]="mapY(0) - 15"
+          class="load-pos-text"
+        >
+          x = {{ pl.distance_from_start | number:'1.2-2' }}m
+        </text>
+      </g>
+    </g>
+
+    <!-- Reactions Layer (Green vectors) -->
+    <g class="reactions-layer" *ngIf="solution.reactions && solution.reactions.length > 0">
+      <g *ngFor="let r of solution.reactions">
+        <!-- Vertical reaction arrow -->
+        <g *ngIf="r.ry !== 0">
+          <line
+            [attr.x1]="mapX(solution.nodes[r.node_id].x)"
+            [attr.y1]="mapY(solution.nodes[r.node_id].y) + 55"
+            [attr.x2]="mapX(solution.nodes[r.node_id].x)"
+            [attr.y2]="mapY(solution.nodes[r.node_id].y) + 5"
+            stroke="#10b981"
+            stroke-width="3"
+            marker-end="url(#reaction-arrow)"
+          />
+          <text
+            [attr.x]="mapX(solution.nodes[r.node_id].x) + 8"
+            [attr.y]="mapY(solution.nodes[r.node_id].y) + 45"
+            class="reaction-text"
+          >
+            R_y = {{ r.ry | number:'1.2-2' }} kN
+          </text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Structural Nodes Layer -->
+    <g class="nodes-layer">
+      <g *ngFor="let n of solution.nodes">
+        <circle
+          [attr.cx]="mapX(n.x)"
+          [attr.cy]="mapY(n.y)"
+          r="7"
+          class="node-circle"
+          [class.active-node]="isNodeActive(n.id)"
+        />
+        <text [attr.x]="mapX(n.x)" [attr.y]="mapY(n.y) - 12" class="node-label">
+          {{ n.label }}
+        </text>
+      </g>
+    </g>
+  </svg>
+</div>

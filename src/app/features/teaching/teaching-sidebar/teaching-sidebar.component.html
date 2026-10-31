@@ -1,0 +1,140 @@
+<div class="teaching-sidebar-card">
+  <div class="card-header">
+    <span class="card-icon">🎓</span>
+    <div class="header-titles">
+      <h3>{{ i18n.t('studio.title') }}</h3>
+      <p>{{ i18n.t('studio.subtitle') }}</p>
+    </div>
+  </div>
+
+  <!-- Preset Selector -->
+  <div class="form-group">
+    <label class="form-label">{{ i18n.t('studio.selectPreset') }}</label>
+    <select
+      class="form-select"
+      [value]="teachingModel().presetId"
+      (change)="onPresetChange($any($event.target).value)"
+    >
+      <option *ngFor="let p of presets" [value]="p.id">
+        {{ getPresetLabel(p) }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Description of Preset -->
+  <div class="preset-info-box">
+    <p>{{ getPresetDesc(selectedPreset()) }}</p>
+  </div>
+
+  <!-- Geometric & Load Parameters -->
+  <div class="params-section">
+    <!-- Length -->
+    <div class="form-group">
+      <div class="label-row">
+        <label class="form-label">{{ i18n.t('studio.length') }}</label>
+        <span class="param-val">{{ teachingModel().length }} m</span>
+      </div>
+      <input
+        type="range"
+        class="form-range"
+        min="2"
+        max="20"
+        step="0.5"
+        [value]="teachingModel().length"
+        (input)="onLengthChange($any($event.target).value)"
+      />
+    </div>
+
+    <!-- Height / Second Span (if applicable) -->
+    <div
+      class="form-group"
+      *ngIf="selectedPreset().category === 'truss' || selectedPreset().id === 'overhanging_beam' || selectedPreset().id === 'cross_two_span'"
+    >
+      <div class="label-row">
+        <label class="form-label">
+          {{ selectedPreset().category === 'truss' ? i18n.t('studio.height') : i18n.t('studio.secondSpan') }}
+        </label>
+        <span class="param-val">{{ teachingModel().height }} m</span>
+      </div>
+      <input
+        type="range"
+        class="form-range"
+        min="0.5"
+        max="10"
+        step="0.5"
+        [value]="teachingModel().height"
+        (input)="onHeightChange($any($event.target).value)"
+      />
+    </div>
+
+    <!-- Distributed Load q -->
+    <div
+      class="form-group"
+      *ngIf="selectedPreset().defaultQ !== undefined"
+    >
+      <div class="label-row">
+        <label class="form-label">{{ i18n.t('studio.distLoad') }}</label>
+        <span class="param-val">{{ teachingModel().loadQ }} kN/m</span>
+      </div>
+      <input
+        type="range"
+        class="form-range"
+        min="1"
+        max="50"
+        step="1"
+        [value]="teachingModel().loadQ"
+        (input)="onLoadQChange($any($event.target).value)"
+      />
+    </div>
+
+    <!-- Point Load P -->
+    <div
+      class="form-group"
+      *ngIf="selectedPreset().defaultP !== undefined"
+    >
+      <div class="label-row">
+        <label class="form-label">{{ i18n.t('studio.pointLoad') }}</label>
+        <span class="param-val">{{ teachingModel().loadP }} kN</span>
+      </div>
+      <input
+        type="range"
+        class="form-range"
+        min="5"
+        max="100"
+        step="5"
+        [value]="teachingModel().loadP"
+        (input)="onLoadPChange($any($event.target).value)"
+      />
+    </div>
+
+    <!-- Point Load Position x_P -->
+    <div
+      class="form-group"
+      *ngIf="selectedPreset().defaultP !== undefined && selectedPreset().category !== 'truss'"
+    >
+      <div class="label-row">
+        <label class="form-label">{{ i18n.t('studio.pointLoadPos') }}</label>
+        <span class="param-val">{{ teachingModel().loadPPos }} m</span>
+      </div>
+      <input
+        type="range"
+        class="form-range"
+        min="0"
+        [max]="totalBeamLength()"
+        step="0.25"
+        [value]="teachingModel().loadPPos"
+        (input)="onLoadPPosChange($any($event.target).value)"
+      />
+    </div>
+  </div>
+
+  <!-- Re-solve Button -->
+  <button
+    class="solve-action-btn"
+    (click)="solveCurrent()"
+    [disabled]="teaching.isLoading()"
+  >
+    <span *ngIf="teaching.isLoading()">{{ i18n.t('studio.calculating') }}</span>
+    <span *ngIf="!teaching.isLoading()">{{ i18n.t('studio.recalculate') }}</span>
+  </button>
+</div>

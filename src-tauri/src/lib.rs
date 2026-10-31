@@ -2,6 +2,7 @@ pub mod benchmarks;
 pub mod material;
 pub mod mesh;
 pub mod solver;
+pub mod teaching;
 
 use material::types::{MaterialFieldRequest, MaterialFieldResponse};
 use mesh::types::{MeshData, MeshGeneratorRequest};
@@ -9,6 +10,7 @@ use solver::types::{
     HarmonicSimulationRequest, HarmonicSimulationResult, SimulationRequest, SimulationResult,
     TransientSimulationRequest, TransientSimulationResult,
 };
+use teaching::types::{TeachingInputConfig, TeachingSolutionDto};
 use tauri::Manager;
 
 #[tauri::command]
@@ -47,6 +49,13 @@ fn run_transient_simulation(
     Ok(solver::run_transient_simulation(request))
 }
 
+#[tauri::command]
+fn solve_teaching_system(
+    config: TeachingInputConfig,
+) -> Result<TeachingSolutionDto, String> {
+    teaching::solve_teaching_system(config)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -62,7 +71,8 @@ pub fn run() {
             evaluate_material_field,
             run_simulation,
             run_harmonic_simulation,
-            run_transient_simulation
+            run_transient_simulation,
+            solve_teaching_system
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

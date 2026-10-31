@@ -48,4 +48,17 @@
     - Advanced `cap-geometry-canvas-sketcher` from `foggy` to `specified`: interactive 2D/3D member and polygon sketcher with magnetic snapping, support/load assignment, and dual frame/continuum mesh handoff.
     - Advanced `cap-geometry-cad-import` from `foggy` to `specified`: 2D DXF/SVG parsing with polyline healing and 3D STL manifold mesh verification.
     - Materialized rollup state of `cap-geometry-meshing` to `specified`.
+- Executed closeout for issues 010, 011, 012, 013 (Mini-Papers 2-5):
+  - Archived issues 010, 011, 012, 013 to `docs/agents/issues/done/` and cleared them from the active registry `docs/agents/issues/issues.md`.
+  - Transitioned `cap-parametric-benchmarking` to `implemented` with full issue traceability (008, 009, 010, 011, 012, 013).
+  - Only Issue 014 (Mode 3 Structural Mechanics Teaching Studio Slice 1) remains in the active queue.
+- Implemented Issue 014 (Slice 1 - Mode 3 Structural Mechanics Teaching Studio):
+  - Created Rust analytical solvers: `fraction.rs` (ExactFraction p/q arithmetic with LaTeX formatting), `isostatic_beam.rs` (reactions, piecewise M-Q-N functions, Q roots, M_max), `truss.rs` (Method of Joints and Ritter cut section equilibrium), `cross_kani.rs` (Cross Moment Distribution and Kani iteration tables), and `presets.rs`.
+  - Registered Tauri IPC command `solve_teaching_system`.
+  - Created Angular Teaching Studio: Top Header Mode Switcher (Mode 1 Continuum vs Mode 3 Teaching), `TeachingSidebarComponent` with Angular 22 Signal Forms, `TeachingCanvasComponent` with sharp SVG structural elements, reactions, and M/Q/N diagrams, and `StepWalkerComponent` with timeline controls and pedagogical cards.
+  - All tests passing (`cargo test --lib`, `npx ng build`, `npm run check:limits`), registered as `awaiting-human-review`.
     - Entire capability map now has 0 foggy nodes.
+- Executed closeout for Issue 014 (Mode 3 Teaching Studio Slice 1):
+  - Completed user visual and interaction review: added variable point load position slider $x_P$, rendered visible load arrows, ensured strictly vertical shear step boundaries, restored segmented-control styling, pinned preview SVG canvas with independent scrollable derivation pane and sticky toolbar, added full hyperstatic reactions and continuous M, Q, N diagrams to the Cross solver, and fixed LaTeX ampersand escaping.
+  - Archived Issue 014 to `docs/agents/issues/done/20261030-014-structural-mechanics-teaching-slice1.md` and removed it from active registry `docs/agents/issues/issues.md`.
+  - All automated checks verified (11/11 Rust teaching tests, 0 Angular build errors, all files <= 1000 lines).

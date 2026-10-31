@@ -4,13 +4,16 @@ title: Scientific Parametric Benchmarking & Verification Engine
 description: Automated test runner and comparative analysis engine evaluating convergence rate, L2 accuracy, CPU/GPU runtime, and speedup ratios of BEM-FEM vs pure FEM across varying inhomogeneity and mesh sizes.
 tags: [benchmarking, parametric-study, verification, convergence, profiling, error-norm]
 timestamp: 2026-10-28T05:18:00Z
-state: in-progress
+state: implemented
 project: /project.md
 parent: /project.md
 issues:
   - docs/agents/issues/done/20261029-008-bottom-dock-response-chart-ui-tabs.md
   - docs/agents/issues/done/20261029-009-mini-paper-1-static-contrast-limits.md
   - docs/agents/issues/done/20261029-010-mini-paper-2-complexity-scaling.md
+  - docs/agents/issues/done/20261029-011-mini-paper-3-transient-elastodynamics-talbot.md
+  - docs/agents/issues/done/20261029-012-mini-paper-4-dynamic-operator-splitting-talbot.md
+  - docs/agents/issues/done/20261029-013-mini-paper-5-half-space-gibson-soil.md
 ---
 
 # Intent

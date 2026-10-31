@@ -3,11 +3,11 @@
 - Issue number: `011`
 - Owning capability node: `/.okf/capabilities/cap-parametric-benchmarking.md`
 - Artifact root: `docs/architecture/cap-parametric-benchmarking/`
-- Issue file: `docs/agents/issues/pending/20261029-011-mini-paper-3-transient-elastodynamics-talbot.md`
+- Issue file: `docs/agents/issues/done/20261029-011-mini-paper-3-transient-elastodynamics-talbot.md`
 - Category: `experiment`
 - Execution type: `AFK`
 - Review gate: `document-review`
-- Suggested state: `in_progress`
+- Suggested state: `done`
 
 ## Parent Artifacts
 
@@ -43,8 +43,8 @@ Implement an automated elastodynamic benchmarking suite comparing Deformed Talbo
 
 ## Acceptance Criteria
 
-- [ ] Transient elastodynamics benchmark module implemented in `src-tauri/src/benchmarks/transient_elastodynamics.rs`.
-- [ ] Automated benchmark execution exports CSV datasets in `docs/benchmarks/`.
-- [ ] Mini-Paper 3 LaTeX report authored in `papers/mini_papers/03_transient_talbot_vs_newmark.tex`.
-- [ ] LuaLaTeX compiles `03_transient_talbot_vs_newmark.pdf` with 0 errors.
-- [ ] All unit and benchmark tests pass (`cargo test --lib`).
+- [x] Transient elastodynamics benchmark module implemented in `src-tauri/src/benchmarks/transient_elastodynamics.rs`.
+- [x] Automated benchmark execution exports CSV datasets in `docs/benchmarks/`.
+- [x] Mini-Paper 3 LaTeX report authored in `papers/mini_papers/03_transient_talbot_vs_newmark.tex`.
+- [x] LuaLaTeX compiles `03_transient_talbot_vs_newmark.pdf` with 0 errors.
+- [x] All unit and benchmark tests pass (`cargo test --lib`).

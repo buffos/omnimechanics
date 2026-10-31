@@ -1,0 +1,167 @@
+<div class="step-walker-container" *ngIf="teaching.solution() as solution">
+  <!-- Controls Toolbar -->
+  <div class="walker-toolbar">
+    <div class="stepper-actions">
+      <button
+        class="stepper-btn"
+        (click)="teaching.firstStep()"
+        [disabled]="teaching.currentStepIndex() === 0"
+        [title]="i18n.t('walker.first')"
+      >
+        ⏮
+      </button>
+      <button
+        class="stepper-btn"
+        (click)="teaching.prevStep()"
+        [disabled]="teaching.currentStepIndex() === 0"
+        [title]="i18n.t('walker.prev')"
+      >
+        {{ i18n.t('walker.prev') }}
+      </button>
+      
+      <div class="step-indicator">
+        <span class="step-number">{{ i18n.t('walker.step') }} {{ teaching.currentStepIndex() + 1 }}</span>
+        <span class="step-total">{{ i18n.t('walker.of') }} {{ teaching.totalSteps() }}</span>
+      </div>
+
+      <button
+        class="stepper-btn stepper-btn-primary"
+        (click)="teaching.nextStep()"
+        [disabled]="teaching.currentStepIndex() >= teaching.totalSteps() - 1"
+        [title]="i18n.t('walker.next')"
+      >
+        {{ i18n.t('walker.next') }}
+      </button>
+      <button
+        class="stepper-btn"
+        (click)="teaching.lastStep()"
+        [disabled]="teaching.currentStepIndex() >= teaching.totalSteps() - 1"
+        [title]="i18n.t('walker.last')"
+      >
+        ⏭
+      </button>
+      <button
+        class="stepper-btn play-btn"
+        [class.playing]="teaching.isPlaying()"
+        (click)="teaching.togglePlay()"
+        title="Auto-Play"
+      >
+        {{ teaching.isPlaying() ? i18n.t('walker.pause') : i18n.t('walker.play') }}
+      </button>
+    </div>
+
+    <!-- Diagram Type Selector (for Beams/Frames) -->
+    <div class="diagram-selector" *ngIf="solution.system_type !== 'truss'">
+      <span class="selector-label">{{ i18n.t('walker.diagram') }}</span>
+      <button
+        class="diag-btn"
+        [class.active]="teaching.activeDiagramType() === 'M'"
+        (click)="teaching.setActiveDiagramType('M')"
+      >
+        {{ i18n.t('walker.diagramM') }}
+      </button>
+      <button
+        class="diag-btn"
+        [class.active]="teaching.activeDiagramType() === 'Q'"
+        (click)="teaching.setActiveDiagramType('Q')"
+      >
+        {{ i18n.t('walker.diagramQ') }}
+      </button>
+      <button
+        class="diag-btn"
+        [class.active]="teaching.activeDiagramType() === 'N'"
+        (click)="teaching.setActiveDiagramType('N')"
+      >
+        {{ i18n.t('walker.diagramN') }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Cross Method Iteration Table (When available) -->
+  <div class="cross-table-container" *ngIf="solution.cross_table as table">
+    <div class="cross-header">
+      <h4>{{ i18n.t('cross.title') }}</h4>
+      <div class="df-summary">
+        <span class="df-pill" *ngFor="let item of table.distribution_factors | keyvalue">
+          DF_{{ item.key }}: {{ item.value | number:'1.3-3' }}
+        </span>
+      </div>
+    </div>
+
+    <table class="cross-data-table">
+      <thead>
+        <tr>
+          <th>{{ i18n.t('cross.phase') }}</th>
+          <th>AB</th>
+          <th>BA</th>
+          <th>BC</th>
+          <th>CB</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="fem-row">
+          <td>{{ i18n.t('cross.fem') }}</td>
+          <td>{{ table.fixed_end_moments['AB'] | number:'1.2-2' }}</td>
+          <td>{{ table.fixed_end_moments['BA'] | number:'1.2-2' }}</td>
+          <td>{{ table.fixed_end_moments['BC'] | number:'1.2-2' }}</td>
+          <td>{{ table.fixed_end_moments['CB'] | number:'1.2-2' }}</td>
+        </tr>
+        <tr *ngFor="let row of table.cycles">
+          <td>{{ row.operation }}</td>
+          <td>{{ row.member_end_moments['AB'] | number:'1.2-2' }}</td>
+          <td>{{ row.member_end_moments['BA'] | number:'1.2-2' }}</td>
+          <td>{{ row.member_end_moments['BC'] | number:'1.2-2' }}</td>
+          <td>{{ row.member_end_moments['CB'] | number:'1.2-2' }}</td>
+        </tr>
+        <tr class="final-moments-row">
+          <td>{{ i18n.t('cross.final') }}</td>
+          <td>{{ table.final_moments['AB'] | number:'1.2-2' }}</td>
+          <td>{{ table.final_moments['BA'] | number:'1.2-2' }}</td>
+          <td>{{ table.final_moments['BC'] | number:'1.2-2' }}</td>
+          <td>{{ table.final_moments['CB'] | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Active Step Card -->
+  <div class="step-card" *ngIf="teaching.currentStep() as step">
+    <div class="step-card-header">
+      <span class="phase-badge" [ngClass]="getPhaseBadgeClass(step.phase)">
+        {{ getPhaseLabel(step.phase) }}
+      </span>
+      <h3 class="step-title">{{ step.title }}</h3>
+    </div>
+
+    <div class="step-rationale">
+      <span class="rationale-icon">💡</span>
+      <p>{{ step.rationale }}</p>
+    </div>
+
+    <!-- Math & Derivation Box -->
+    <div class="math-derivation-box">
+      <div class="formula-row" *ngIf="step.symbolic_equation">
+        <span class="formula-label">{{ i18n.t('walker.symbolic') }}</span>
+        <div class="katex-render" [innerHTML]="step.symbolic_equation | katex:true"></div>
+      </div>
+      <div class="formula-row" *ngIf="step.numerical_substitution">
+        <span class="formula-label">{{ i18n.t('walker.substitution') }}</span>
+        <div class="katex-render" [innerHTML]="step.numerical_substitution | katex:true"></div>
+      </div>
+    </div>
+
+    <!-- Result Banner -->
+    <div class="step-result-banner" *ngIf="step.result_latex">
+      <span class="result-label">{{ i18n.t('walker.result') }}</span>
+      <div class="result-katex" [innerHTML]="step.result_latex | katex:false"></div>
+    </div>
+
+    <!-- Solved Quantities Chips -->
+    <div class="solved-chips" *ngIf="step.solved_quantities && (step.solved_quantities | keyvalue)?.length">
+      <div class="chip" *ngFor="let item of step.solved_quantities | keyvalue">
+        <span class="chip-key">{{ item.key }}:</span>
+        <span class="chip-val">{{ item.value | number:'1.2-2' }}</span>
+      </div>
+    </div>
+  </div>
+</div>
