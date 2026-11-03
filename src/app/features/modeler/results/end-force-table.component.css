@@ -1,0 +1,117 @@
+.end-force-container {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: var(--bg-panel, rgba(15, 23, 42, 0.95));
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  max-height: 220px;
+  font-size: 0.775rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--text-secondary, #cbd5e1);
+  z-index: 30;
+}
+
+.end-force-container.collapsed {
+  max-height: 36px;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.table-header {
+  padding: 0 16px;
+  height: 36px;
+  background: rgba(15, 23, 42, 0.95);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  user-select: none;
+}
+
+.table-header .title {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-primary, #f8fafc);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary, #cbd5e1);
+  cursor: pointer;
+  font-size: 0.725rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 5px;
+  transition: all 0.15s ease;
+}
+
+.toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.table-scroll {
+  overflow-y: auto;
+  max-height: 184px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+  font-family: monospace;
+}
+
+th, td {
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+th {
+  background: var(--bg-surface-elevated, #1e293b);
+  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.3px;
+}
+
+tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+td:first-child, th:first-child,
+td:nth-child(3), th:nth-child(3),
+td:nth-child(7), th:nth-child(7) {
+  text-align: left;
+}
+
+td strong {
+  color: var(--accent-glow, #38bdf8);
+}
+
+.negative {
+  color: var(--accent-danger, #f87171);
+  font-weight: 600;
+}
+
+.governing-col {
+  color: var(--accent-warning, #facc15);
+  font-weight: 600;
+  text-align: center;
+}
+
+.empty-msg {
+  text-align: center;
+  color: var(--text-dim, #64748b);
+  padding: 16px;
+  font-family: inherit;
+}

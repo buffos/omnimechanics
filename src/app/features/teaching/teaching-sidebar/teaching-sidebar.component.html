@@ -137,4 +137,9 @@
     <span *ngIf="teaching.isLoading()">{{ i18n.t('studio.calculating') }}</span>
     <span *ngIf="!teaching.isLoading()">{{ i18n.t('studio.recalculate') }}</span>
   </button>
+
+  <!-- Edit in Mode 2 Sketcher Button (SC-013) -->
+  <button class="edit-in-mode2-btn" (click)="editInMode2()">
+    <span>✏️ {{ i18n.currentLang() === 'el' ? 'Επεξεργασία στον Σχεδιαστή Mode 2' : 'Edit in Mode 2 Sketcher' }}</span>
+  </button>
 </div>

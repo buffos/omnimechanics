@@ -1,0 +1,284 @@
+<div class="inspector-panel" data-testid="property-inspector">
+  <div class="panel-header">
+    <h3>Ιδιότητες / Inspector</h3>
+  </div>
+
+  <div class="panel-body">
+    <!-- 1. Node Selected -->
+    @if (selectedNode(); as node) {
+      <div class="entity-section">
+        <div class="entity-title">
+          <span class="badge badge--accent">Κόμβος / Node</span>
+          <strong>{{ node.id }}</strong>
+        </div>
+
+        <div class="prop-row">
+          <label>X (m):</label>
+          <input
+            type="number"
+            step="0.1"
+            [value]="node.x"
+            (change)="updateNodeCoord('x', $any($event.target).value)"
+          />
+        </div>
+
+        <div class="prop-row">
+          <label>Y (m):</label>
+          <input
+            type="number"
+            step="0.1"
+            [value]="node.y"
+            (change)="updateNodeCoord('y', $any($event.target).value)"
+          />
+        </div>
+
+        <div class="action-row">
+          <button
+            class="btn-hinge"
+            (click)="applyInternalHinge()"
+            title="Προσθήκη εσωτερικής άρθρωσης (απελευθέρωση ροπής σε k-1 ράβδους)"
+          >
+            ⚪ Εσωτερική Άρθρωση / Hinge
+          </button>
+        </div>
+
+        @if (nodeSupport(); as sup) {
+          <div class="support-info">
+            <span>Στήριξη: <strong>{{ sup.kind.type }}</strong></span>
+            @if (sup.unilateral) {
+              <span class="unilateral-tag">(Μονόπλευρη)</span>
+            }
+            <button class="btn-remove-sup" (click)="removeSupport()">Αφαίρεση</button>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- 2. Element Selected -->
+    @else if (selectedElement(); as elem) {
+      <div class="entity-section">
+        <div class="entity-title">
+          <span class="badge badge--success">{{ elem.kind }}</span>
+          <strong>{{ elem.id }}</strong>
+        </div>
+
+        <!-- Geometry Details: Length, Inclination & Node Coordinates -->
+        @if (selectedElementGeometry(); as geom) {
+          <div class="geometry-info-card">
+            <div class="geom-header">
+              <span class="geom-title">📐 Γεωμετρία / Geometry</span>
+            </div>
+            <div class="geom-props-row">
+              <div class="geom-prop">
+                <span class="geom-prop-lbl">Μήκος / Length</span>
+                <strong class="geom-prop-val">{{ geom.lengthM }} m</strong>
+              </div>
+              <div class="geom-prop">
+                <span class="geom-prop-lbl">Κλίση / Angle</span>
+                <span class="geom-prop-val">{{ geom.angleDeg }}°</span>
+              </div>
+            </div>
+            <div class="geom-nodes-grid">
+              <div class="geom-node-card">
+                <span class="geom-node-tag">Άκρο i ({{ geom.nodeI.id }})</span>
+                <span class="geom-coords-val">X: {{ geom.nodeI.x }} m, Y: {{ geom.nodeI.y }} m</span>
+              </div>
+              <div class="geom-node-card">
+                <span class="geom-node-tag">Άκρο j ({{ geom.nodeJ.id }})</span>
+                <span class="geom-coords-val">X: {{ geom.nodeJ.x }} m, Y: {{ geom.nodeJ.y }} m</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Section & Material if Line Element -->
+        @if (elem.kind !== 'Spring') {
+          <div class="prop-row">
+            <label>Διατομή / Section:</label>
+            <select
+              [value]="$any(elem).section_id"
+              (change)="updateElementSection($any($event.target).value)"
+            >
+              @for (sec of model().sections; track sec.id) {
+                <option [value]="sec.id">{{ sec.name }} ({{ sec.shape }})</option>
+              }
+            </select>
+          </div>
+
+          <div class="prop-row">
+            <label>Υλικό / Material:</label>
+            <select
+              [value]="$any(elem).material_id"
+              (change)="updateElementMaterial($any($event.target).value)"
+            >
+              @for (mat of model().materials; track mat.id) {
+                <option [value]="mat.id">{{ mat.name }} ({{ mat.class }})</option>
+              }
+            </select>
+          </div>
+        }
+
+        <!-- Frame Member Details -->
+        @if (elem.kind === 'FrameMember') {
+          <div class="sub-section">
+            <h4>Απελευθερώσεις / Releases</h4>
+            <div class="release-grid">
+              <div class="release-col">
+                <strong>Άκρο i ({{ elem.node_i }})</strong>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="elem.release_i.moment"
+                    (change)="toggleRelease('i', 'moment')"
+                  />
+                  Άρθρωση (M)
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="elem.release_i.shear"
+                    (change)="toggleRelease('i', 'shear')"
+                  />
+                  Κύλιση (V)
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="elem.release_i.axial"
+                    (change)="toggleRelease('i', 'axial')"
+                  />
+                  Αξονική (N)
+                </label>
+              </div>
+
+              <div class="release-col">
+                <strong>Άκρο j ({{ elem.node_j }})</strong>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="elem.release_j.moment"
+                    (change)="toggleRelease('j', 'moment')"
+                  />
+                  Άρθρωση (M)
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="elem.release_j.shear"
+                    (change)="toggleRelease('j', 'shear')"
+                  />
+                  Κύλιση (V)
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="elem.release_j.axial"
+                    (change)="toggleRelease('j', 'axial')"
+                  />
+                  Αξονική (N)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="sub-section">
+            <h4>Δύσκαμπτοι Βραχίονες / Offsets (m)</h4>
+            <div class="offset-row">
+              <label>i: dx, dy</label>
+              <input
+                type="number"
+                step="0.05"
+                class="styled-input"
+                [value]="elem.offset_i.dx"
+                (change)="updateOffset('i', 'dx', $any($event.target).value)"
+              />
+              <input
+                type="number"
+                step="0.05"
+                class="styled-input"
+                [value]="elem.offset_i.dy"
+                (change)="updateOffset('i', 'dy', $any($event.target).value)"
+              />
+            </div>
+            <div class="offset-row">
+              <label>j: dx, dy</label>
+              <input
+                type="number"
+                step="0.05"
+                class="styled-input"
+                [value]="elem.offset_j.dx"
+                (change)="updateOffset('j', 'dx', $any($event.target).value)"
+              />
+              <input
+                type="number"
+                step="0.05"
+                class="styled-input"
+                [value]="elem.offset_j.dy"
+                (change)="updateOffset('j', 'dy', $any($event.target).value)"
+              />
+            </div>
+          </div>
+        }
+
+        <!-- Cable Details -->
+        @if (elem.kind === 'Cable') {
+          <div class="sub-section">
+            <h4>Παράμετροι Τένοντα / Cable Prestress</h4>
+            <div class="prop-row">
+              <label>Λειτουργία / Mode:</label>
+              <span>{{ elem.prestress.mode }}</span>
+            </div>
+            <div class="prop-row">
+              <label>Τιμή / Value:</label>
+              <input
+                type="number"
+                step="0.1"
+                [value]="
+                  elem.prestress.mode === 'UnstressedLength'
+                    ? elem.prestress.l0
+                    : elem.prestress.mode === 'SagRatio'
+                    ? elem.prestress.sag_to_span
+                    : elem.prestress.t0
+                "
+                (change)="updateCablePrestress(elem.prestress.mode, $any($event.target).value)"
+              />
+            </div>
+          </div>
+        }
+
+        <!-- Truss Bar Details -->
+        @if (elem.kind === 'TrussBar') {
+          <div class="sub-section">
+            <h4>Συμπεριφορά Δικτυώματος / Axial</h4>
+            <div class="prop-row">
+              <label>Τύπος:</label>
+              <select
+                [value]="elem.axial_behavior"
+                (change)="updateTrussAxial($any($event.target).value)"
+              >
+                <option value="Both">Εφελκυσμός & Θλίψη / Both</option>
+                <option value="TensionOnly">Μόνο Εφελκυσμός / Tension-Only</option>
+                <option value="CompressionOnly">Μόνο Θλίψη / Compression-Only</option>
+              </select>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- 3. Multi or None -->
+    @else {
+      <div class="empty-state">
+        @if (isMultiSelection()) {
+          <p>
+            Επιλεγμένα: {{ selection().nodeIds.size }} κόμβοι,
+            {{ selection().elementIds.size }} στοιχεία
+          </p>
+          <button class="btn-delete-sel" (click)="store.deleteSelection()">Διαγραφή Επιλογής</button>
+        } @else {
+          <p class="hint">Επιλέξτε έναν κόμβο ή μια ράβδο στον καμβά για προβολή ιδιοτήτων.</p>
+        }
+      </div>
+    }
+  </div>
+</div>

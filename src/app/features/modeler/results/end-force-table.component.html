@@ -1,0 +1,55 @@
+<div class="end-force-container" [class.collapsed]="isCollapsed()" data-testid="end-force-table">
+  <div class="table-header" (click)="toggleCollapse()">
+    <span class="title">
+      📊 Πίνακας Δυνάμεων Άκρων Ράβδων / Member End-Force Table ({{ rows().length }})
+    </span>
+    <button class="toggle-btn">{{ isCollapsed() ? '▲ Ανάπτυξη' : '▼ Σύμπτυξη' }}</button>
+  </div>
+
+  @if (!isCollapsed()) {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Στοιχείο</th>
+            <th>L (m)</th>
+            <th>Κόμβος i</th>
+            <th>Ni (kN)</th>
+            <th>Qi (kN)</th>
+            <th>Mi (kNm)</th>
+            <th>Κόμβος j</th>
+            <th>Nj (kN)</th>
+            <th>Qj (kN)</th>
+            <th>Mj (kNm)</th>
+            @if (resultsService.resultTarget() === 'Envelope') {
+              <th>Κυρίαρχος / Governing</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.elementId) {
+            <tr>
+              <td><strong>{{ r.elementId }}</strong></td>
+              <td>{{ r.lengthM }}</td>
+              <td>{{ r.nodeI }}</td>
+              <td [class.negative]="r.ni < 0">{{ r.ni }}</td>
+              <td>{{ r.qi }}</td>
+              <td>{{ r.mi }}</td>
+              <td>{{ r.nodeJ }}</td>
+              <td [class.negative]="r.nj < 0">{{ r.nj }}</td>
+              <td>{{ r.qj }}</td>
+              <td>{{ r.mj }}</td>
+              @if (resultsService.resultTarget() === 'Envelope') {
+                <td class="governing-col">{{ r.governing }}</td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="10" class="empty-msg">Δεν υπάρχουν διαθέσιμα αποτελέσματα ανάλυσης.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

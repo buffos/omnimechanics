@@ -14,10 +14,10 @@ export class HeaderComponent {
   readonly activeDimension = input.required<'2D' | '3D'>();
   readonly activeDomain = input.required<'Static' | 'TimeDomain' | 'LaplaceTalbot'>();
   readonly backendStatus = input.required<string>();
-  readonly activeWorkspaceMode = input<'continuum' | 'teaching'>('continuum');
+  readonly activeWorkspaceMode = input<'continuum' | 'modeler' | 'teaching'>('continuum');
 
   readonly dimensionChange = output<'2D' | '3D'>();
   readonly domainChange = output<'Static' | 'TimeDomain' | 'LaplaceTalbot'>();
-  readonly modeChange = output<'continuum' | 'teaching'>();
+  readonly modeChange = output<'continuum' | 'modeler' | 'teaching'>();
   readonly openGuide = output<void>();
 }

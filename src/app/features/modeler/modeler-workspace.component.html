@@ -1,0 +1,24 @@
+<div class="modeler-workspace-container">
+  <!-- Top Toolbar -->
+  <app-modeler-toolbar />
+
+  <!-- Main Workspace Area -->
+  <div class="modeler-main-area">
+    <!-- Center: Full Width Canvas + End-Force Table -->
+    <div class="canvas-center-column">
+      <div class="canvas-viewport-wrapper">
+        <app-modeler-canvas />
+      </div>
+      <app-end-force-table />
+    </div>
+
+    <!-- Right: Property Inspector -->
+    <app-property-inspector />
+  </div>
+
+  <!-- Loads Manager Modal Dialog -->
+  <app-modeler-palettes />
+
+  <!-- Eurocode Combinations & Seismic Settings Modal -->
+  <app-combination-manager />
+</div>

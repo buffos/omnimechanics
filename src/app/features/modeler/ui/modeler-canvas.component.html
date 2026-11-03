@@ -1,0 +1,362 @@
+<div class="canvas-container">
+  <!-- Unstable Kinematic Mechanism Diagnostic Banner -->
+  @if (!resultsService.isStable()) {
+    <div class="mechanism-banner" data-testid="mechanism-banner">
+      <span class="banner-icon">⚠️</span>
+      <span class="banner-text">
+        <strong>Κινηματικός Μηχανισμός / Kinematic Mechanism Detected</strong>
+        (Αστάθεια nk = {{ resultsService.diagnostics()?.kinematic_instability_degree ?? 1 }},
+         Αοριστία ns = {{ resultsService.diagnostics()?.static_indeterminacy_degree ?? -1 }})
+      </span>
+      <span class="banner-tag">Προβολή Ταλάντωσης / Oscillating Mode</span>
+    </div>
+  }
+
+  <!-- Nonlinear Non-Superposition Notice (BR-4) -->
+  @if (resultsService.isNonlinearSuperpositionInvalid()) {
+    <div class="non-superposition-badge" data-testid="non-superposition-badge">
+      <span class="badge-icon">⚡</span>
+      <span>Μη-γραμμική απόκριση: Η αρχή της επαλληλίας δεν ισχύει / Nonlinear: Superposition is not valid</span>
+    </div>
+  }
+
+  <!-- Floating Canvas Navigation HUD (Pan, Zoom In/Out, Zoom Fit) -->
+  <div class="canvas-nav-hud" data-testid="canvas-nav-hud">
+    <button type="button" class="canvas-nav-btn" (click)="zoomIn()" title="Zoom In (+)">➕</button>
+    <button type="button" class="canvas-nav-btn" (click)="zoomOut()" title="Zoom Out (-)">➖</button>
+    <button type="button" class="canvas-nav-btn" (click)="zoomFit()" title="Zoom Fit / Extents (F)">⛶ Fit</button>
+    <button
+      type="button"
+      class="canvas-nav-btn"
+      [class.active]="isPanMode()"
+      (click)="togglePanMode()"
+      title="Pan Tool (Toggle click-drag pan)"
+    >
+      ✋ Pan
+    </button>
+  </div>
+
+  <svg
+    #svgCanvas
+    class="modeler-svg"
+    [class.cursor-grab]="isEffectivePan() && !isPanning()"
+    [class.cursor-grabbing]="isEffectivePan() && isPanning()"
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp($event)"
+    (wheel)="onWheel($event)"
+  >
+    <!-- Background Grid Lines -->
+    <g class="grid-group">
+      @for (l of gridLines(); track $index) {
+        <line
+          [attr.x1]="l.x1"
+          [attr.y1]="l.y1"
+          [attr.x2]="l.x2"
+          [attr.y2]="l.y2"
+          [class.major-line]="l.isMajor"
+          [class.minor-line]="!l.isMajor"
+        />
+      }
+    </g>
+
+    <!-- World Coordinate Origin Axes (0,0) -->
+    <g class="origin-axes" [attr.transform]="'translate(' + originScreen().x + ',' + originScreen().y + ')'">
+      <line x1="0" y1="0" x2="45" y2="0" stroke="#ef4444" stroke-width="2" />
+      <polygon points="45,-4 53,0 45,4" fill="#ef4444" />
+      <text x="56" y="4" fill="#ef4444" font-size="11" font-weight="bold">X</text>
+
+      <line x1="0" y1="0" x2="0" y2="-45" stroke="#10b981" stroke-width="2" />
+      <polygon points="-4,-45 0,-53 4,-45" fill="#10b981" />
+      <text x="6" y="-48" fill="#10b981" font-size="11" font-weight="bold">Y</text>
+    </g>
+
+    <!-- Analysis Diagrams (M, Q, N) -->
+    <g class="diagrams-group">
+      @for (d of drawnDiagrams(); track d.id) {
+        <path
+          [attr.d]="d.path"
+          class="diagram-polygon"
+          [class.moment-diagram]="resultsService.activeDiagram() === 'M'"
+          [class.shear-diagram]="resultsService.activeDiagram() === 'Q'"
+          [class.axial-diagram]="resultsService.activeDiagram() === 'N'"
+        />
+        @if (d.extremaLabel && d.extremaX !== undefined && d.extremaY !== undefined) {
+          <text [attr.x]="d.extremaX" [attr.y]="d.extremaY" class="extrema-label">
+            {{ d.extremaLabel }}
+          </text>
+        }
+      }
+    </g>
+
+    <!-- Distributed Loads -->
+    <g class="loads-dist-group">
+      @for (dl of drawnLoads().dists; track dl.id) {
+        <path [attr.d]="dl.path" class="dist-load-poly" />
+        <text [attr.x]="dl.labelX" [attr.y]="dl.labelY" class="load-label">
+          {{ dl.label }}
+        </text>
+      }
+    </g>
+
+    <!-- Drawn Structural Elements -->
+    <g class="elements-group">
+      @for (e of drawnElements(); track e!.id) {
+        @if (e!.curvePath) {
+          <path
+            [attr.d]="e!.curvePath"
+            [class.selected-element]="e!.isSelected"
+            [class.slack-cable]="e!.isSlack"
+            class="catenary-cable-curve"
+            (click)="store.toggleEntitySelection('element', e!.id, $event.shiftKey); $event.stopPropagation()"
+          />
+        } @else {
+          <line
+            [attr.x1]="e!.x1"
+            [attr.y1]="e!.y1"
+            [attr.x2]="e!.x2"
+            [attr.y2]="e!.y2"
+            [class.selected-element]="e!.isSelected"
+            [class.cable-line]="e!.kind === 'Cable'"
+            [class.truss-line]="e!.kind === 'TrussBar'"
+            class="frame-member-line"
+            (click)="store.toggleEntitySelection('element', e!.id, $event.shiftKey); $event.stopPropagation()"
+          />
+        }
+        <text
+          [attr.x]="e!.idX"
+          [attr.y]="e!.idY"
+          class="element-id-label"
+        >
+          {{ e!.id }}
+        </text>
+        <text
+          [attr.x]="e!.lengthX"
+          [attr.y]="e!.lengthY"
+          class="element-length-label"
+        >
+          {{ e!.lengthLabel }}
+        </text>
+      }
+    </g>
+
+    <!-- End Releases (Hinges) -->
+    <g class="releases-group">
+      @for (rel of drawnReleases(); track rel.id) {
+        <circle [attr.cx]="rel.x" [attr.cy]="rel.y" r="3.5" class="hinge-release-circle" />
+      }
+    </g>
+
+    <!-- Supports -->
+    <g class="supports-group">
+      @for (s of drawnSupports(); track s!.id) {
+        <g [attr.transform]="'translate(' + s!.x + ',' + s!.y + ') rotate(' + s!.angle + ')'">
+          @if (s!.type === 'Fixed') {
+            <rect x="-10" y="0" width="20" height="5" class="support-fixed-block" />
+            <line x1="-10" y1="5" x2="-6" y2="9" class="support-hatch" />
+            <line x1="-4" y1="5" x2="0" y2="9" class="support-hatch" />
+            <line x1="2" y1="5" x2="6" y2="9" class="support-hatch" />
+          } @else if (s!.type === 'Pinned') {
+            <polygon points="0,0 -8,12 8,12" class="support-pin-tri" />
+            <line x1="-10" y1="12" x2="10" y2="12" stroke="#475569" stroke-width="2" />
+          } @else if (s!.type === 'Roller') {
+            <polygon points="0,0 -8,10 8,10" class="support-pin-tri" />
+            <circle cx="-4" cy="13" r="2.5" class="support-wheel" />
+            <circle cx="4" cy="13" r="2.5" class="support-wheel" />
+            <line x1="-10" y1="16" x2="10" y2="16" stroke="#475569" stroke-width="2" />
+          } @else if (s!.type === 'Guided') {
+            <line x1="-10" y1="0" x2="10" y2="0" stroke="#475569" stroke-width="3" />
+            <line x1="-10" y1="-5" x2="-10" y2="5" stroke="#475569" stroke-width="2" />
+            <line x1="10" y1="-5" x2="10" y2="5" stroke="#475569" stroke-width="2" />
+          } @else {
+            <!-- Elastic -->
+            <path d="M 0 0 L 4 4 L -4 8 L 4 12 L 0 16" class="support-spring" />
+          }
+        </g>
+      }
+    </g>
+
+    <!-- Point Loads & Nodal Loads -->
+    <g class="loads-group">
+      <!-- Member point loads -->
+      @for (pl of drawnLoads().memberPoints; track pl!.id) {
+        <g [attr.transform]="'translate(' + pl!.x + ',' + pl!.y + ')'">
+          <line x1="0" y1="-28" x2="0" y2="0" stroke="#ef4444" stroke-width="2" />
+          <polygon points="-4,-6 0,0 4,-6" fill="#ef4444" />
+          <text x="5" y="-12" fill="#ef4444" font-size="11" font-weight="bold">
+            {{ pl!.loadVal }} kN
+          </text>
+        </g>
+      }
+      <!-- Nodal loads -->
+      @for (nl of drawnLoads().nodal; track nl!.id) {
+        <g [attr.transform]="'translate(' + nl!.x + ',' + nl!.y + ')'">
+          @if (nl!.fy !== 0) {
+            <line x1="0" y1="-30" x2="0" y2="0" stroke="#b91c1c" stroke-width="2.5" />
+            <polygon points="-4,-6 0,0 4,-6" fill="#b91c1c" />
+            <text x="5" y="-15" fill="#b91c1c" font-size="11" font-weight="bold">
+              Fy={{ nl!.fy }}
+            </text>
+          }
+        </g>
+      }
+    </g>
+
+    <!-- Support Reactions -->
+    <g class="reactions-group">
+      @for (r of drawnReactions(); track r!.id) {
+        <g [attr.transform]="'translate(' + r!.x + ',' + r!.y + ')'">
+          @if (r!.ry !== 0) {
+            <line x1="0" y1="26" x2="0" y2="4" stroke="#059669" stroke-width="2" />
+            <polygon points="-4,8 0,2 4,8" fill="#059669" />
+            <text x="5" y="24" fill="#059669" font-size="10" font-weight="bold">
+              Ry={{ r!.ry }}
+            </text>
+          }
+        </g>
+      }
+    </g>
+
+    <!-- Drawn Structural Nodes -->
+    <g class="nodes-group">
+      @for (n of drawnNodes(); track n.id) {
+        <circle
+          [attr.cx]="n.x"
+          [attr.cy]="n.y"
+          r="4.5"
+          [class.selected-node]="n.isSelected"
+          class="node-circle"
+          (mousedown)="onNodeMouseDown($event, n.id)"
+          (click)="store.toggleEntitySelection('node', n.id, $event.shiftKey); $event.stopPropagation()"
+        />
+        <text [attr.x]="n.x + 6" [attr.y]="n.y - 6" class="node-id-label">
+          {{ n.id }}
+        </text>
+      }
+    </g>
+
+    <!-- Rubber-Band Line -->
+    @if (rubberBandLine(); as rb) {
+      <g class="rubberband-group">
+        <line
+          [attr.x1]="rb.x1"
+          [attr.y1]="rb.y1"
+          [attr.x2]="rb.x2"
+          [attr.y2]="rb.y2"
+          class="rubberband-line"
+        />
+        <g [attr.transform]="'translate(' + rb.midX + ',' + rb.midY + ')'">
+          <rect x="-45" y="-14" width="90" height="18" rx="3" class="dimension-box" />
+          <text x="0" y="-1" text-anchor="middle" class="dimension-text">
+            {{ rb.lengthM }} m / {{ rb.angleDeg }}°
+          </text>
+        </g>
+      </g>
+    }
+
+    <!-- Snap Glyphs -->
+    @if (currentSnap(); as snap) {
+      <g class="snap-glyph-group">
+        @if (snap.type === 'Node') {
+          <rect
+            [attr.x]="snap.screenPoint.x - 5"
+            [attr.y]="snap.screenPoint.y - 5"
+            width="10"
+            height="10"
+            class="snap-node-glyph"
+          />
+        } @else if (snap.type === 'Intersection') {
+          <g [attr.transform]="'translate(' + snap.screenPoint.x + ',' + snap.screenPoint.y + ')'">
+            <line x1="-5" y1="-5" x2="5" y2="5" class="snap-intersection-glyph" />
+            <line x1="-5" y1="5" x2="5" y2="-5" class="snap-intersection-glyph" />
+          </g>
+        } @else if (snap.type === 'Midpoint') {
+          <polygon
+            [attr.points]="(snap.screenPoint.x - 5) + ',' + (snap.screenPoint.y + 4) + ' ' +
+                           snap.screenPoint.x + ',' + (snap.screenPoint.y - 5) + ' ' +
+                           (snap.screenPoint.x + 5) + ',' + (snap.screenPoint.y + 4)"
+            class="snap-midpoint-glyph"
+          />
+        } @else if (snap.type === 'Ortho' || snap.type === 'AngularGuide') {
+          <circle
+            [attr.cx]="snap.screenPoint.x"
+            [attr.cy]="snap.screenPoint.y"
+            r="4"
+            class="snap-ortho-glyph"
+          />
+        }
+      </g>
+    }
+
+    <!-- Marquee Box -->
+    @if (marqueeRect(); as mr) {
+      <rect
+        [attr.x]="mr.x"
+        [attr.y]="mr.y"
+        [attr.width]="mr.width"
+        [attr.height]="mr.height"
+        [class.marquee-crossing]="mr.isCrossing"
+        [class.marquee-window]="!mr.isCrossing"
+      />
+    }
+  </svg>
+
+  <!-- Cross-Section Hover Probe Floating Card (UC-Q02) -->
+  @if (resultsService.probePoint(); as probe) {
+    <div
+      class="hover-probe-card"
+      data-testid="cross-section-probe"
+      [style.left.px]="currentSnap()?.screenPoint?.x ?? 120"
+      [style.top.px]="(currentSnap()?.screenPoint?.y ?? 120) - 80"
+    >
+      <div class="probe-header">
+        <span>Ράβδος {{ probe.element_id }}</span>
+        <span class="probe-x">x = {{ probe.x_m }} m</span>
+      </div>
+      <div class="probe-body">
+        <span class="probe-row"><strong>M:</strong> {{ probe.m_knm }} kNm ({{ probe.tension_fiber }})</span>
+        <span class="probe-row"><strong>Q:</strong> {{ probe.q_kn }} kN</span>
+        <span class="probe-row"><strong>N:</strong> {{ probe.n_kn }} kN</span>
+        @if (probe.governing_combination) {
+          <span class="probe-row governing"><strong>Κυρίαρχος:</strong> {{ probe.governing_combination }}</span>
+          <span class="probe-row"><strong>Εύρος M:</strong> [{{ probe.envelope_min_m }} / {{ probe.envelope_max_m }}]</span>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Bottom Canvas Status Bar -->
+  <div class="canvas-status-bar">
+    <div class="status-item">
+      <span class="status-label">Cursor:</span>
+      <span class="status-val">
+        X: {{ store.currentCursorWorld().x.toFixed(3) }} m, Y: {{ store.currentCursorWorld().y.toFixed(3) }} m
+      </span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Snap:</span>
+      <span class="status-val highlight">{{ currentSnap()?.type || 'None' }}</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Diagram:</span>
+      <select
+        [value]="resultsService.activeDiagram()"
+        (change)="resultsService.setActiveDiagram($any($event.target).value)"
+        class="diagram-select"
+      >
+        <option value="M">Ροπή M (Tension Fiber)</option>
+        <option value="Q">Τέμνουσα Q</option>
+        <option value="N">Αξονική N</option>
+        <option value="None">Χωρίς Διάγραμμα / Off</option>
+      </select>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Selected:</span>
+      <span class="status-val">{{ store.selectedElementsCount() }}</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Revision:</span>
+      <span class="status-val rev">#{{ store.model().revision }}</span>
+    </div>
+  </div>
+</div>

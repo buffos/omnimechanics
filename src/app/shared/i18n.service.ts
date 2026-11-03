@@ -5,6 +5,7 @@ export type Language = 'en' | 'el';
 const TRANSLATIONS: Record<Language, Record<string, string>> = {
   en: {
     'nav.continuum': '🔬 Continuum Workbench',
+    'nav.modeler': '🏛️ Structural Modeler',
     'nav.teaching': '🎓 Teaching Studio',
     'studio.title': 'Educational Studio',
     'studio.subtitle': 'Structural & Continuum Mechanics',
@@ -47,6 +48,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
   },
   el: {
     'nav.continuum': '🔬 Υπολογιστικό Συνεχούς',
+    'nav.modeler': '🏛️ Μοντελοποίηση & Ανάλυση',
     'nav.teaching': '🎓 Εκπαιδευτικό Studio',
     'studio.title': 'Εκπαιδευτικό Studio',
     'studio.subtitle': 'Στατική & Δυναμική Μηχανική',

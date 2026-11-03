@@ -5,14 +5,17 @@
     [activeDimension]="activeDimension()"
     [activeDomain]="activeDomain()"
     [backendStatus]="backendStatus()"
-    (modeChange)="activeWorkspaceMode.set($event)"
+    (modeChange)="workspaceModeService.setMode($event)"
     (dimensionChange)="setDimension($event)"
     (domainChange)="setDomain($event)"
     (openGuide)="openSolverMethodsDialog()"
   />
 
-  <!-- Mode 3: Structural Mechanics Teaching Studio -->
-  @if (activeWorkspaceMode() === 'teaching') {
+  <!-- Mode 2: Structural Modeling & Analysis -->
+  @if (activeWorkspaceMode() === 'modeler') {
+    <app-modeler-workspace />
+  } @else if (activeWorkspaceMode() === 'teaching') {
+    <!-- Mode 3: Structural Mechanics Teaching Studio -->
     <app-teaching-studio />
   } @else {
     <!-- Mode 1: Continuum Mechanics Simulation Workspace -->

@@ -1,0 +1,407 @@
+.canvas-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-app, #0b0f19);
+}
+
+.modeler-svg {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.modeler-svg.cursor-grab {
+  cursor: grab !important;
+}
+
+.modeler-svg.cursor-grabbing {
+  cursor: grabbing !important;
+}
+
+/* Mechanism Diagnostic Banner */
+.mechanism-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(185, 28, 28, 0.95);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  font-size: 0.8rem;
+  z-index: 50;
+  border: 1px solid #fca5a5;
+  animation: pulse-banner 2s infinite ease-in-out;
+}
+
+@keyframes pulse-banner {
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 0.8; }
+}
+
+.banner-icon {
+  font-size: 1.1rem;
+}
+
+.banner-tag {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.725rem;
+}
+
+/* Nonlinear Non-Superposition Notice */
+.non-superposition-badge {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.95);
+  color: #1e293b;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 45;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.catenary-cable-curve {
+  fill: none;
+  stroke: #f59e0b;
+  stroke-width: 3;
+  stroke-dasharray: 6, 2;
+  cursor: pointer;
+}
+
+.catenary-cable-curve.slack-cable {
+  stroke: #ef4444;
+  stroke-dasharray: 3, 3;
+}
+
+.probe-row.governing {
+  color: #facc15;
+  font-weight: bold;
+}
+
+/* Grid Lines */
+.minor-line {
+  stroke: rgba(255, 255, 255, 0.04);
+  stroke-width: 0.8;
+}
+
+.major-line {
+  stroke: rgba(255, 255, 255, 0.09);
+  stroke-width: 1.2;
+}
+
+/* Structural Elements */
+.frame-member-line {
+  stroke: #60a5fa;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  cursor: pointer;
+  transition: stroke 0.15s ease;
+}
+
+.frame-member-line:hover {
+  stroke: #93c5fd;
+  stroke-width: 4.5;
+}
+
+.cable-line {
+  stroke: #f59e0b;
+  stroke-dasharray: 6, 2;
+}
+
+.truss-line {
+  stroke: #38bdf8;
+}
+
+.selected-element {
+  stroke: #f59e0b !important;
+  stroke-width: 4.5 !important;
+}
+
+.element-id-label {
+  fill: #9ca3af;
+  font-size: 10px;
+  font-family: var(--font-family, 'Segoe UI', system-ui, sans-serif);
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+.element-length-label {
+  fill: #64748b;
+  font-size: 9px;
+  font-family: var(--font-family, 'Segoe UI', system-ui, sans-serif);
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Hinges / Releases */
+.hinge-release-circle {
+  fill: #ffffff;
+  stroke: #1e293b;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+/* Supports */
+.support-fixed-block {
+  fill: #475569;
+}
+
+.support-hatch {
+  stroke: #64748b;
+  stroke-width: 1.5;
+}
+
+.support-pin-tri {
+  fill: #334155;
+  stroke: #cbd5e1;
+  stroke-width: 1.2;
+}
+
+.support-wheel {
+  fill: #94a3b8;
+  stroke: #475569;
+  stroke-width: 1;
+}
+
+.support-spring {
+  fill: none;
+  stroke: #f59e0b;
+  stroke-width: 2;
+}
+
+/* Analysis Diagrams */
+.diagram-polygon {
+  fill-opacity: 0.25;
+  stroke-width: 1.5;
+}
+
+.moment-diagram {
+  fill: #3b82f6;
+  stroke: #60a5fa;
+}
+
+.shear-diagram {
+  fill: #10b981;
+  stroke: #34d399;
+}
+
+.axial-diagram {
+  fill: #8b5cf6;
+  stroke: #a78bfa;
+}
+
+.extrema-label {
+  fill: #facc15;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: bold;
+  text-anchor: middle;
+}
+
+/* Distributed Loads */
+.dist-load-poly {
+  fill: rgba(239, 68, 68, 0.15);
+  stroke: #ef4444;
+  stroke-width: 1.5;
+  stroke-dasharray: 2, 2;
+}
+
+.load-label {
+  fill: #ef4444;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: bold;
+  text-anchor: middle;
+}
+
+/* Structural Nodes */
+.node-circle {
+  fill: #3b82f6;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  cursor: pointer;
+  transition: r 0.15s ease, fill 0.15s ease;
+}
+
+.node-circle:hover {
+  r: 6.5;
+  fill: #60a5fa;
+}
+
+.selected-node {
+  fill: #f59e0b !important;
+  stroke: #fef3c7 !important;
+  r: 6 !important;
+}
+
+.node-id-label {
+  fill: #d1d5db;
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Rubber-band */
+.rubberband-line {
+  stroke: #fbbf24;
+  stroke-width: 2.5;
+  stroke-dasharray: 4, 4;
+  pointer-events: none;
+}
+
+.dimension-box {
+  fill: rgba(20, 20, 28, 0.85);
+  stroke: #4b5563;
+  stroke-width: 1;
+}
+
+.dimension-text {
+  fill: #fbbf24;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+/* Snap Glyphs */
+.snap-node-glyph {
+  fill: none;
+  stroke: #10b981;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.snap-intersection-glyph {
+  stroke: #facc15;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.snap-midpoint-glyph {
+  fill: none;
+  stroke: #06b6d4;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.snap-ortho-glyph {
+  fill: none;
+  stroke: #a855f7;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+/* Marquee Rectangles */
+.marquee-window {
+  fill: rgba(59, 130, 246, 0.15);
+  stroke: #3b82f6;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.marquee-crossing {
+  fill: rgba(16, 185, 129, 0.15);
+  stroke: #10b981;
+  stroke-width: 1.5;
+  stroke-dasharray: 4, 4;
+  pointer-events: none;
+}
+
+/* Floating Cross-Section Probe Card */
+.hover-probe-card {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #38bdf8;
+  border-radius: 6px;
+  padding: 6px 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 100;
+  font-size: 0.725rem;
+  color: #f1f5f9;
+  font-family: monospace;
+}
+
+.probe-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 3px;
+  margin-bottom: 3px;
+  font-weight: bold;
+  color: #38bdf8;
+}
+
+.probe-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Bottom Status Bar */
+.canvas-status-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 14px;
+  background: var(--bg-panel, rgba(15, 23, 42, 0.95));
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  font-family: monospace;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.diagram-select {
+  background: var(--bg-surface-elevated, #1e293b);
+  color: var(--text-primary, #f8fafc);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  border-radius: 4px;
+  font-size: 0.725rem;
+  padding: 2px 6px;
+}
+
+.status-val {
+  color: #e5e7eb;
+}
+
+.status-val.highlight {
+  color: #10b981;
+  font-weight: bold;
+}
+
+.status-val.rev {
+  color: #a855f7;
+}

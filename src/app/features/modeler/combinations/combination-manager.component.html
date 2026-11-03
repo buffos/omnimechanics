@@ -1,0 +1,204 @@
+@if (isOpen()) {
+  <div
+    class="modal-backdrop"
+    (mousedown)="onBackdropMouseDown($event)"
+    (mouseup)="onBackdropMouseUp($event)"
+  >
+    <div class="modal-card" (click)="$event.stopPropagation()" data-testid="combination-manager-modal">
+      <div class="modal-header">
+        <h3>Διαχείριση Φορτίων & Ευρωκωδίκων (EC0 / EC8)</h3>
+        <button class="close-btn" (click)="close()">✖</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button
+          [class.active]="activeTab() === 'loadCases'"
+          (click)="activeTab.set('loadCases')"
+        >
+          Περιπτώσεις Φόρτισης ({{ loadCases().length }})
+        </button>
+        <button
+          [class.active]="activeTab() === 'combinations'"
+          (click)="activeTab.set('combinations')"
+        >
+          Συνδυασμοί EC0 ({{ combinations().length }})
+        </button>
+        <button
+          [class.active]="activeTab() === 'seismic'"
+          (click)="activeTab.set('seismic')"
+        >
+          Σεισμικές Ρυθμίσεις (EC8)
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 1. Load Cases Tab -->
+        @if (activeTab() === 'loadCases') {
+          <div class="tab-pane">
+            <div class="lc-list">
+              @for (lc of loadCases(); track lc.id) {
+                <div class="lc-row" [class.active-lc]="lc.id === store.activeLoadCaseId()">
+                  <div class="lc-info">
+                    <strong>{{ lc.id }}</strong>: {{ lc.name }}
+                    <span class="category-badge">{{ (lc.action_type && $any(lc.action_type).kind) || 'Permanent' }}</span>
+                  </div>
+                  <div class="lc-actions">
+                    <button
+                      class="btn-select-lc"
+                      (click)="store.activeLoadCaseId.set(lc.id)"
+                      [disabled]="lc.id === store.activeLoadCaseId()"
+                    >
+                      {{ lc.id === store.activeLoadCaseId() ? 'Ενεργή' : 'Επιλογή' }}
+                    </button>
+                    @if (loadCases().length > 1) {
+                      <button class="btn-del-lc" (click)="store.deleteLoadCase(lc.id)">🗑</button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="add-lc-box">
+              <h4>Προσθήκη Νέας Περίπτωσης Φόρτισης</h4>
+              <div class="form-row">
+                <input type="text" [(ngModel)]="newLcName" placeholder="Όνομα (π.χ. W1 Wind)" />
+                <select [(ngModel)]="newLcCategory">
+                  <option value="Permanent">Μόνιμο (G)</option>
+                  <option value="Variable">Μεταβλητό (Q)</option>
+                  <option value="Seismic">Σεισμικό (E)</option>
+                </select>
+                <button class="btn-add" (click)="addNewLoadCase()">➕ Προσθήκη</button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- 2. Combinations Tab -->
+        @if (activeTab() === 'combinations') {
+          <div class="tab-pane">
+            <div class="comb-toolbar">
+              <button class="btn-generate" (click)="generateEurocodeCombinations()">
+                ⚡ Αυτόματη Παραγωγή Συνδυασμών (ΕΝ 1990)
+              </button>
+            </div>
+
+            <div class="comb-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Κωδικός</th>
+                    <th>Περιγραφή</th>
+                    <th>Οριακή Κατάσταση</th>
+                    <th>Προέλευση</th>
+                    <th>Συντελεστές</th>
+                    <th class="action-cell">Ενέργειες</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of combinations(); track c.id) {
+                    <tr>
+                      <td><strong>{{ c.id }}</strong></td>
+                      <td>{{ c.name }}</td>
+                      <td><span class="ls-badge">{{ c.limit_state }}</span></td>
+                      <td><span class="prov-badge">{{ c.provenance }}</span></td>
+                      <td class="factors-cell">
+                        @for (f of c.factors; track f.load_case_id) {
+                          <span class="factor-pill">{{ f.factor }}×{{ f.load_case_id }}</span>
+                        }
+                      </td>
+                      <td class="action-cell">
+                        <button
+                          class="btn-del-comb"
+                          (click)="deleteCombination(c.id)"
+                          title="Διαγραφή Συνδυασμού"
+                        >
+                          🗑
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6" class="empty-msg">
+                        Δεν υπάρχουν συνδυασμοί. Πατήστε "Αυτόματη Παραγωγή" για δημιουργία σύμφωνα με το Ελληνικό Εθνικό Προσάρτημα.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+        <!-- 3. Seismic Tab -->
+        @if (activeTab() === 'seismic') {
+          <div class="tab-pane seismic-pane">
+            <div class="seismic-form">
+              <div class="form-group">
+                <label>Σεισμική Ζώνη (Ελλάδα):</label>
+                <select
+                  [value]="seismicSettings().zone"
+                  (change)="updateSeismicParam('zone', $any($event.target).value)"
+                >
+                  <option value="Zone I (0.16g)">Ζώνη Ι (0.16g - ag=1.57 m/s²)</option>
+                  <option value="Zone II (0.24g)">Ζώνη ΙΙ (0.24g - ag=2.35 m/s²)</option>
+                  <option value="Zone III (0.36g)">Ζώνη ΙΙΙ (0.36g - ag=3.53 m/s²)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Κατηγορία Εδάφους (EC8):</label>
+                <select
+                  [value]="seismicSettings().ground_type"
+                  (change)="updateSeismicParam('ground_type', $any($event.target).value)"
+                >
+                  <option value="A">Έδαφος Α (Βράχος, S=1.0)</option>
+                  <option value="B">Έδαφος Β (Πολύ πυκνή άμμος/χαλίκι, S=1.2)</option>
+                  <option value="C">Έδαφος C (Πυκνή άμμος, S=1.15)</option>
+                  <option value="D">Έδαφος D (Χαλαρό έδαφος, S=1.35)</option>
+                  <option value="E">Έδαφος E (Επιφανειακό στρώμα, S=1.4)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Συντελεστής Συμπεριφοράς q:</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  [value]="seismicSettings().behavior_factor_q"
+                  (change)="updateSeismicParam('behavior_factor_q', +$any($event.target).value)"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Συντελεστής Σπουδαιότητας γI:</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  [value]="seismicSettings().importance_factor"
+                  (change)="updateSeismicParam('importance_factor', +$any($event.target).value)"
+                />
+              </div>
+            </div>
+
+            <!-- Spectrum Curve Preview -->
+            <div class="spectrum-preview">
+              <h4>Φάσμα Σχεδιασμού Sd(T) [g]</h4>
+              <svg width="280" height="130" class="spectrum-svg">
+                <path [attr.d]="spectrumSvgPath()" class="spectrum-path" />
+                <!-- Axes -->
+                <line x1="0" y1="120" x2="280" y2="120" stroke="#64748b" stroke-width="1.5" />
+                <line x1="0" y1="0" x2="0" y2="120" stroke="#64748b" stroke-width="1.5" />
+                <text x="240" y="115" fill="#94a3b8" font-size="10">T (s)</text>
+                <text x="5" y="15" fill="#94a3b8" font-size="10">Sd (g)</text>
+              </svg>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-close" (click)="close()">Κλείσιμο / Close</button>
+      </div>
+    </div>
+  </div>
+}

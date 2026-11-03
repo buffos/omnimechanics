@@ -1,0 +1,140 @@
+@if (store.isLoadsModalOpen()) {
+  <div
+    class="modal-backdrop"
+    (mousedown)="onBackdropMouseDown($event)"
+    (mouseup)="onBackdropMouseUp($event)"
+  >
+    <div class="modal-card loads-dialog-card" (click)="$event.stopPropagation()" data-testid="loads-manager-modal">
+      <div class="modal-header">
+        <h3>⚡ Διαχείριση Φορτίων / Loads Manager</h3>
+        <button class="close-btn" (click)="store.isLoadsModalOpen.set(false)">✖</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="prop-group">
+          <label>Ενεργή Περίπτωση Φόρτισης:</label>
+          <div class="lc-badge">
+            <span class="badge badge--accent">{{ store.activeLoadCaseId() }}</span>
+          </div>
+        </div>
+
+        <div class="prop-group">
+          <label>Τύπος Φορτίου:</label>
+          <select class="styled-select" [ngModel]="loadKind()" (ngModelChange)="loadKind.set($event)">
+            <option value="DistributedLoad">Κατανεμημένο Ράβδου / Dist. Load</option>
+            <option value="PointLoad">Συγκεντρωμένο Ράβδου / Point Load</option>
+            <option value="NodalLoad">Κομβικό Φορτίο / Nodal Load</option>
+            <option value="Settlement">Υποχώρηση Στήριξης / Settlement</option>
+            <option value="ThermalLoad">Θερμοκρασιακό / Thermal</option>
+          </select>
+        </div>
+
+        <!-- Distributed Load Inputs -->
+        @if (loadKind() === 'DistributedLoad') {
+          <div class="prop-row">
+            <div class="prop-group" style="flex: 1">
+              <label>qy1 (kN/m):</label>
+              <input type="number" class="styled-input" [ngModel]="distQy1()" (ngModelChange)="distQy1.set($event)" />
+            </div>
+            <div class="prop-group" style="flex: 1">
+              <label>qy2 (kN/m):</label>
+              <input type="number" class="styled-input" [ngModel]="distQy2()" (ngModelChange)="distQy2.set($event)" />
+            </div>
+          </div>
+          <div class="prop-group">
+            <label>Εύρος (a_rel - b_rel):</label>
+            <div class="form-row">
+              <input type="number" step="0.1" class="styled-input" [ngModel]="distArel()" (ngModelChange)="distArel.set($event)" />
+              <span style="color: #94a3b8">έως</span>
+              <input type="number" step="0.1" class="styled-input" [ngModel]="distBrel()" (ngModelChange)="distBrel.set($event)" />
+            </div>
+          </div>
+        }
+
+        <!-- Point Load on Member Inputs -->
+        @if (loadKind() === 'PointLoad') {
+          <div class="prop-row">
+            <div class="prop-group" style="flex: 1">
+              <label>Py (kN):</label>
+              <input type="number" class="styled-input" [ngModel]="memberPointPy()" (ngModelChange)="memberPointPy.set($event)" />
+            </div>
+            <div class="prop-group" style="flex: 1">
+              <label>Px (kN):</label>
+              <input type="number" class="styled-input" [ngModel]="memberPointPx()" (ngModelChange)="memberPointPx.set($event)" />
+            </div>
+          </div>
+          <div class="prop-group">
+            <label>Απόσταση a από άκρο i (m):</label>
+            <input type="number" step="0.5" class="styled-input" [ngModel]="memberPointA()" (ngModelChange)="memberPointA.set($event)" />
+          </div>
+        }
+
+        <!-- Nodal Load Inputs -->
+        @if (loadKind() === 'NodalLoad') {
+          <div class="prop-row">
+            <div class="prop-group" style="flex: 1">
+              <label>Fx (kN):</label>
+              <input type="number" class="styled-input" [ngModel]="nodalFx()" (ngModelChange)="nodalFx.set($event)" />
+            </div>
+            <div class="prop-group" style="flex: 1">
+              <label>Fy (kN):</label>
+              <input type="number" class="styled-input" [ngModel]="nodalFy()" (ngModelChange)="nodalFy.set($event)" />
+            </div>
+          </div>
+          <div class="prop-group">
+            <label>Mz (kNm):</label>
+            <input type="number" class="styled-input" [ngModel]="nodalMz()" (ngModelChange)="nodalMz.set($event)" />
+          </div>
+        }
+
+        <!-- Support Settlement Inputs -->
+        @if (loadKind() === 'Settlement') {
+          <div class="prop-row">
+            <div class="prop-group" style="flex: 1">
+              <label>Δy (m):</label>
+              <input type="number" step="0.005" class="styled-input" [ngModel]="settleDy()" (ngModelChange)="settleDy.set($event)" />
+            </div>
+            <div class="prop-group" style="flex: 1">
+              <label>Δx (m):</label>
+              <input type="number" step="0.005" class="styled-input" [ngModel]="settleDx()" (ngModelChange)="settleDx.set($event)" />
+            </div>
+          </div>
+          <div class="prop-group">
+            <label>Δθ (rad):</label>
+            <input type="number" step="0.001" class="styled-input" [ngModel]="settleDtheta()" (ngModelChange)="settleDtheta.set($event)" />
+          </div>
+        }
+
+        <!-- Thermal Load Inputs -->
+        @if (loadKind() === 'ThermalLoad') {
+          <div class="prop-row">
+            <div class="prop-group" style="flex: 1">
+              <label>ΔT άνω (°C):</label>
+              <input type="number" class="styled-input" [ngModel]="thermalTop()" (ngModelChange)="thermalTop.set($event)" />
+            </div>
+            <div class="prop-group" style="flex: 1">
+              <label>ΔT κάτω (°C):</label>
+              <input type="number" class="styled-input" [ngModel]="thermalBottom()" (ngModelChange)="thermalBottom.set($event)" />
+            </div>
+          </div>
+        }
+
+        <div class="prop-group" style="margin-top: 10px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input
+              type="checkbox"
+              [checked]="isCurrentLcSelfWeight()"
+              (change)="store.toggleSelfWeight($any($event.target).checked)"
+            />
+            <span style="color: var(--text-secondary, #cbd5e1); font-size: 0.8rem;">Ίδιο Βάρος / Self-Weight (G)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" style="max-width: 100px" (click)="store.isLoadsModalOpen.set(false)">Κλείσιμο</button>
+        <button class="btn btn-primary" style="max-width: 140px" (click)="applyLoadToSelection()">➕ Προσθήκη</button>
+      </div>
+    </div>
+  </div>
+}

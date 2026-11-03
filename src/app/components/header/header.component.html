@@ -21,6 +21,14 @@
       </button>
       <button
         type="button"
+        [class.active]="activeWorkspaceMode() === 'modeler'"
+        (click)="modeChange.emit('modeler')"
+        title="Mode 2: Structural Modeling & Analysis (Eurocodes EN 1990/EN 1998)"
+      >
+        {{ i18n.t('nav.modeler') }}
+      </button>
+      <button
+        type="button"
         [class.active]="activeWorkspaceMode() === 'teaching'"
         (click)="modeChange.emit('teaching')"
         title="Mode 3: Educational Structural Mechanics Studio"

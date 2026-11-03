@@ -13,6 +13,7 @@ import { HeaderComponent } from "./components/header/header.component";
 import { GeometryTabComponent } from "./components/sidebar/geometry-tab/geometry-tab.component";
 import { MaterialTabComponent } from "./components/sidebar/material-tab/material-tab.component";
 import { SolverTabComponent } from "./components/sidebar/solver-tab/solver-tab.component";
+import { ModelerWorkspaceComponent } from "./features/modeler/modeler-workspace.component";
 import { TeachingStudioComponent } from "./features/teaching/teaching-studio.component";
 import { NotificationService } from "./shared/notification.service";
 import { DialogService } from "./shared/dialog.service";
@@ -32,6 +33,8 @@ import {
 } from "./services/material.service";
 import { SolverService, SolverMode, HarmonicSolverMode, BemElementType, StressState2D, HybridAccelerationType, TransientExcitation, TransientMethod } from "./services/solver.service";
 import { invoke } from "@tauri-apps/api/core";
+
+import { WorkspaceModeService } from "./shared/workspace-mode.service";
 
 export type PresetKey =
   | "Beam2D"
@@ -58,6 +61,7 @@ export type StrategyKey =
     GeometryTabComponent,
     MaterialTabComponent,
     SolverTabComponent,
+    ModelerWorkspaceComponent,
     TeachingStudioComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -70,9 +74,10 @@ export class AppComponent implements OnInit {
   readonly solverService = inject(SolverService);
   readonly dialogService = inject(DialogService);
   readonly notificationService = inject(NotificationService);
+  readonly workspaceModeService = inject(WorkspaceModeService);
 
-  // Top-Level Application Workspace Mode: Mode 1 (Continuum) vs Mode 3 (Teaching Studio)
-  activeWorkspaceMode = signal<"continuum" | "teaching">("continuum");
+  // Top-Level Application Workspace Mode: Mode 1 (Continuum), Mode 2 (Modeler), Mode 3 (Teaching Studio)
+  readonly activeWorkspaceMode = this.workspaceModeService.activeMode;
 
   // Workflow Sidebar Navigation Tab
   activeSidebarTab = signal<"mesh" | "material" | "solver">("solver");

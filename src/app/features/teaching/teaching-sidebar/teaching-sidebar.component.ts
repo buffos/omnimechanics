@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { form, min, max } from '@angular/forms/signals';
 import { TeachingService, TEACHING_PRESETS, PresetMeta } from '../teaching.service';
 import { I18nService } from '../../../shared/i18n.service';
+import { TeachingHandoffService } from '../../modeler/handoff/teaching-handoff.service';
+import { ModelerStore } from '../../modeler/core/modeler.store';
+import { WorkspaceModeService } from '../../../shared/workspace-mode.service';
 
 interface TeachingFormModel {
   presetId: string;
@@ -24,6 +27,9 @@ interface TeachingFormModel {
 export class TeachingSidebarComponent {
   readonly teaching = inject(TeachingService);
   readonly i18n = inject(I18nService);
+  readonly handoffService = inject(TeachingHandoffService);
+  readonly modelerStore = inject(ModelerStore);
+  readonly workspaceModeService = inject(WorkspaceModeService);
   readonly presets = TEACHING_PRESETS;
 
   readonly selectedPreset = signal<PresetMeta>(TEACHING_PRESETS[0]);
@@ -153,5 +159,18 @@ export class TeachingSidebarComponent {
       load_p: val.loadP,
       load_p_pos: clampedPos,
     });
+  }
+
+  async editInMode2(): Promise<void> {
+    const val = this.teachingModel();
+    const model = await this.handoffService.importPreset(val.presetId, {
+      length: val.length,
+      height: val.height,
+      load_q: val.loadQ,
+      load_p: val.loadP,
+      load_p_pos: val.loadPPos,
+    });
+    this.modelerStore.loadModel(model);
+    this.workspaceModeService.setMode('modeler');
   }
 }

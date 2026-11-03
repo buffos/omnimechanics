@@ -1,0 +1,428 @@
+<div class="modeler-toolbar">
+  <!-- 1. Selection & Flyout Groups -->
+  <div class="toolbar-group">
+    <!-- Select Tool -->
+    <button
+      type="button"
+      class="tool-btn"
+      [class.active]="store.activeTool() === 'Select'"
+      (click)="setTool('Select')"
+      title="Select & Marquee Box (V)"
+    >
+      <span class="icon">↖</span>
+      <span class="label">Select</span>
+    </button>
+
+    <!-- Draw Tools Flyout (Photoshop style) -->
+    <div
+      class="flyout-btn-group"
+      [class.active]="store.activeTool() === 'DrawMember' || store.activeTool() === 'DrawTruss' || store.activeTool() === 'DrawCable'"
+    >
+      <button
+        type="button"
+        class="flyout-main-btn"
+        (click)="setTool(activeDrawTool())"
+        [title]="'Ενεργό εργαλείο σχεδίασης: ' + activeDrawTool()"
+      >
+        <span class="icon">{{ activeDrawTool() === 'DrawMember' ? '📏' : activeDrawTool() === 'DrawTruss' ? '☖' : '〰' }}</span>
+        <span class="label">{{ activeDrawTool() === 'DrawMember' ? 'Member' : activeDrawTool() === 'DrawTruss' ? 'Truss' : 'Cable' }}</span>
+      </button>
+      <button
+        type="button"
+        class="flyout-chevron-btn"
+        (click)="toggleDrawFlyout(); $event.stopPropagation()"
+        title="Επιλογή εργαλείου σχεδίασης"
+      >
+        ▼
+      </button>
+
+      @if (isDrawFlyoutOpen()) {
+        <div class="flyout-menu" (click)="$event.stopPropagation()">
+          <button type="button" class="flyout-item" [class.active]="activeDrawTool() === 'DrawMember'" (click)="selectDrawTool('DrawMember')">
+            <span>📏</span> <span>Ράβδος / Member</span>
+          </button>
+          <button type="button" class="flyout-item" [class.active]="activeDrawTool() === 'DrawTruss'" (click)="selectDrawTool('DrawTruss')">
+            <span>☖</span> <span>Δικτύωμα / Truss</span>
+          </button>
+          <button type="button" class="flyout-item" [class.active]="activeDrawTool() === 'DrawCable'" (click)="selectDrawTool('DrawCable')">
+            <span>〰</span> <span>Καλώδιο / Cable</span>
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Supports Flyout (User requested expanded toolbar) -->
+    <div
+      class="flyout-btn-group"
+      [class.active]="store.activeTool() === 'PlaceSupport'"
+    >
+      <button
+        type="button"
+        class="flyout-main-btn"
+        (click)="selectSupportType(activeSupportType())"
+        [title]="'Στήριξη: ' + activeSupportType()"
+      >
+        <span class="icon">{{ activeSupportType() === 'Fixed' ? '⏚' : activeSupportType() === 'Pinned' ? '⏏' : activeSupportType() === 'Roller' ? '⏀' : activeSupportType() === 'Guided' ? '⫛' : '⦚' }}</span>
+        <span class="label">{{ activeSupportType() }}</span>
+      </button>
+      <button
+        type="button"
+        class="flyout-chevron-btn"
+        (click)="toggleSupportFlyout(); $event.stopPropagation()"
+        title="Επιλογή τύπου στήριξης"
+      >
+        ▼
+      </button>
+
+      @if (isSupportFlyoutOpen()) {
+        <div class="flyout-menu" (click)="$event.stopPropagation()">
+          <button type="button" class="flyout-item" [class.active]="activeSupportType() === 'Fixed'" (click)="selectSupportType('Fixed')">
+            <span>⏚</span> <span>Πάκτωση / Fixed</span>
+          </button>
+          <button type="button" class="flyout-item" [class.active]="activeSupportType() === 'Pinned'" (click)="selectSupportType('Pinned')">
+            <span>⏏</span> <span>Άρθρωση / Pinned</span>
+          </button>
+          <button type="button" class="flyout-item" [class.active]="activeSupportType() === 'Roller'" (click)="selectSupportType('Roller')">
+            <span>⏀</span> <span>Κύλιση / Roller</span>
+          </button>
+          <button type="button" class="flyout-item" [class.active]="activeSupportType() === 'Guided'" (click)="selectSupportType('Guided')">
+            <span>⫛</span> <span>Οδηγός / Guided</span>
+          </button>
+          <button type="button" class="flyout-item" [class.active]="activeSupportType() === 'Elastic'" (click)="selectSupportType('Elastic')">
+            <span>⦚</span> <span>Ελαστική / Elastic</span>
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Loads Dialog Trigger Button -->
+    <button
+      type="button"
+      class="tool-btn"
+      (click)="openLoadsModal()"
+      title="Διαχείριση & Εφαρμογή Φορτίων"
+    >
+      <span class="icon">⚡</span>
+      <span class="label">Φορτία / Loads</span>
+    </button>
+  </div>
+
+  <div class="toolbar-separator"></div>
+
+  <!-- 2. CAD Modify & Transform Flyout -->
+  <div class="toolbar-group">
+    <div
+      class="flyout-btn-group"
+      [class.active]="store.activeTool() === 'Move'"
+    >
+      <button
+        type="button"
+        class="flyout-main-btn"
+        [disabled]="store.selectedElementsCount() === 0"
+        (click)="openTransformDialog('move')"
+        title="Μετακίνηση Επιλογής (Move)"
+      >
+        <span class="icon">✥</span>
+        <span class="label">Move</span>
+      </button>
+      <button
+        type="button"
+        class="flyout-chevron-btn"
+        [disabled]="store.selectedElementsCount() === 0"
+        (click)="toggleTransformFlyout(); $event.stopPropagation()"
+        title="Επιλογές Μετασχηματισμών CAD"
+      >
+        ▼
+      </button>
+
+      @if (isTransformFlyoutOpen()) {
+        <div class="flyout-menu" (click)="$event.stopPropagation()">
+          <button type="button" class="flyout-item" (click)="openTransformDialog('move')">
+            <span>✥</span> <span>Μετακίνηση / Move</span>
+          </button>
+          <button type="button" class="flyout-item" (click)="openTransformDialog('copy')">
+            <span>❐</span> <span>Αντιγραφή / Copy</span>
+          </button>
+          <button type="button" class="flyout-item" (click)="openTransformDialog('mirror')">
+            <span>◧</span> <span>Κάτοπτρισμός / Mirror</span>
+          </button>
+          <button type="button" class="flyout-item" (click)="openTransformDialog('array')">
+            <span>⊞</span> <span>Γραμμικός Πίνακας / Array</span>
+          </button>
+        </div>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="tool-btn icon-only delete-btn"
+      [disabled]="store.selectedElementsCount() === 0"
+      (click)="store.deleteSelection()"
+      title="Delete Selection (Del)"
+    >
+      <span class="icon">🗑</span>
+    </button>
+
+    <button
+      type="button"
+      class="tool-btn icon-only"
+      [disabled]="!store.canUndo()"
+      (click)="store.undo()"
+      title="Undo (Ctrl+Z)"
+    >
+      <span class="icon">↶</span>
+    </button>
+    <button
+      type="button"
+      class="tool-btn icon-only"
+      [disabled]="!store.canRedo()"
+      (click)="store.redo()"
+      title="Redo (Ctrl+Y)"
+    >
+      <span class="icon">↷</span>
+    </button>
+  </div>
+
+  <div class="toolbar-separator"></div>
+
+  <!-- 3. Analysis Selectors -->
+  <div class="toolbar-group analysis-selector-group">
+    <select
+      id="analysisKindSelect"
+      class="toolbar-select"
+      [value]="resultsService.analysisKind()"
+      (change)="setAnalysisKind($event)"
+      title="Είδος Στατικής / Δυναμικής Ανάλυσης"
+    >
+      <option value="LinearStatic">1ης Τάξης (Linear Static)</option>
+      <option value="SecondOrderPDelta">2ας Τάξης (P-Δ Nonlinear)</option>
+      <option value="LinearBuckling">Λυγισμός (Euler Buckling)</option>
+      <option value="Modal">Ιδιομορφική (Modal)</option>
+      <option value="ResponseSpectrum">Φασματική (RSA - EC8)</option>
+      <option value="LateralForce">Ισοδύναμη Σεισμική (ELF)</option>
+    </select>
+
+    <select
+      id="targetSelect"
+      class="toolbar-select"
+      [value]="currentTargetSelectValue()"
+      (change)="setResultTarget($event)"
+      title="Εμφάνιση αποτελεσμάτων για Περίπτωση, Συνδυασμό ή Περιβάλλουσα"
+    >
+      <optgroup label="Περιπτώσεις Φόρτισης">
+        @for (lc of store.model().load_cases; track lc.id) {
+          <option [value]="'LC:' + lc.id">{{ lc.id }} - {{ lc.name }}</option>
+        }
+      </optgroup>
+      <optgroup label="Συνδυασμοί EC0">
+        @for (c of store.combinations(); track c.id) {
+          <option [value]="'COMB:' + c.id">{{ c.id }} - {{ c.name }}</option>
+        }
+      </optgroup>
+      <optgroup label="Περιβάλλουσες">
+        <option value="ENV:ENV_ULS_STR">Περιβάλλουσα ULS Max/Min</option>
+        <option value="ENV:ENV_SLS">Περιβάλλουσα SLS Max/Min</option>
+      </optgroup>
+    </select>
+
+    <button
+      type="button"
+      class="tool-btn action-btn comb-btn"
+      (click)="openCombinationModal()"
+      title="Διαχείριση Περιπτώσεων Φόρτισης & Συνδυασμών EC0/EC8"
+    >
+      ⚙ EC0/EC8
+    </button>
+  </div>
+
+  <div class="toolbar-separator"></div>
+
+  <!-- 4. Mode 3, Presets & Export -->
+  <div class="toolbar-group">
+    <button
+      type="button"
+      class="classifier-badge-btn"
+      [class.eligible]="handoff.eligibility()?.overall_eligible"
+      [class.ineligible]="!handoff.eligibility()?.overall_eligible"
+      (click)="toggleClassifierPopover()"
+      title="Κλασικές Μέθοδοι Mode 3 (Teaching Studio)"
+    >
+      <span class="badge-icon">🎓</span>
+      <span class="badge-text">{{ handoff.eligibility()?.overall_eligible ? 'Mode 3' : 'DSM' }}</span>
+    </button>
+
+    @if (isClassifierPopoverOpen()) {
+      <div class="classifier-popover" data-testid="classifier-popover">
+        <div class="popover-header">
+          <h4>🎓 Επιλεξιμότητα Μεθόδων Mode 3</h4>
+          <span class="ns-tag">ns = {{ handoff.eligibility()?.indeterminacy_degree ?? 0 }}</span>
+        </div>
+        <div class="methods-list">
+          @for (m of handoff.eligibility()?.methods; track m.method_id) {
+            <div class="method-row" [class.eligible]="m.eligible" [class.ineligible]="!m.eligible">
+              <span class="status-icon">{{ m.eligible ? '✓' : '✗' }}</span>
+              <div class="method-details">
+                <div class="method-title">{{ i18n.currentLang() === 'el' ? m.name_el : m.name_en }}</div>
+                @if (!m.eligible) {
+                  <div class="method-reason">
+                    {{ i18n.currentLang() === 'el' ? m.ineligibility_reason_el : m.ineligibility_reason_en }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <div class="popover-actions">
+          @if (handoff.eligibility()?.overall_eligible) {
+            <button type="button" class="handoff-btn primary" (click)="openTeachingStepByStep()">
+              📖 Άνοιγμα στο Teaching Studio
+            </button>
+          }
+          @if (handoff.eligibility()?.dsm_walkthrough_available) {
+            <button type="button" class="handoff-btn secondary" (click)="openDsmWalkthrough()">
+              🔍 Άνοιγμα DSM Walkthrough
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Presets -->
+    <div class="dropdown-container">
+      <button
+        type="button"
+        class="tool-btn dropdown-btn"
+        (click)="togglePresetMenu()"
+        title="Εισαγωγή Εκπαιδευτικών Presets Mode 3"
+      >
+        <span>📚</span>
+      </button>
+      @if (isPresetMenuOpen()) {
+        <div class="dropdown-menu">
+          <button type="button" class="menu-item" (click)="importPreset('simply_supported_distributed')">Αμφιέρειστη με q (6m)</button>
+          <button type="button" class="menu-item" (click)="importPreset('simply_supported_point')">Αμφιέρειστη με P (8m)</button>
+          <button type="button" class="menu-item" (click)="importPreset('cantilever')">Πρόβολος P & q (4m)</button>
+          <button type="button" class="menu-item" (click)="importPreset('overhanging_beam')">Δοκός με Πρόβολο (6m+2m)</button>
+          <button type="button" class="menu-item" (click)="importPreset('cross_two_span')">Συνεχής 2 Ανοιγμάτων</button>
+          <button type="button" class="menu-item" (click)="importPreset('pratt_truss')">Δικτύωμα Pratt (12m)</button>
+        </div>
+      }
+    </div>
+
+    <!-- File Export -->
+    <div class="dropdown-container">
+      <button
+        type="button"
+        class="tool-btn dropdown-btn"
+        (click)="toggleExportMenu()"
+        title="Εξαγωγή Διαγραμμάτων (SVG/PNG) & Έργου (.bem)"
+      >
+        <span>💾</span>
+      </button>
+      @if (isExportMenuOpen()) {
+        <div class="dropdown-menu">
+          <button type="button" class="menu-item" (click)="saveProject()">💾 Αποθήκευση Έργου (.bem)</button>
+          <button type="button" class="menu-item" (click)="triggerFileInput(fileInput)">📂 Άνοιγμα Έργου (.bem)</button>
+          <div class="menu-divider"></div>
+          <button type="button" class="menu-item" (click)="exportSvg()">📐 Εξαγωγή SVG</button>
+          <button type="button" class="menu-item" (click)="exportPng()">🖼 Εξαγωγή PNG</button>
+        </div>
+      }
+    </div>
+    <input #fileInput type="file" accept=".bem,.json" style="display: none" (change)="onFileSelected($event)" />
+  </div>
+
+  <div class="toolbar-separator"></div>
+
+  <!-- 5. Snapping Grid & Ortho -->
+  <div class="toolbar-group">
+    <select
+      id="gridStepSelect"
+      class="grid-select"
+      [value]="store.viewport().gridStep"
+      (change)="setGridStep($event)"
+      title="Grid Step"
+    >
+      <option [value]="0.1">0.1m</option>
+      <option [value]="0.5">0.5m</option>
+      <option [value]="1.0">1.0m</option>
+    </select>
+
+    <button
+      type="button"
+      class="toggle-btn"
+      [class.active]="store.snappingOptions().orthoLockEnabled"
+      (click)="store.toggleOrtho()"
+      title="Toggle Ortho (F8)"
+    >
+      Ortho
+    </button>
+  </div>
+
+  <!-- Numeric Coordinate Input Box -->
+  <div class="toolbar-group coordinate-entry">
+    <span class="coord-prefix">⌨:</span>
+    <input
+      type="text"
+      class="coord-input"
+      placeholder="x,y or @3<45"
+      [ngModel]="coordinateInput()"
+      (ngModelChange)="coordinateInput.set($event)"
+      (keydown.enter)="onCoordinateSubmit()"
+    />
+  </div>
+
+  <!-- Explicit CAD Transform Modal Dialog -->
+  @if (isTransformDialogOpen()) {
+    <div
+      class="modal-backdrop"
+      (mousedown)="onTransformBackdropMouseDown($event)"
+      (mouseup)="onTransformBackdropMouseUp($event)"
+    >
+      <div class="modal-card transform-dialog-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>
+            {{ transformType() === 'move' ? '✥ Μετακίνηση / Move' :
+               transformType() === 'copy' ? '❐ Αντιγραφή / Copy' :
+               transformType() === 'mirror' ? '◧ Κάτοπτρισμός / Mirror' :
+               '⊞ Γραμμικός Πίνακας / Linear Array' }}
+          </h3>
+          <button class="close-btn" (click)="isTransformDialogOpen.set(false)">✖</button>
+        </div>
+        <div class="modal-body">
+          @if (transformType() === 'move' || transformType() === 'copy' || transformType() === 'array') {
+            <div class="form-row">
+              <div class="form-group" style="flex: 1">
+                <label>Δx (m):</label>
+                <input type="number" step="0.5" class="styled-input" [ngModel]="transformDx()" (ngModelChange)="transformDx.set(+$event)" />
+              </div>
+              <div class="form-group" style="flex: 1">
+                <label>Δy (m):</label>
+                <input type="number" step="0.5" class="styled-input" [ngModel]="transformDy()" (ngModelChange)="transformDy.set(+$event)" />
+              </div>
+            </div>
+          }
+          @if (transformType() === 'array') {
+            <div class="form-group" style="margin-top: 8px">
+              <label>Πλήθος αντιγράφων / Count:</label>
+              <input type="number" min="2" max="20" class="styled-input" [ngModel]="transformCount()" (ngModelChange)="transformCount.set(+$event)" />
+            </div>
+          }
+          @if (transformType() === 'mirror') {
+            <div class="form-group">
+              <label>Άξονας Κατοπτρισμού / Mirror Axis:</label>
+              <select class="styled-select" [ngModel]="mirrorAxis()" (ngModelChange)="mirrorAxis.set($event)">
+                <option value="Y">Κατακόρυφος άξονας Y (X = 0)</option>
+                <option value="X">Οριζόντιος άξονας X (Y = 0)</option>
+              </select>
+            </div>
+          }
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" style="max-width: 100px" (click)="isTransformDialogOpen.set(false)">Ακύρωση</button>
+          <button class="btn btn-primary" style="max-width: 120px" (click)="applyTransform()">✔ Εφαρμογή</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
