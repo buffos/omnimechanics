@@ -133,6 +133,7 @@
 
       <div class="modal-footer">
         <button class="btn btn-secondary" style="max-width: 100px" (click)="store.isLoadsModalOpen.set(false)">Κλείσιμο</button>
+        <button class="btn btn-danger" style="max-width: 150px" (click)="removeLoadsFromSelection()" title="Αφαίρεση όλων των φορτίων από την επιλεγμένη ράβδο/κόμβο">🗑️ Αφαίρεση</button>
         <button class="btn btn-primary" style="max-width: 140px" (click)="applyLoadToSelection()">➕ Προσθήκη</button>
       </div>
     </div>

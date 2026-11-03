@@ -176,4 +176,48 @@ export class PropertyInspectorComponent {
     if (!elem || elem.kind !== 'TrussBar') return;
     this.store.updateElementProperties(elem.id, { axial_behavior: behavior } as any);
   }
+
+  readonly activeLoadCase = computed(() => {
+    const lcs = this.model().load_cases;
+    const activeId = this.store.activeLoadCaseId();
+    return lcs.find(lc => lc.id === activeId) ?? lcs[0] ?? null;
+  });
+
+  readonly selectedElementLoads = computed(() => {
+    const elem = this.selectedElement();
+    const lc = this.activeLoadCase();
+    if (!elem || !lc) return { dists: [], points: [], thermals: [] };
+    return {
+      dists: (lc.dist_loads ?? []).filter(d => d.element_id === elem.id),
+      points: (lc.point_loads ?? []).filter(p => p.element_id === elem.id),
+      thermals: (lc.thermal_loads ?? []).filter(t => t.element_id === elem.id),
+    };
+  });
+
+  readonly selectedNodeLoads = computed(() => {
+    const node = this.selectedNode();
+    const lc = this.activeLoadCase();
+    if (!node || !lc) return [];
+    return (lc.nodal_loads ?? []).filter(n => n.node_id === node.id);
+  });
+
+  removeDistributedLoad(id: string): void {
+    this.store.removeDistributedLoad(id);
+    this.notifications.show('Το κατανεμημένο φορτίο αφαιρέθηκε.', 'success');
+  }
+
+  removeMemberPointLoad(id: string): void {
+    this.store.removeMemberPointLoad(id);
+    this.notifications.show('Το σημειακό φορτίο ράβδου αφαιρέθηκε.', 'success');
+  }
+
+  removeNodalLoad(id: string): void {
+    this.store.removeNodalLoad(id);
+    this.notifications.show('Το κομβικό φορτίο αφαιρέθηκε.', 'success');
+  }
+
+  removeThermalLoad(id: string): void {
+    this.store.removeThermalLoad(id);
+    this.notifications.show('Το θερμοκρασιακό φορτίο αφαιρέθηκε.', 'success');
+  }
 }

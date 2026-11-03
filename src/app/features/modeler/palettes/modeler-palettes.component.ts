@@ -158,4 +158,32 @@ export class ModelerPalettesComponent {
       }
     }
   }
+
+  removeLoadsFromSelection(): void {
+    const sel = this.store.selection();
+    const lcId = this.store.activeLoadCaseId();
+    const lc = this.store.model().load_cases.find(c => c.id === lcId);
+    if (!lc) return;
+
+    let count = 0;
+    for (const eid of sel.elementIds) {
+      const dists = (lc.dist_loads ?? []).filter(d => d.element_id === eid);
+      for (const d of dists) { this.store.removeDistributedLoad(d.id); count++; }
+      const points = (lc.point_loads ?? []).filter(p => p.element_id === eid);
+      for (const p of points) { this.store.removeMemberPointLoad(p.id); count++; }
+      const thermals = (lc.thermal_loads ?? []).filter(t => t.element_id === eid);
+      for (const t of thermals) { this.store.removeThermalLoad(t.id); count++; }
+    }
+
+    for (const nid of sel.nodeIds) {
+      const nodals = (lc.nodal_loads ?? []).filter(n => n.node_id === nid);
+      for (const n of nodals) { this.store.removeNodalLoad(n.id); count++; }
+    }
+
+    if (count > 0) {
+      this.notifications.show(`Αφαιρέθηκαν ${count} φορτία από την επιλογή.`, 'success');
+    } else {
+      this.notifications.show('Δεν βρέθηκαν φορτία στην τρέχουσα επιλογή.', 'warning');
+    }
+  }
 }

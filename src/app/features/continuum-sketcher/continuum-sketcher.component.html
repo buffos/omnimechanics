@@ -174,15 +174,10 @@
             <line [attr.x1]="getSegmentScreenMid(seg).x" [attr.y1]="getSegmentScreenMid(seg).y"
                   [attr.x2]="getNormalArrowScreenEnd(seg).x" [attr.y2]="getNormalArrowScreenEnd(seg).y" class="normal-tick" />
 
-            <!-- Traction Load Arrows (Neumann) -->
-            @for (arrow of getSegmentTractionArrows(seg); track $index) {
-              <line [attr.x1]="arrow.x1" [attr.y1]="arrow.y1" [attr.x2]="arrow.x2" [attr.y2]="arrow.y2"
-                    stroke="var(--accent-warning)" stroke-width="2.5" marker-end="url(#traction-arrow)" />
-            }
-
-            <!-- Traction Label -->
-            @if (getSegmentTractionLabel(seg); as tLabel) {
-              <text [attr.x]="getSegmentScreenMid(seg).x" [attr.y]="getSegmentScreenMid(seg).y + 26" class="segment-traction-text">{{ tLabel }}</text>
+            <!-- Traction Load Shaded Envelope (Neumann) -->
+            @if (getSegmentTractionVisual(seg); as tv) {
+              <path [attr.d]="tv.path" class="dist-load-poly" />
+              <text [attr.x]="tv.labelX" [attr.y]="tv.labelY" class="dist-load-label">{{ tv.label }}</text>
             }
 
             <!-- Fixed Restraint Symbol (Dirichlet) -->

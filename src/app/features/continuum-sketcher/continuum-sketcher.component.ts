@@ -396,96 +396,100 @@ export class ContinuumSketcherComponent implements OnInit {
       .join(' ');
   }
 
-  getSegmentTractionArrows(seg: BoundarySegment): { x1: number; y1: number; x2: number; y2: number }[] {
+  getSegmentTractionVisual(seg: BoundarySegment): {
+    path: string;
+    label: string;
+    labelX: number;
+    labelY: number;
+  } | null {
     const condition = this.store.domain().tag_conditions[seg.tag];
-    if (!condition || condition.kind !== 'NeumannTraction') return [];
+    if (!condition || condition.kind !== 'NeumannTraction') return null;
 
     const verts = this.store.domain().outer_boundary.vertices;
     const v1 = verts.find((v) => v.id === seg.start_vertex_id);
     const v2 = verts.find((v) => v.id === seg.end_vertex_id);
-    if (!v1 || !v2) return [];
+    if (!v1 || !v2) return null;
 
-    const segDx = v2.x - v1.x;
-    const segDy = v2.y - v1.y;
+    const p1 = this.w2s(v1.x, v1.y);
+    const p2 = this.w2s(v2.x, v2.y);
+    const segDx = p2.x - p1.x;
+    const segDy = p2.y - p1.y;
     const segLen = Math.hypot(segDx, segDy);
-    if (segLen < 1e-6) return [];
+    if (segLen < 1e-4) return null;
 
-    const txStart = condition.tx_kn_m2;
-    const tyStart = condition.ty_kn_m2;
-    const txEnd = condition.tx_end_kn_m2 ?? txStart;
-    const tyEnd = condition.ty_end_kn_m2 ?? tyStart;
+    const tx1 = condition.tx_kn_m2;
+    const ty1 = condition.ty_kn_m2;
+    const tx2 = condition.tx_end_kn_m2 ?? tx1;
+    const ty2 = condition.ty_end_kn_m2 ?? ty1;
 
-    if (txStart === 0 && tyStart === 0 && txEnd === 0 && tyEnd === 0) return [];
+    const mag1 = Math.hypot(tx1, ty1);
+    const mag2 = Math.hypot(tx2, ty2);
+    const magMax = Math.max(mag1, mag2);
+    if (magMax < 1e-6) return null;
 
-    const tanX = segDx / segLen;
-    const tanY = segDy / segLen;
-    const normX = seg.outward_normal[0];
-    const normY = seg.outward_normal[1];
-    const isLocal = condition.coordinate_frame === 'LocalNormalTangential';
-
-    const tSamples = [0.1, 0.3, 0.5, 0.7, 0.9];
-    const arrows: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    const maxMag = Math.max(Math.hypot(txStart, tyStart), Math.hypot(txEnd, tyEnd), 1);
-
-    for (const t of tSamples) {
-      const q1 = (1 - t) * txStart + t * txEnd;
-      const q2 = (1 - t) * tyStart + t * tyEnd;
-      const currentMag = Math.hypot(q1, q2);
-      if (currentMag < 1e-4) continue;
-
-      const dirX = isLocal ? q1 * tanX + q2 * normX : q1;
-      const dirY = isLocal ? q1 * tanY + q2 * normY : q2;
-      const worldMag = Math.hypot(dirX, dirY);
-      if (worldMag < 1e-4) continue;
-
-      const ratio = worldMag / maxMag;
-      const arrowPx = 16 + ratio * 26;
-      const screenDx = (dirX / worldMag) * arrowPx;
-      const screenDy = -(dirY / worldMag) * arrowPx;
-
-      const wx = v1.x + t * segDx;
-      const wy = v1.y + t * segDy;
-      const s = this.w2s(wx, wy);
-
-      arrows.push({ x1: s.x, y1: s.y, x2: s.x + screenDx, y2: s.y + screenDy });
+    const midX = (v1.x + v2.x) / 2;
+    const midY = (v1.y + v2.y) / 2;
+    const sMid = this.w2s(midX, midY);
+    const sNorm = this.w2s(midX + seg.outward_normal[0], midY + seg.outward_normal[1]);
+    let nx = sNorm.x - sMid.x;
+    let ny = sNorm.y - sMid.y;
+    const nLen = Math.hypot(nx, ny);
+    if (nLen > 1e-6) {
+      nx /= nLen;
+      ny /= nLen;
+    } else {
+      nx = -segDy / segLen;
+      ny = segDx / segLen;
     }
 
-    return arrows;
-  }
+    const maxPx = Math.min(45, Math.max(22, Math.min(segLen * 0.45, 38)));
+    const h1 = (mag1 / magMax) * maxPx;
+    const h2 = (mag2 / magMax) * maxPx;
 
-  getSegmentTractionLabel(seg: BoundarySegment): string | null {
-    const condition = this.store.domain().tag_conditions[seg.tag];
-    if (!condition || condition.kind !== 'NeumannTraction') return null;
+    const top1X = p1.x + nx * h1;
+    const top1Y = p1.y + ny * h1;
+    const top2X = p2.x + nx * h2;
+    const top2Y = p2.y + ny * h2;
 
-    const txStart = condition.tx_kn_m2;
-    const tyStart = condition.ty_kn_m2;
-    const txEnd = condition.tx_end_kn_m2 ?? txStart;
-    const tyEnd = condition.ty_end_kn_m2 ?? tyStart;
+    let path = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} L ${top1X.toFixed(1)} ${top1Y.toFixed(1)} L ${top2X.toFixed(1)} ${top2Y.toFixed(1)} L ${p2.x.toFixed(1)} ${p2.y.toFixed(1)} Z`;
 
-    if (txStart === 0 && tyStart === 0 && txEnd === 0 && tyEnd === 0) return null;
+    const numTicks = 5;
+    for (let t = 1; t < numTicks; t++) {
+      const frac = t / numTicks;
+      const baseX = p1.x + frac * (p2.x - p1.x);
+      const baseY = p1.y + frac * (p2.y - p1.y);
+      const topX = top1X + frac * (top2X - top1X);
+      const topY = top1Y + frac * (top2Y - top1Y);
+      path += ` M ${topX.toFixed(1)} ${topY.toFixed(1)} L ${baseX.toFixed(1)} ${baseY.toFixed(1)}`;
+    }
 
     const isLocal = condition.coordinate_frame === 'LocalNormalTangential';
-    const isTrapezoidal = txEnd !== txStart || tyEnd !== tyStart;
+    const isTrapezoidal = Math.abs(tx2 - tx1) > 1e-4 || Math.abs(ty2 - ty1) > 1e-4;
 
+    let label: string;
     if (isLocal) {
       if (isTrapezoidal) {
-        if (txStart === 0 && txEnd === 0) return `tn: ${tyStart} → ${tyEnd} kN/m²`;
-        if (tyStart === 0 && tyEnd === 0) return `ts: ${txStart} → ${txEnd} kN/m²`;
-        return `Local tn: ${tyStart}→${tyEnd}, ts: ${txStart}→${txEnd}`;
+        label = tx1 === 0 && tx2 === 0 ? `tn: ${ty1} → ${ty2} kN/m²` : `tn: ${ty1}→${ty2}, ts: ${tx1}→${tx2}`;
+      } else {
+        label = tx1 === 0 ? `${ty1} kN/m²` : `tn=${ty1}, ts=${tx1} kN/m²`;
       }
-      if (txStart === 0) return `tn = ${tyStart} kN/m²`;
-      if (tyStart === 0) return `ts = ${txStart} kN/m²`;
-      return `tn = ${tyStart}, ts = ${txStart} kN/m²`;
+    } else {
+      if (isTrapezoidal) {
+        label = tx1 === 0 && tx2 === 0 ? `ty: ${ty1} → ${ty2} kN/m²` : `(${tx1},${ty1}) → (${tx2},${ty2}) kN/m²`;
+      } else {
+        label = tx1 === 0 ? `${ty1} kN/m²` : `(${tx1}, ${ty1}) kN/m²`;
+      }
     }
 
-    if (isTrapezoidal) {
-      if (txStart === 0 && txEnd === 0) return `ty: ${tyStart} → ${tyEnd} kN/m²`;
-      if (tyStart === 0 && tyEnd === 0) return `tx: ${txStart} → ${txEnd} kN/m²`;
-      return `t: (${txStart},${tyStart}) → (${txEnd},${tyEnd}) kN/m²`;
-    }
-    if (txStart === 0) return `ty = ${tyStart} kN/m²`;
-    if (tyStart === 0) return `tx = ${txStart} kN/m²`;
-    return `t = (${txStart}, ${tyStart}) kN/m²`;
+    const midTopX = (top1X + top2X) / 2 + nx * 10;
+    const midTopY = (top1Y + top2Y) / 2 + ny * 10;
+
+    return {
+      path,
+      label,
+      labelX: midTopX,
+      labelY: midTopY,
+    };
   }
 
   isSegmentFixed(seg: BoundarySegment): boolean {

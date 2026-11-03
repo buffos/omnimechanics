@@ -685,6 +685,54 @@ export class ModelerStore {
     this.historyVersion.update(v => v + 1);
   }
 
+  removeDistributedLoad(loadId: string): void {
+    const curModel = this.model();
+    this.undoRedo.pushState(curModel);
+    const nextRev = curModel.revision + 1;
+    const loadCases = curModel.load_cases.map(lc => ({
+      ...lc,
+      dist_loads: lc.dist_loads.filter(d => d.id !== loadId),
+    }));
+    this.model.set({ ...curModel, revision: nextRev, load_cases: loadCases });
+    this.historyVersion.update(v => v + 1);
+  }
+
+  removeMemberPointLoad(loadId: string): void {
+    const curModel = this.model();
+    this.undoRedo.pushState(curModel);
+    const nextRev = curModel.revision + 1;
+    const loadCases = curModel.load_cases.map(lc => ({
+      ...lc,
+      point_loads: lc.point_loads.filter(p => p.id !== loadId),
+    }));
+    this.model.set({ ...curModel, revision: nextRev, load_cases: loadCases });
+    this.historyVersion.update(v => v + 1);
+  }
+
+  removeNodalLoad(loadId: string): void {
+    const curModel = this.model();
+    this.undoRedo.pushState(curModel);
+    const nextRev = curModel.revision + 1;
+    const loadCases = curModel.load_cases.map(lc => ({
+      ...lc,
+      nodal_loads: lc.nodal_loads.filter(n => n.id !== loadId),
+    }));
+    this.model.set({ ...curModel, revision: nextRev, load_cases: loadCases });
+    this.historyVersion.update(v => v + 1);
+  }
+
+  removeThermalLoad(loadId: string): void {
+    const curModel = this.model();
+    this.undoRedo.pushState(curModel);
+    const nextRev = curModel.revision + 1;
+    const loadCases = curModel.load_cases.map(lc => ({
+      ...lc,
+      thermal_loads: lc.thermal_loads.filter(t => t.id !== loadId),
+    }));
+    this.model.set({ ...curModel, revision: nextRev, load_cases: loadCases });
+    this.historyVersion.update(v => v + 1);
+  }
+
   /**
    * Adds a new LoadCase to the model
    */

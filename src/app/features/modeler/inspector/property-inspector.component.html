@@ -51,6 +51,23 @@
             <button class="btn-remove-sup" (click)="removeSupport()">Αφαίρεση</button>
           </div>
         }
+
+        @if (selectedNodeLoads().length > 0) {
+          <div class="sub-section loads-section">
+            <h4>⚡ Φορτία Κόμβου ({{ store.activeLoadCaseId() }})</h4>
+            <div class="loads-list">
+              @for (nl of selectedNodeLoads(); track nl.id) {
+                <div class="load-item-row">
+                  <div class="load-item-desc">
+                    <strong>{{ nl.id }}:</strong>
+                    <span>Fx={{ nl.fx }}, Fy={{ nl.fy }} kN{{ nl.mz ? ', Mz=' + nl.mz + ' kNm' : '' }}</span>
+                  </div>
+                  <button type="button" class="btn-remove-load" (click)="removeNodalLoad(nl.id)" title="Διαγραφή Φορτίου">🗑️</button>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -260,6 +277,44 @@
                 <option value="TensionOnly">Μόνο Εφελκυσμός / Tension-Only</option>
                 <option value="CompressionOnly">Μόνο Θλίψη / Compression-Only</option>
               </select>
+            </div>
+          </div>
+        }
+        <!-- Applied Loads on this Element for the Active Load Case -->
+        @if (selectedElementLoads().dists.length > 0 || selectedElementLoads().points.length > 0 || selectedElementLoads().thermals.length > 0) {
+          <div class="sub-section loads-section">
+            <h4>⚡ Εφαρμοσμένα Φορτία ({{ store.activeLoadCaseId() }})</h4>
+            <div class="loads-list">
+              @for (dl of selectedElementLoads().dists; track dl.id) {
+                <div class="load-item-row">
+                  <div class="load-item-desc">
+                    <span class="load-badge">Κατανεμημένο</span>
+                    <strong>{{ dl.id }}:</strong>
+                    <span>qy = {{ dl.qy1 === dl.qy2 ? dl.qy1 + ' kN/m' : dl.qy1 + ' → ' + dl.qy2 + ' kN/m' }}</span>
+                  </div>
+                  <button type="button" class="btn-remove-load" (click)="removeDistributedLoad(dl.id)" title="Διαγραφή Φορτίου">🗑️ Αφαίρεση</button>
+                </div>
+              }
+              @for (pl of selectedElementLoads().points; track pl.id) {
+                <div class="load-item-row">
+                  <div class="load-item-desc">
+                    <span class="load-badge">Συγκεντρωμένο</span>
+                    <strong>{{ pl.id }}:</strong>
+                    <span>P={{ pl.py }} kN ({{ (pl.a_rel * 100).toFixed(0) }}%)</span>
+                  </div>
+                  <button type="button" class="btn-remove-load" (click)="removeMemberPointLoad(pl.id)" title="Διαγραφή Φορτίου">🗑️ Αφαίρεση</button>
+                </div>
+              }
+              @for (th of selectedElementLoads().thermals; track th.id) {
+                <div class="load-item-row">
+                  <div class="load-item-desc">
+                    <span class="load-badge">Θερμοκρασία</span>
+                    <strong>{{ th.id }}:</strong>
+                    <span>ΔT={{ th.delta_t_top }} / {{ th.delta_t_bottom }} °C</span>
+                  </div>
+                  <button type="button" class="btn-remove-load" (click)="removeThermalLoad(th.id)" title="Διαγραφή Φορτίου">🗑️ Αφαίρεση</button>
+                </div>
+              }
             </div>
           </div>
         }
