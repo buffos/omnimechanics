@@ -1,0 +1,74 @@
+# ============================================================================
+# BemApp - Zensical Documentation Site Configuration
+# ============================================================================
+
+[project]
+site_name = "OmniMechanics - Επιστημονική Τεκμηρίωση"
+site_description = "Επιστημονική τεκμηρίωση, μέθοδοι δομοστατικής επίλυσης (DSM, BEM, P-Δ, EC0, EC8) και οδηγός χρήσης."
+site_author = "OmniMechanics Engineering Team"
+docs_dir = "documentation"
+site_dir = "site"
+
+# Repository integration
+repo_url = "https://github.com/buffos/omnimechanics"
+repo_name = "GitHub"
+
+# Navigation Structure
+nav = [
+    { "Αρχική" = "index.md" },
+    { "Θεωρητικό Υπόβαθρο" = [
+        { "Μέθοδος Άμεσης Δυσκαμψίας (DSM)" = "theory/linear-dsm.md" },
+        { "Μη Γραμμικότητα 2ης Τάξης (P-Δ)" = "theory/second-order-pdelta.md" },
+        { "Ελαστικός Λυγισμός Euler" = "theory/euler-buckling.md" },
+        { "Καλώδια & Αλυσοειδής Irvine" = "theory/catenary-cables.md" },
+    ]},
+    { "Ευρωκώδικες" = [
+        { "Συνδυασμοί Δράσεων (EN 1990)" = "eurocodes/en1990-combinations.md" },
+        { "Αντισεισμικός Σχεδιασμός (EN 1998)" = "eurocodes/en1998-seismic.md" },
+    ]},
+    { "Επαλήθευση & Benchmarks" = [
+        { "Σύγκριση με OpenSees & Αναλυτικές" = "benchmarks/validation.md" }
+    ]},
+    { "Οδηγός Χρήσης" = [
+        { "Σχεδίαση & Στηρίξεις" = "guide/modeling.md" }
+    ]}
+]
+
+# Theme Configuration
+[project.theme]
+variant = "modern"
+language = "el"
+features = [
+    "announce.dismiss",
+    "content.code.copy",
+    "content.code.select",
+    "content.footnote.tooltips",
+    "content.tabs.link",
+    "content.tooltips",
+    "navigation.footer",
+    "navigation.indexes",
+    "navigation.path",
+    "navigation.top",
+    "navigation.tracking",
+    "search.highlight",
+]
+
+# Color Palette (Dark Default, Toggleable)
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "indigo"
+accent = "blue"
+toggle.icon = "lucide/sun"
+toggle.name = "Εναλλαγή σε φωτεινό θέμα"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "indigo"
+accent = "blue"
+toggle.icon = "lucide/moon"
+toggle.name = "Εναλλαγή σε σκοτεινό θέμα"
+
+[project.extra]
+generator = true
