@@ -3,6 +3,7 @@ import { DraftingViewport } from './viewport';
 import { SnappingEngine, DEFAULT_SNAPPING_OPTIONS } from './snapping-engine';
 import { TopologicalSplitService } from './topological-split';
 import { CadTransformationService, UndoRedoStack } from './cad-transforms';
+import { ModelerStore } from './modeler.store';
 import {
   StructuralModel2D,
   Node2D,
@@ -185,14 +186,55 @@ describe('Mode 2 Modeler Core Engine', () => {
       const absPt = SnappingEngine.parseCoordinateInput('6.0, 4.5');
       expect(absPt).toEqual({ x: 6.0, y: 4.5 });
 
-      // Relative "@3.0, -1.0"
+      // Absolute without @ even when base is provided
+      const absWithBase = SnappingEngine.parseCoordinateInput('2, 3', base);
+      expect(absWithBase).toEqual({ x: 2.0, y: 3.0 });
+
+      // Relative "@3.0, -1.0" with base
       const relPt = SnappingEngine.parseCoordinateInput('@3.0, -1.0', base);
       expect(relPt).toEqual({ x: 5.0, y: 0.0 });
 
-      // Polar "@4.0<90"
+      // Relative "@2,3" without base (defaults to 0,0)
+      const relNoBase = SnappingEngine.parseCoordinateInput('@2,3');
+      expect(relNoBase).toEqual({ x: 2.0, y: 3.0 });
+
+      // Polar "@4.0<90" with base
       const polPt = SnappingEngine.parseCoordinateInput('@4.0<90', base);
       expect(polPt!.x).toBeCloseTo(2.0, 5);
       expect(polPt!.y).toBeCloseTo(5.0, 5);
+
+      // Polar "@3<45" without base (relative to 0,0)
+      const polNoBase = SnappingEngine.parseCoordinateInput('@3<45');
+      expect(polNoBase!.x).toBeCloseTo(3 * Math.cos(Math.PI / 4), 5);
+      expect(polNoBase!.y).toBeCloseTo(3 * Math.sin(Math.PI / 4), 5);
+
+      // Polar "@3<45" with base
+      const polWithBase = SnappingEngine.parseCoordinateInput('@3<45', { x: 10, y: 20 });
+      expect(polWithBase!.x).toBeCloseTo(10 + 3 * Math.cos(Math.PI / 4), 5);
+      expect(polWithBase!.y).toBeCloseTo(20 + 3 * Math.sin(Math.PI / 4), 5);
+    });
+
+    it('adds node and manages drawStartPoint in ModelerStore', () => {
+      const store = new ModelerStore();
+      expect(store.drawStartPoint()).toBeNull();
+
+      // addNode creates a new node
+      const n1 = store.addNode(2.0, 3.0);
+      expect(n1.x).toBe(2.0);
+      expect(n1.y).toBe(3.0);
+      expect(store.model().nodes.some(n => n.id === n1.id)).toBe(true);
+
+      // adding coincident node reuses existing without duplicates
+      const n2 = store.addNode(2.0, 3.0);
+      expect(n2.id).toBe(n1.id);
+
+      // setting draw start point
+      store.drawStartPoint.set({ x: 2.0, y: 3.0 });
+      expect(store.drawStartPoint()).toEqual({ x: 2.0, y: 3.0 });
+
+      // changing tool clears drawStartPoint
+      store.setTool('Select');
+      expect(store.drawStartPoint()).toBeNull();
     });
 
     it('rejects zero-length element with ZERO_LENGTH_ELEMENT', () => {

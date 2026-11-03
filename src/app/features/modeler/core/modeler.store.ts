@@ -1,6 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import {
   StructuralModel2D,
+  Node2D,
   ActiveTool,
   SelectionState,
   Material2D,
@@ -108,6 +109,7 @@ export class ModelerStore {
   readonly isLoadsModalOpen = signal<boolean>(false);
   readonly isTransformModalOpen = signal<boolean>(false);
   readonly activeTransformType = signal<'move' | 'copy' | 'mirror' | 'array'>('move');
+  readonly drawStartPoint = signal<{ x: number; y: number } | null>(null);
 
   // Undo/Redo reactivity version trigger
   private readonly historyVersion = signal<number>(0);
@@ -132,6 +134,7 @@ export class ModelerStore {
    */
   setTool(tool: ActiveTool): void {
     this.activeTool.set(tool);
+    this.drawStartPoint.set(null);
     if (tool !== 'Select' && tool !== 'Move') {
       this.clearSelection();
     }
@@ -224,6 +227,30 @@ export class ModelerStore {
 
     this.model.set(updatedModel);
     this.historyVersion.update(v => v + 1);
+  }
+
+  /**
+   * Adds or returns an existing node at (x, y)
+   */
+  addNode(x: number, y: number, tolerance = 1e-4): Node2D {
+    const curModel = this.model();
+    const existing = curModel.nodes.find(n => Math.hypot(n.x - x, n.y - y) <= tolerance);
+    if (existing) {
+      return existing;
+    }
+
+    this.undoRedo.pushState(curModel);
+    const nextRev = curModel.revision + 1;
+    const newId = `N${curModel.nodes.length + 1}`;
+    const newNode: Node2D = { id: newId, x, y };
+
+    this.model.set({
+      ...curModel,
+      revision: nextRev,
+      nodes: [...curModel.nodes, newNode],
+    });
+    this.historyVersion.update(v => v + 1);
+    return newNode;
   }
 
   /**

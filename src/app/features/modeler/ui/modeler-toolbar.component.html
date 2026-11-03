@@ -363,12 +363,14 @@
   <div class="toolbar-group coordinate-entry">
     <span class="coord-prefix">⌨:</span>
     <input
+      #coordInput
       type="text"
       class="coord-input"
       placeholder="x,y or @3<45"
       [ngModel]="coordinateInput()"
       (ngModelChange)="coordinateInput.set($event)"
       (keydown.enter)="onCoordinateSubmit()"
+      (keydown.escape)="onCoordinateEscape()"
     />
   </div>
 

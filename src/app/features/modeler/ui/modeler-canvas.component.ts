@@ -78,7 +78,7 @@ export class ModelerCanvasComponent implements AfterViewInit {
   previewDragNode = signal<{ id: string; x: number; y: number } | null>(null);
 
   // Drawing state
-  drawStartPoint = signal<{ x: number; y: number } | null>(null);
+  readonly drawStartPoint = this.store.drawStartPoint;
   currentSnap = signal<SnapCandidateDto | null>(null);
 
   // Marquee selection state

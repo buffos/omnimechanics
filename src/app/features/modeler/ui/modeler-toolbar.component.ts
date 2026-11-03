@@ -1,4 +1,14 @@
-import { Component, ChangeDetectionStrategy, inject, signal, effect, computed } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+  effect,
+  computed,
+  ViewChild,
+  ElementRef,
+  HostListener,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModelerStore } from '../core/modeler.store';
@@ -28,6 +38,7 @@ export class ModelerToolbarComponent {
   readonly diagramExport = inject(DiagramExportService);
 
   coordinateInput = signal<string>('');
+  @ViewChild('coordInput') coordInputRef?: ElementRef<HTMLInputElement>;
   isClassifierPopoverOpen = signal<boolean>(false);
   isPresetMenuOpen = signal<boolean>(false);
   isExportMenuOpen = signal<boolean>(false);
@@ -166,15 +177,79 @@ export class ModelerToolbarComponent {
     this.store.isCombinationModalOpen.set(true);
   }
 
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeyDown(e: KeyboardEvent): void {
+    const activeEl = document.activeElement as HTMLElement | null;
+    const isInsideCoordInput = activeEl === this.coordInputRef?.nativeElement;
+
+    if (isInsideCoordInput) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.onCoordinateEscape();
+      }
+      return;
+    }
+
+    const tag = activeEl?.tagName?.toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+      return;
+    }
+
+    const tool = this.store.activeTool();
+    const isDrawingTool = tool === 'DrawMember' || tool === 'DrawTruss' || tool === 'DrawCable';
+
+    if (isDrawingTool) {
+      if (e.key === '@') {
+        e.preventDefault();
+        this.coordinateInput.set('@');
+        this.focusCoordInput();
+      } else if (!e.ctrlKey && !e.altKey && !e.metaKey && /^[0-9\-]$/.test(e.key)) {
+        e.preventDefault();
+        this.coordinateInput.set(e.key);
+        this.focusCoordInput();
+      }
+    }
+  }
+
+  private focusCoordInput(): void {
+    const input = this.coordInputRef?.nativeElement;
+    if (input) {
+      input.focus();
+      setTimeout(() => {
+        input.selectionStart = input.selectionEnd = input.value.length;
+      }, 0);
+    }
+  }
+
+  onCoordinateEscape(): void {
+    this.coordinateInput.set('');
+    this.store.drawStartPoint.set(null);
+    this.coordInputRef?.nativeElement.blur();
+  }
+
   onCoordinateSubmit(): void {
     const input = this.coordinateInput().trim();
     if (!input) return;
 
-    const basePoint = this.store.currentCursorWorld();
-    const pt = SnappingEngine.parseCoordinateInput(input, basePoint);
+    const curStart = this.store.drawStartPoint();
+    const pt = SnappingEngine.parseCoordinateInput(input, curStart);
     if (pt) {
-      if (this.store.activeTool() === 'DrawMember') {
-        this.store.sketchMember(basePoint, pt);
+      const tool = this.store.activeTool();
+      const isDrawingTool = tool === 'DrawMember' || tool === 'DrawTruss' || tool === 'DrawCable';
+
+      if (isDrawingTool) {
+        if (!curStart) {
+          this.store.addNode(pt.x, pt.y);
+          this.store.drawStartPoint.set(pt);
+        } else {
+          const len = Math.hypot(pt.x - curStart.x, pt.y - curStart.y);
+          if (len > 1e-4) {
+            this.store.sketchMember(curStart, pt);
+            this.store.drawStartPoint.set(pt);
+          }
+        }
+      } else {
+        this.store.addNode(pt.x, pt.y);
       }
       this.coordinateInput.set('');
     }

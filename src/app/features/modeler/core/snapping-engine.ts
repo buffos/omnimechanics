@@ -246,9 +246,9 @@ export class SnappingEngine {
     const raw = input.trim();
     if (!raw) return null;
 
-    const base = basePoint ?? { x: 0, y: 0 };
     const isRelative = raw.startsWith('@');
     const clean = isRelative ? raw.slice(1).trim() : raw;
+    const origin = isRelative ? (basePoint ?? { x: 0, y: 0 }) : { x: 0, y: 0 };
 
     // Polar format: L<theta
     if (clean.includes('<')) {
@@ -259,8 +259,8 @@ export class SnappingEngine {
         if (!isNaN(length) && !isNaN(angleDeg)) {
           const rad = (angleDeg * Math.PI) / 180;
           return {
-            x: (isRelative || basePoint ? base.x : 0) + length * Math.cos(rad),
-            y: (isRelative || basePoint ? base.y : 0) + length * Math.sin(rad),
+            x: origin.x + length * Math.cos(rad),
+            y: origin.y + length * Math.sin(rad),
           };
         }
       }
@@ -274,7 +274,7 @@ export class SnappingEngine {
       const valY = parseFloat(parts[1]);
       if (!isNaN(valX) && !isNaN(valY)) {
         if (isRelative) {
-          return { x: base.x + valX, y: base.y + valY };
+          return { x: origin.x + valX, y: origin.y + valY };
         }
         return { x: valX, y: valY };
       }
