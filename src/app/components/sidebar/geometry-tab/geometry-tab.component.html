@@ -193,23 +193,15 @@
     <button
       type="button"
       class="btn btn-secondary w-full"
-      (click)="openSketcherModal()"
+      (click)="openSketcher.emit()"
     >
-      📐 Άνοιγμα Σχεδιαστή Φορέα
+      📐 Μετάβαση στον Σχεδιαστή Φορέα
     </button>
   </div>
 
   @if (meshService.generationError()) {
     <div class="error-banner">
       {{ meshService.generationError() }}
-    </div>
-  }
-
-  @if (isSketcherOpen()) {
-    <div class="sketcher-modal-backdrop">
-      <div class="sketcher-modal-content">
-        <app-continuum-sketcher (close)="closeSketcherModal()" />
-      </div>
     </div>
   }
 </section>

@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { form, FormField, min, max, required } from '@angular/forms/signals';
 import { MeshService } from '../../../services/mesh.service';
-import { ContinuumSketcherComponent } from '../../../features/continuum-sketcher/continuum-sketcher.component';
 
 export type PresetKey =
   | 'Beam2D'
@@ -46,14 +45,13 @@ export interface Beam3DFormModel {
 @Component({
   selector: 'app-geometry-tab',
   standalone: true,
-  imports: [FormField, ContinuumSketcherComponent],
+  imports: [FormField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './geometry-tab.component.html',
   styleUrl: './geometry-tab.component.css',
 })
 export class GeometryTabComponent {
   readonly meshService = inject(MeshService);
-  readonly isSketcherOpen = signal<boolean>(false);
 
   readonly selectedPreset = model.required<PresetKey>();
 
@@ -79,6 +77,7 @@ export class GeometryTabComponent {
 
   readonly presetChange = output<PresetKey>();
   readonly generateMesh = output<void>();
+  readonly openSketcher = output<void>();
 
   // 1. Signal Form for 2D Beam Preset with Schema Validation
   readonly beamModel = signal<BeamFormModel>({
@@ -175,13 +174,5 @@ export class GeometryTabComponent {
 
   generateCurrentMesh(): void {
     this.generateMesh.emit();
-  }
-
-  openSketcherModal(): void {
-    this.isSketcherOpen.set(true);
-  }
-
-  closeSketcherModal(): void {
-    this.isSketcherOpen.set(false);
   }
 }

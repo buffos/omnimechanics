@@ -150,6 +150,7 @@ export interface ConformalMeshHandoff {
 export type SketcherTool =
   | 'Select'
   | 'OuterPolygon'
+  | 'QuickRectangle'
   | 'QuickPlateWithHole'
   | 'AddCircularCutout'
   | 'AddRectangularCutout'

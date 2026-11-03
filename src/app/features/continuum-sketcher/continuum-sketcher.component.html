@@ -1,274 +1,488 @@
-<div class="sketcher-container">
-  <!-- Top Control Bar -->
-  <header class="sketcher-header">
-    <div class="header-left">
-      <span class="sketcher-title">📐 Σχεδιαστής 2D Συνεχούς Φορέα (Continuum Sketcher)</span>
-      <span class="badge" [class.badge-primary]="store.domain().outer_boundary.closure_state === 'ClosedValid'"
-                          [class.badge-warning]="store.domain().outer_boundary.closure_state !== 'ClosedValid'">
-        Rev: {{ store.domain().revision }} | {{ store.domain().outer_boundary.closure_state }}
-      </span>
-      <span class="badge" [class.badge-success]="store.meshStatus() === 'Current'"
-                          [class.badge-warning]="store.meshStatus() === 'Stale'"
-                          [class.badge-secondary]="store.meshStatus() === 'Unmeshed'">
-        Mesh: {{ store.meshStatus() }}
-      </span>
+<div class="continuum-workspace">
+  <!-- 1. Top Unified CAD Toolbar -->
+  <header class="continuum-toolbar">
+    <!-- Tool Group: CAD Creation -->
+    <div class="toolbar-group">
+      <!-- Select Tool -->
+      <button
+        type="button"
+        class="tool-btn"
+        [class.active]="store.activeTool() === 'Select'"
+        (click)="selectTool('Select')"
+        title="Επιλογή & Επεξεργασία Στοιχείων (V)"
+      >
+        <span class="icon">↖</span>
+        <span class="label">Select</span>
+      </button>
+
+      <!-- Outer Boundary Flyout Group -->
+      <div class="flyout-btn-group" [class.active]="store.activeTool() === 'OuterPolygon' || store.activeTool() === 'QuickRectangle'">
+        <button
+          type="button"
+          class="flyout-main-btn"
+          (click)="selectTool('OuterPolygon')"
+          title="Σχεδίαση εξωτερικού περιγράμματος πολυγώνου"
+        >
+          <span class="icon">✏️</span>
+          <span class="label">Περίγραμμα</span>
+        </button>
+        <button
+          type="button"
+          class="flyout-chevron-btn"
+          (click)="isDrawFlyoutOpen.set(!isDrawFlyoutOpen()); $event.stopPropagation()"
+          title="Επιλογές περιγράμματος"
+        >
+          ▼
+        </button>
+
+        @if (isDrawFlyoutOpen()) {
+          <div class="flyout-menu" (click)="$event.stopPropagation()">
+            <button type="button" class="flyout-item" [class.active]="store.activeTool() === 'OuterPolygon'" (click)="selectTool('OuterPolygon')">
+              <span>✏️</span> <span>Ελεύθερο Πολύγωνο (Winding CCW)</span>
+            </button>
+            <button type="button" class="flyout-item" (click)="selectTool('QuickRectangle')">
+              <span>◻</span> <span>Ορθογώνιο Περίγραμμα (10×6m)</span>
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Cutouts Flyout Group -->
+      <div class="flyout-btn-group" [class.active]="store.activeTool() === 'AddCircularCutout' || store.activeTool() === 'AddRectangularCutout'">
+        <button
+          type="button"
+          class="flyout-main-btn"
+          (click)="selectTool('AddCircularCutout')"
+          title="Προσθήκη κυκλικής οπής"
+        >
+          <span class="icon">⭕</span>
+          <span class="label">Οπή</span>
+        </button>
+        <button
+          type="button"
+          class="flyout-chevron-btn"
+          (click)="isCutoutFlyoutOpen.set(!isCutoutFlyoutOpen()); $event.stopPropagation()"
+          title="Επιλογές οπών"
+        >
+          ▼
+        </button>
+
+        @if (isCutoutFlyoutOpen()) {
+          <div class="flyout-menu" (click)="$event.stopPropagation()">
+            <button type="button" class="flyout-item" [class.active]="store.activeTool() === 'AddCircularCutout'" (click)="selectTool('AddCircularCutout')">
+              <span>⭕</span> <span>Κυκλική Οπή (Circle Hole)</span>
+            </button>
+            <button type="button" class="flyout-item" [class.active]="store.activeTool() === 'AddRectangularCutout'" (click)="selectTool('AddRectangularCutout')">
+              <span>⬛</span> <span>Ορθογώνια Οπή (Rect Hole)</span>
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Material Inclusion Tool -->
+      <button
+        type="button"
+        class="tool-btn"
+        [class.active]="store.activeTool() === 'AddCircularInclusion'"
+        (click)="selectTool('AddCircularInclusion')"
+        title="Προσθήκη εγκλείσματος άλλου υλικού (Inclusion Region)"
+      >
+        <span class="icon">🔵</span>
+        <span class="label">Εγκλεισμός</span>
+      </button>
     </div>
-    <div class="header-right">
-      <span class="coord-readout">X: {{ cursorCoord().x.toFixed(2) }} m, Y: {{ cursorCoord().y.toFixed(2) }} m</span>
-      <button class="btn btn-sm btn-ghost" (click)="close.emit()" title="Κλείσιμο">&times;</button>
+
+    <div class="toolbar-separator"></div>
+
+    <!-- Tool Group: Precision CAD Coordinates -->
+    <div class="toolbar-group">
+      <div class="coord-entry-container" title="Εισαγωγή συντεταγμένων (π.χ. 4,2 ή @3,0 ή @5<45). Πατήστε @ για αυτόματη εστίαση.">
+        <span class="coord-icon">⌨</span>
+        <input
+          #coordInput
+          type="text"
+          class="coord-input"
+          placeholder="x,y or @3<45"
+          [value]="coordInputValue()"
+          (input)="coordInputValue.set($any($event.target).value)"
+          (keydown.enter)="submitCoordinateEntry()"
+        />
+      </div>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <!-- Tool Group: Templates Menu -->
+    <div class="toolbar-group">
+      <div class="flyout-btn-group">
+        <button
+          type="button"
+          class="flyout-main-btn"
+          (click)="isTemplateMenuOpen.set(!isTemplateMenuOpen()); $event.stopPropagation()"
+          title="Έτοιμα πρότυπα ή καθαρισμός φορέα"
+        >
+          <span class="icon">📁</span>
+          <span class="label">Πρότυπα</span>
+          <span class="chevron">▼</span>
+        </button>
+
+        @if (isTemplateMenuOpen()) {
+          <div class="flyout-menu" (click)="$event.stopPropagation()">
+            <button type="button" class="flyout-item" (click)="selectTool('QuickPlateWithHole')">
+              <span>📦</span> <span>Πρότυπο: Πλάκα 10×10 + Κεντρική Οπή R=1.5</span>
+            </button>
+            <button type="button" class="flyout-item text-danger" (click)="store.resetDomain(); closeFlyouts()">
+              <span>🗑️</span> <span>Καθαρισμός / Νέος Φορέας</span>
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right Side Actions & Handoff -->
+    <div class="toolbar-right">
+      <!-- Status Badges -->
+      <div class="badge-group">
+        <span class="badge"
+              [class.badge--success]="store.domain().outer_boundary.closure_state === 'ClosedValid'"
+              [class.badge--warning]="store.domain().outer_boundary.closure_state !== 'ClosedValid'">
+          {{ store.domain().outer_boundary.closure_state === 'ClosedValid' ? 'Κλειστός Βρόχος' : 'Σχεδίαση' }} (Rev {{ store.domain().revision }})
+        </span>
+        <span class="badge"
+              [class.badge--success]="store.meshStatus() === 'Current'"
+              [class.badge--warning]="store.meshStatus() === 'Stale'"
+              [class.badge--secondary]="store.meshStatus() === 'Unmeshed'">
+          Mesh: {{ store.meshStatus() }}
+        </span>
+      </div>
+
+      <!-- Generate Mesh Button -->
+      <button
+        type="button"
+        class="btn-action btn-mesh"
+        [disabled]="store.isMeshing() || store.domain().outer_boundary.closure_state !== 'ClosedValid'"
+        (click)="store.generateMesh()"
+        title="Δημιουργία σύμμορφου πλέγματος CDT Tri3 + Line2"
+      >
+        <span class="icon">⚡</span>
+        <span>{{ store.isMeshing() ? 'Πλεγματοποίηση...' : 'Δημιουργία Mesh' }}</span>
+      </button>
+
+      <!-- Solve & Return Button -->
+      <button
+        type="button"
+        class="btn-action btn-solve"
+        [disabled]="!store.meshHandoff() || store.meshStatus() === 'Stale'"
+        (click)="handleSolveAndHandoff()"
+        title="Μεταφορά πλέγματος στον επιλυτή και επιστροφή στην 3D προβολή"
+      >
+        <span class="icon">🚀</span>
+        <span>Επίλυση &amp; 3D Προβολή</span>
+      </button>
+
+      <!-- Close / Back Button -->
+      <button
+        type="button"
+        class="btn-action btn-close"
+        (click)="close.emit()"
+        title="Επιστροφή στο κύριο περιβάλλον προσομοίωσης"
+      >
+        <span>↩ Επιστροφή</span>
+      </button>
     </div>
   </header>
 
-  <!-- Error / Notification Banner -->
-  @if (store.errorMessage()) {
-    <div class="error-banner">
-      <span class="error-icon">⚠️</span>
-      <span class="error-text">{{ store.errorMessage() }}</span>
-    </div>
-  }
-
-  <!-- Main Body: Canvas + Side Panel -->
-  <div class="sketcher-body">
-    <!-- SVG Viewport Canvas -->
-    <div class="canvas-wrapper">
-      <div class="toolbar">
-        <button class="tool-btn" [class.active]="store.activeTool() === 'Select'" (click)="selectTool('Select')" title="Επιλογή & Μετακίνηση">👆 Επιλογή</button>
-        <button class="tool-btn" [class.active]="store.activeTool() === 'OuterPolygon'" (click)="selectTool('OuterPolygon')" title="Σχεδίαση περιγράμματος με κλικ">✏️ Περίγραμμα</button>
-        <button class="tool-btn" (click)="selectTool('QuickPlateWithHole')" title="Φόρτωση έτοιμου προτύπου 10x10 με οπή">📦 Πλάκα 10×10 + Οπή</button>
-        <button class="tool-btn" [class.active]="store.activeTool() === 'AddCircularCutout'" (click)="selectTool('AddCircularCutout')" title="Προσθήκη κυκλικής οπής">⭕ +Κυκλική Οπή</button>
-        <button class="tool-btn" [class.active]="store.activeTool() === 'AddRectangularCutout'" (click)="selectTool('AddRectangularCutout')" title="Προσθήκη ορθογώνιας οπής">⬛ +Ορθογώνια Οπή</button>
-        <button class="tool-btn" [class.active]="store.activeTool() === 'AddCircularInclusion'" (click)="selectTool('AddCircularInclusion')" title="Προσθήκη εγκλείσματος άλλου υλικού">🔵 +Εγκλεισμός</button>
-        <button class="tool-btn btn-danger" (click)="store.resetDomain()" title="Καθαρισμός φορέα">🗑️ Καθαρισμός</button>
-      </div>
-
-      <svg #sketchSvg
-           class="sketch-svg"
-           [attr.viewBox]="viewBox()"
-           (mousemove)="onSvgMouseMove($event)"
-           (click)="onSvgClick($event)">
-        <!-- Grid Dots / Axes -->
+  <!-- 2. Main Workspace Layout -->
+  <div class="continuum-main-area">
+    <!-- Center: 2D Full SVG Drafting Canvas -->
+    <div class="canvas-center-column">
+      <svg
+        #sketchSvg
+        class="sketch-svg"
+        [attr.viewBox]="viewBox()"
+        (mousemove)="onSvgMouseMove($event)"
+        (click)="onSvgClick($event)"
+      >
+        <!-- Background Grid Pattern -->
         <defs>
-          <pattern id="grid" width="1" height="1" patternUnits="userSpaceOnUse">
-            <circle cx="0.5" cy="0.5" r="0.04" fill="#334155" />
+          <pattern id="grid-dots" width="1" height="1" patternUnits="userSpaceOnUse">
+            <circle cx="0.5" cy="0.5" r="0.04" fill="rgba(255, 255, 255, 0.12)" />
           </pattern>
         </defs>
-        <rect x="-10" y="-10" width="40" height="40" fill="url(#grid)" />
+        <rect x="-100" y="-100" width="300" height="300" fill="url(#grid-dots)" />
 
-        <!-- 1. Mesh Volume Overlay (Tri3/Quad4) -->
+        <!-- Origin Axes Crosshair (0,0) -->
+        <g class="origin-axes">
+          <line x1="-0.8" y1="0" x2="0.8" y2="0" stroke="rgba(255, 255, 255, 0.3)" stroke-width="0.03" />
+          <line x1="0" y1="-0.8" x2="0" y2="0.8" stroke="rgba(255, 255, 255, 0.3)" stroke-width="0.03" />
+          <circle cx="0" cy="0" r="0.1" fill="none" stroke="rgba(56, 189, 248, 0.5)" stroke-width="0.02" />
+        </g>
+
+        <!-- 1. Mesh Volume Overlay (Tri3) -->
         @if (store.meshHandoff(); as handoff) {
-          <g class="mesh-elements-group">
+          <g class="mesh-overlay-group">
             @for (elem of handoff.mesh_data.volume_elements; track elem.id) {
               @if (elem.nodes.length === 3) {
-                <polygon [attr.points]="handoff.mesh_data.nodes[elem.nodes[0]][0] + ',' + handoff.mesh_data.nodes[elem.nodes[0]][1] + ' ' +
-                                        handoff.mesh_data.nodes[elem.nodes[1]][0] + ',' + handoff.mesh_data.nodes[elem.nodes[1]][1] + ' ' +
-                                        handoff.mesh_data.nodes[elem.nodes[2]][0] + ',' + handoff.mesh_data.nodes[elem.nodes[2]][1]"
-                         class="mesh-triangle" />
+                <polygon
+                  [attr.points]="handoff.mesh_data.nodes[elem.nodes[0]][0] + ',' + handoff.mesh_data.nodes[elem.nodes[0]][1] + ' ' +
+                                 handoff.mesh_data.nodes[elem.nodes[1]][0] + ',' + handoff.mesh_data.nodes[elem.nodes[1]][1] + ' ' +
+                                 handoff.mesh_data.nodes[elem.nodes[2]][0] + ',' + handoff.mesh_data.nodes[elem.nodes[2]][1]"
+                  class="mesh-triangle"
+                />
               }
             }
           </g>
         }
 
-        <!-- 2. Outer Boundary Polygon Fill -->
+        <!-- 2. Outer Boundary Domain Fill -->
         @if (store.domain().outer_boundary.closure_state === 'ClosedValid') {
-          <polygon [attr.points]="store.domain().outer_boundary.vertices.map(v => v.x + ',' + v.y).join(' ')"
-                   class="domain-fill" />
+          <polygon
+            [attr.points]="store.domain().outer_boundary.vertices.map(v => v.x + ',' + v.y).join(' ')"
+            class="domain-fill"
+          />
         }
 
-        <!-- 3. Outer Boundary Segments with Normal Ticks -->
+        <!-- 3. Outer Boundary Segments with Normal Ticks & Tags -->
         @for (seg of store.domain().outer_boundary.segments; track seg.id; let idx = $index) {
           <g (click)="selectSegment(idx, $event)" class="boundary-segment-group">
-            <!-- Segment line -->
-            <line [attr.x1]="store.domain().outer_boundary.vertices[idx].x"
-                  [attr.y1]="store.domain().outer_boundary.vertices[idx].y"
-                  [attr.x2]="store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].x"
-                  [attr.y2]="store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].y"
-                  [attr.stroke]="getTagColor(seg.tag)"
-                  [attr.stroke-width]="store.selectedSegmentIdx() === idx ? 0.25 : 0.15"
-                  class="boundary-segment-line" />
-
-            <!-- Outward Normal tick -->
-            <line [attr.x1]="getSegmentMid(seg).x"
-                  [attr.y1]="getSegmentMid(seg).y"
-                  [attr.x2]="getNormalArrowEnd(seg).x"
-                  [attr.y2]="getNormalArrowEnd(seg).y"
-                  class="normal-tick" />
-
-            <!-- Tag text label -->
-            <text [attr.x]="getSegmentMid(seg).x"
-                  [attr.y]="getSegmentMid(seg).y - 0.2"
-                  class="segment-tag-text">{{ seg.tag }}</text>
+            <line
+              [attr.x1]="store.domain().outer_boundary.vertices[idx].x"
+              [attr.y1]="store.domain().outer_boundary.vertices[idx].y"
+              [attr.x2]="store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].x"
+              [attr.y2]="store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].y"
+              [attr.stroke]="getTagColor(seg.tag)"
+              [attr.stroke-width]="store.selectedSegmentIdx() === idx ? 0.22 : 0.14"
+              class="boundary-segment-line"
+            />
+            <line
+              [attr.x1]="getSegmentMid(seg).x"
+              [attr.y1]="getSegmentMid(seg).y"
+              [attr.x2]="getNormalArrowEnd(seg).x"
+              [attr.y2]="getNormalArrowEnd(seg).y"
+              class="normal-tick"
+            />
+            <text
+              [attr.x]="getSegmentMid(seg).x"
+              [attr.y]="getSegmentMid(seg).y - 0.25"
+              class="segment-tag-text"
+            >
+              {{ seg.tag }}
+            </text>
           </g>
         }
 
-        <!-- 4. Open Draft Line & Vertices -->
+        <!-- 4. Open Draft Loop & Vertices -->
         @if (store.domain().outer_boundary.closure_state === 'OpenDraft') {
           @for (v of store.domain().outer_boundary.vertices; track v.id; let i = $index) {
             @if (i > 0) {
-              <line [attr.x1]="store.domain().outer_boundary.vertices[i - 1].x"
-                    [attr.y1]="store.domain().outer_boundary.vertices[i - 1].y"
-                    [attr.x2]="v.x"
-                    [attr.y2]="v.y"
-                    class="draft-line" />
+              <line
+                [attr.x1]="store.domain().outer_boundary.vertices[i - 1].x"
+                [attr.y1]="store.domain().outer_boundary.vertices[i - 1].y"
+                [attr.x2]="v.x"
+                [attr.y2]="v.y"
+                class="draft-line"
+              />
             }
-            <circle [attr.cx]="v.x" [attr.cy]="v.y" r="0.2" class="vertex-dot" />
+            <circle [attr.cx]="v.x" [attr.cy]="v.y" r="0.18" class="vertex-dot" />
           }
 
-          <!-- Candidate Segment Preview -->
+          <!-- Real-Time Candidate Segment Preview -->
           @if (store.candidatePoint(); as cand) {
             @if (store.domain().outer_boundary.vertices.length > 0) {
-              <line [attr.x1]="store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].x"
-                    [attr.y1]="store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].y"
-                    [attr.x2]="cand.x"
-                    [attr.y2]="cand.y"
-                    [class.candidate-invalid]="store.candidatePreview()?.is_valid === false"
-                    [class.candidate-valid]="store.candidatePreview()?.is_valid !== false"
-                    class="candidate-line" />
+              <line
+                [attr.x1]="store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].x"
+                [attr.y1]="store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].y"
+                [attr.x2]="cand.x"
+                [attr.y2]="cand.y"
+                [class.candidate-invalid]="store.candidatePreview()?.is_valid === false"
+                [class.candidate-valid]="store.candidatePreview()?.is_valid !== false"
+                class="candidate-line"
+              />
             }
           }
         }
 
-        <!-- 5. Cutouts Overlays -->
+        <!-- 5. Cutout Overlays -->
         @for (cutout of store.domain().cutouts; track cutout.id) {
           @if (cutout.shape.kind === 'Circle') {
-            <circle [attr.cx]="cutout.shape.center_x"
-                    [attr.cy]="cutout.shape.center_y"
-                    [attr.r]="cutout.shape.radius"
-                    [class.selected-feature]="store.selectedCutoutId() === cutout.id"
-                    (click)="selectCutout(cutout.id, $event)"
-                    class="cutout-circle" />
-            <text [attr.x]="cutout.shape.center_x"
-                  [attr.y]="cutout.shape.center_y"
-                  class="cutout-label">Hole R={{ cutout.shape.radius }}m</text>
+            <circle
+              [attr.cx]="cutout.shape.center_x"
+              [attr.cy]="cutout.shape.center_y"
+              [attr.r]="cutout.shape.radius"
+              [class.selected-feature]="store.selectedCutoutId() === cutout.id"
+              (click)="selectCutout(cutout.id, $event)"
+              class="cutout-circle"
+            />
+            <text [attr.x]="cutout.shape.center_x" [attr.y]="cutout.shape.center_y" class="cutout-label">
+              Hole R={{ cutout.shape.radius }}m
+            </text>
           } @else if (cutout.shape.kind === 'Rectangle') {
-            <rect [attr.x]="cutout.shape.center_x - cutout.shape.width / 2"
-                  [attr.y]="cutout.shape.center_y - cutout.shape.height / 2"
-                  [attr.width]="cutout.shape.width"
-                  [attr.height]="cutout.shape.height"
-                  [class.selected-feature]="store.selectedCutoutId() === cutout.id"
-                  (click)="selectCutout(cutout.id, $event)"
-                  class="cutout-rect" />
+            <rect
+              [attr.x]="cutout.shape.center_x - cutout.shape.width / 2"
+              [attr.y]="cutout.shape.center_y - cutout.shape.height / 2"
+              [attr.width]="cutout.shape.width"
+              [attr.height]="cutout.shape.height"
+              [class.selected-feature]="store.selectedCutoutId() === cutout.id"
+              (click)="selectCutout(cutout.id, $event)"
+              class="cutout-rect"
+            />
           }
         }
 
         <!-- 6. Inclusion Regions Overlays -->
         @for (inc of store.domain().inclusions; track inc.id) {
           @if (inc.shape.kind === 'Circle') {
-            <circle [attr.cx]="inc.shape.center_x"
-                    [attr.cy]="inc.shape.center_y"
-                    [attr.r]="inc.shape.radius"
-                    [class.selected-feature]="store.selectedInclusionId() === inc.id"
-                    (click)="selectInclusion(inc.id, $event)"
-                    class="inclusion-circle" />
-            <text [attr.x]="inc.shape.center_x"
-                  [attr.y]="inc.shape.center_y"
-                  class="inclusion-label">{{ inc.material_label }}</text>
+            <circle
+              [attr.cx]="inc.shape.center_x"
+              [attr.cy]="inc.shape.center_y"
+              [attr.r]="inc.shape.radius"
+              [class.selected-feature]="store.selectedInclusionId() === inc.id"
+              (click)="selectInclusion(inc.id, $event)"
+              class="inclusion-circle"
+            />
+            <text [attr.x]="inc.shape.center_x" [attr.y]="inc.shape.center_y" class="inclusion-label">
+              {{ inc.material_label }}
+            </text>
           }
         }
       </svg>
+
+      <!-- Bottom Canvas Status HUD -->
+      <footer class="canvas-hud">
+        <div class="hud-left">
+          <span class="hud-item">📍 X: <strong>{{ cursorCoord().x.toFixed(2) }} m</strong>, Y: <strong>{{ cursorCoord().y.toFixed(2) }} m</strong></span>
+          <span class="hud-separator">|</span>
+          <span class="hud-item">Ενεργό: <strong>{{ store.activeTool() }}</strong></span>
+        </div>
+        <div class="hud-right">
+          <span class="hud-tip">💡 Πατήστε <strong>@</strong> για σχετικές συντεταγμένες (@dx,dy ή @L&lt;deg), <strong>Escape</strong> για ακύρωση.</span>
+        </div>
+      </footer>
     </div>
 
-    <!-- Inspector Side Panel -->
-    <aside class="inspector-panel">
-      <!-- Section A: Boundary Tag & BC Inspector -->
-      @if (selectedSegment(); as seg) {
-        <div class="panel-section">
-          <h3>Συνοριακή Συνθήκη Τμήματος</h3>
-          <div class="form-group">
-            <label>Ετικέτα (Tag):</label>
-            <select [ngModel]="seg.tag" (ngModelChange)="updateSegmentTag($event)" class="form-control">
-              <option value="Bottom">Bottom (Κάτω)</option>
-              <option value="Top">Top (Άνω)</option>
-              <option value="Left">Left (Αριστερά)</option>
-              <option value="Right">Right (Δεξιά)</option>
-              <option value="Hole">Hole (Οπή)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Τύπος Συνθήκης (BC):</label>
-            <select [ngModel]="store.domain().tag_conditions[seg.tag]?.kind || 'Free'"
-                    (ngModelChange)="updateSegmentBcKind($event)"
-                    class="form-control">
-              <option value="Free">Ελεύθερο (Free)</option>
-              <option value="DirichletDisplacement">Πάκτωση / Μετατόπιση (Dirichlet)</option>
-              <option value="NeumannTraction">Εφαρμοσμένη Τάση (Neumann)</option>
-              <option value="RobinImpedance">Ελαστική Έδραση (Robin)</option>
-            </select>
-          </div>
-        </div>
-      }
-
-      <!-- Section B: Selected Cutout Inspector -->
-      @if (selectedCutout(); as cut) {
-        <div class="panel-section">
-          <h3>Επεξεργασία Οπής</h3>
-          <p class="text-sm">ID: {{ cut.id }}</p>
-          @if (cut.shape.kind === 'Circle') {
-            <div class="form-group">
-              <label>Ακτίνα R (m):</label>
-              <input type="number" step="0.1" [(ngModel)]="cut.shape.radius" class="form-control" />
-            </div>
-          }
-          <button class="btn btn-danger btn-sm w-full mt-2" (click)="store.removeCutout(cut.id)">Διαγραφή Οπής</button>
-        </div>
-      }
-
-      <!-- Section C: Selected Inclusion Inspector -->
-      @if (selectedInclusion(); as inc) {
-        <div class="panel-section">
-          <h3>Επεξεργασία Εγκλείσματος</h3>
-          <p class="text-sm">Υλικό: {{ inc.material_label }}</p>
-          <div class="form-group">
-            <label>Μέτρο Ελαστικότητας E (GPa):</label>
-            <input type="number" [(ngModel)]="inc.youngs_modulus_override_gpa" class="form-control" />
-          </div>
-          <button class="btn btn-danger btn-sm w-full mt-2" (click)="store.removeInclusion(inc.id)">Διαγραφή Εγκλείσματος</button>
-        </div>
-      }
-
-      <!-- Section D: Meshing Profile -->
-      <div class="panel-section">
-        <h3>Ρυθμίσεις Πλέγματος (CDT)</h3>
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label>Μέγεθος h (m):</label>
-            <input type="number" step="0.1"
-                   [ngModel]="store.domain().meshing_profile.target_element_size"
-                   (ngModelChange)="store.updateMeshingProfile({ target_element_size: +$event })"
-                   class="form-control" />
-          </div>
-          <div class="form-group flex-1">
-            <label>Πυκνότητα Οπής α:</label>
-            <input type="number" step="0.05"
-                   [ngModel]="store.domain().meshing_profile.hole_refinement_factor"
-                   (ngModelChange)="store.updateMeshingProfile({ hole_refinement_factor: +$event })"
-                   class="form-control" />
-          </div>
-        </div>
+    <!-- Right: Property & Meshing Inspector Panel -->
+    <aside class="inspector-panel" data-testid="continuum-inspector">
+      <div class="panel-header">
+        <h3>Ιδιότητες / Inspector</h3>
       </div>
 
-      <!-- Section E: Actions & Mesh Quality -->
-      <div class="panel-section">
-        <button class="btn btn-primary w-full mb-2"
-                [disabled]="store.isMeshing() || store.domain().outer_boundary.closure_state !== 'ClosedValid'"
-                (click)="store.generateMesh()">
-          {{ store.isMeshing() ? 'Γέννηση Πλέγματος...' : '⚡ Δημιουργία Conformal Mesh' }}
-        </button>
+      <div class="panel-body">
+        <!-- Error Banner -->
+        @if (store.errorMessage()) {
+          <div class="error-banner">
+            ⚠️ {{ store.errorMessage() }}
+          </div>
+        }
 
-        <button class="btn btn-success w-full mb-3"
-                [disabled]="!store.meshHandoff() || store.meshStatus() === 'Stale'"
-                (click)="store.sendToMode1Solver()">
-          🚀 Αποστολή στον Επιλυτή Mode 1
-        </button>
+        <!-- 1. Boundary Segment Selected -->
+        @if (selectedSegment(); as seg) {
+          <div class="entity-section">
+            <div class="entity-title">
+              <span class="badge badge--accent">Συνοριακό Τμήμα</span>
+              <strong>{{ seg.tag }}</strong>
+            </div>
 
+            <div class="prop-row">
+              <label>Ετικέτα (Tag):</label>
+              <select [ngModel]="seg.tag" (ngModelChange)="updateSegmentTag($event)">
+                <option value="Bottom">Bottom (Κάτω)</option>
+                <option value="Top">Top (Άνω)</option>
+                <option value="Left">Left (Αριστερά)</option>
+                <option value="Right">Right (Δεξιά)</option>
+                <option value="Hole">Hole (Οπή)</option>
+              </select>
+            </div>
+
+            <div class="prop-row">
+              <label>Συνθήκη (BC):</label>
+              <select [ngModel]="store.domain().tag_conditions[seg.tag]?.kind || 'Free'"
+                      (ngModelChange)="updateSegmentBcKind($event)">
+                <option value="Free">Ελεύθερο (Free)</option>
+                <option value="DirichletDisplacement">Πάκτωση (Dirichlet)</option>
+                <option value="NeumannTraction">Τάση (Neumann)</option>
+                <option value="RobinImpedance">Έδραση (Robin)</option>
+              </select>
+            </div>
+          </div>
+        }
+
+        <!-- 2. Cutout Selected -->
+        @else if (selectedCutout(); as cut) {
+          <div class="entity-section">
+            <div class="entity-title">
+              <span class="badge badge--warning">Οπή / Cutout</span>
+              <strong>{{ cut.id }}</strong>
+            </div>
+
+            @if (cut.shape.kind === 'Circle') {
+              <div class="prop-row">
+                <label>Ακτίνα R (m):</label>
+                <input type="number" step="0.1" [(ngModel)]="cut.shape.radius" />
+              </div>
+            }
+
+            <button type="button" class="btn-delete" (click)="store.removeCutout(cut.id)">
+              🗑️ Διαγραφή Οπής
+            </button>
+          </div>
+        }
+
+        <!-- 3. Inclusion Selected -->
+        @else if (selectedInclusion(); as inc) {
+          <div class="entity-section">
+            <div class="entity-title">
+              <span class="badge badge--accent">Εγκλεισμός Υλικού</span>
+              <strong>{{ inc.material_label }}</strong>
+            </div>
+
+            <div class="prop-row">
+              <label>E (GPa):</label>
+              <input type="number" step="10" [(ngModel)]="inc.youngs_modulus_override_gpa" />
+            </div>
+
+            <button type="button" class="btn-delete" (click)="store.removeInclusion(inc.id)">
+              🗑️ Διαγραφή Εγκλείσματος
+            </button>
+          </div>
+        }
+
+        <!-- 4. Meshing Settings (CDT) -->
+        <div class="entity-section">
+          <div class="entity-title">
+            <strong>Ρυθμίσεις Πλέγματος (CDT)</strong>
+          </div>
+
+          <div class="prop-row">
+            <label>Μέγεθος h (m):</label>
+            <input
+              type="number"
+              step="0.1"
+              [ngModel]="store.domain().meshing_profile.target_element_size"
+              (ngModelChange)="store.updateMeshingProfile({ target_element_size: +$event })"
+            />
+          </div>
+
+          <div class="prop-row">
+            <label>Πυκνότητα Οπής α:</label>
+            <input
+              type="number"
+              step="0.05"
+              [ngModel]="store.domain().meshing_profile.hole_refinement_factor"
+              (ngModelChange)="store.updateMeshingProfile({ hole_refinement_factor: +$event })"
+            />
+          </div>
+        </div>
+
+        <!-- 5. Quality Report -->
         @if (store.meshHandoff(); as handoff) {
-          <div class="quality-card">
-            <h4>Αναφορά Ποιότητας Πλέγματος</h4>
-            <div class="stat-row"><span>Κόμβοι:</span><strong>{{ handoff.quality_report.num_nodes }}</strong></div>
-            <div class="stat-row"><span>Στοιχεία Όγκου:</span><strong>{{ handoff.quality_report.num_volume_elements }}</strong></div>
-            <div class="stat-row"><span>Συνοριακά Στοιχεία:</span><strong>{{ handoff.quality_report.num_boundary_elements }}</strong></div>
-            <div class="stat-row"><span>Ελάχιστη Γωνία:</span><strong>{{ handoff.quality_report.min_angle_deg.toFixed(1) }}°</strong></div>
-            <div class="stat-row"><span>Conformal BEM-FEM:</span><strong class="text-success">ΝΑΙ (100%)</strong></div>
+          <div class="entity-section">
+            <div class="entity-title">
+              <span class="badge badge--success">Conformal Mesh 100%</span>
+            </div>
+            <div class="stat-line"><span>Κόμβοι:</span> <strong>{{ handoff.quality_report.num_nodes }}</strong></div>
+            <div class="stat-line"><span>Στοιχεία Όγκου:</span> <strong>{{ handoff.quality_report.num_volume_elements }}</strong></div>
+            <div class="stat-line"><span>Συνοριακά BEM:</span> <strong>{{ handoff.quality_report.num_boundary_elements }}</strong></div>
+            <div class="stat-line"><span>Ελάχιστη Γωνία:</span> <strong>{{ handoff.quality_report.min_angle_deg.toFixed(1) }}°</strong></div>
           </div>
         }
       </div>

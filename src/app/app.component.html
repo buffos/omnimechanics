@@ -17,6 +17,9 @@
   } @else if (activeWorkspaceMode() === 'teaching') {
     <!-- Mode 3: Structural Mechanics Teaching Studio -->
     <app-teaching-studio />
+  } @else if (isContinuumSketcherActive()) {
+    <!-- Mode 1 Sub-View: Full Screen 2D Continuum Domain Sketcher Workspace -->
+    <app-continuum-sketcher (close)="closeContinuumSketcher()" />
   } @else {
     <!-- Mode 1: Continuum Mechanics Simulation Workspace -->
     <main class="main-workspace">
@@ -78,6 +81,7 @@
             [(beam3dUseTets)]="beam3dUseTets"
             (presetChange)="onPresetChange($event)"
             (generateMesh)="generateCurrentMesh()"
+            (openSketcher)="openContinuumSketcher()"
           />
         } @else if (activeSidebarTab() === 'material') {
           <app-material-tab

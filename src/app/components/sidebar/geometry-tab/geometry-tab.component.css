@@ -5,65 +5,46 @@
 
 .sketcher-launch-box {
   margin-top: 14px;
-  padding: 10px;
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(71, 85, 105, 0.6);
-  border-radius: 6px;
+  padding: 12px;
+  background: var(--bg-surface-elevated, rgba(30, 41, 59, 0.6));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .sketcher-launch-text {
   display: flex;
   flex-direction: column;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--text-secondary, #94a3b8);
 }
 
 .sketcher-launch-text strong {
-  color: #38bdf8;
-  font-size: 0.85rem;
+  color: var(--accent-glow, #38bdf8);
+  font-size: 0.875rem;
+  margin-bottom: 2px;
 }
 
 .btn-secondary {
-  background: #334155;
-  color: #f8fafc;
-  border: 1px solid #475569;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.82rem;
+  background: var(--bg-surface, #1e293b);
+  color: var(--text-primary, #f8fafc);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.825rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .btn-secondary:hover {
-  background: #475569;
-  border-color: #64748b;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-glow, #38bdf8);
+  color: #ffffff;
 }
 
 .w-full {
   width: 100%;
-}
-
-.sketcher-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.sketcher-modal-content {
-  width: 90vw;
-  max-width: 1200px;
-  height: 85vh;
-  max-height: 800px;
-  background: #0f172a;
-  border-radius: 8px;
-  overflow: hidden;
 }

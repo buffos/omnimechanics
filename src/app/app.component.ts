@@ -15,6 +15,7 @@ import { MaterialTabComponent } from "./components/sidebar/material-tab/material
 import { SolverTabComponent } from "./components/sidebar/solver-tab/solver-tab.component";
 import { ModelerWorkspaceComponent } from "./features/modeler/modeler-workspace.component";
 import { TeachingStudioComponent } from "./features/teaching/teaching-studio.component";
+import { ContinuumSketcherComponent } from "./features/continuum-sketcher/continuum-sketcher.component";
 import { NotificationService } from "./shared/notification.service";
 import { DialogService } from "./shared/dialog.service";
 import {
@@ -63,6 +64,7 @@ export type StrategyKey =
     SolverTabComponent,
     ModelerWorkspaceComponent,
     TeachingStudioComponent,
+    ContinuumSketcherComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./app.component.html",
@@ -78,6 +80,15 @@ export class AppComponent implements OnInit {
 
   // Top-Level Application Workspace Mode: Mode 1 (Continuum), Mode 2 (Modeler), Mode 3 (Teaching Studio)
   readonly activeWorkspaceMode = this.workspaceModeService.activeMode;
+  readonly isContinuumSketcherActive = signal<boolean>(false);
+
+  openContinuumSketcher(): void {
+    this.isContinuumSketcherActive.set(true);
+  }
+
+  closeContinuumSketcher(): void {
+    this.isContinuumSketcherActive.set(false);
+  }
 
   // Workflow Sidebar Navigation Tab
   activeSidebarTab = signal<"mesh" | "material" | "solver">("solver");

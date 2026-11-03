@@ -4,6 +4,7 @@ import { MeshService } from '../../services/mesh.service';
 import {
   BoundaryConditionSpec,
   BoundaryLoop,
+  BoundarySegment,
   CandidateSegmentPreview,
   ConformalMeshHandoff,
   ContinuumDomain,
@@ -179,6 +180,36 @@ export class ContinuumSketcherStore {
     this.selectedCutoutId.set(null);
     this.selectedInclusionId.set(null);
     this.errorMessage.set(null);
+  }
+
+  addRectangleBoundary(width = 10.0, height = 6.0): void {
+    const halfW = width / 2;
+    const halfH = height / 2;
+    const verts: Vertex2D[] = [
+      { id: 'v0', x: -halfW, y: -halfH },
+      { id: 'v1', x: halfW, y: -halfH },
+      { id: 'v2', x: halfW, y: halfH },
+      { id: 'v3', x: -halfW, y: halfH },
+    ];
+    const segs: BoundarySegment[] = [
+      { id: 's0', start_vertex_id: 'v0', end_vertex_id: 'v1', tag: 'Bottom', outward_normal: [0, -1, 0] },
+      { id: 's1', start_vertex_id: 'v1', end_vertex_id: 'v2', tag: 'Right', outward_normal: [1, 0, 0] },
+      { id: 's2', start_vertex_id: 'v2', end_vertex_id: 'v3', tag: 'Top', outward_normal: [0, 1, 0] },
+      { id: 's3', start_vertex_id: 'v3', end_vertex_id: 'v0', tag: 'Left', outward_normal: [-1, 0, 0] },
+    ];
+    this.domain.update((d) => ({
+      ...d,
+      revision: d.revision + 1,
+      outer_boundary: {
+        id: 'OuterLoop',
+        orientation: 'CounterClockwise',
+        closure_state: 'ClosedValid',
+        vertices: verts,
+        segments: segs,
+      },
+    }));
+    this.errorMessage.set(null);
+    this.activeTool.set('Select');
   }
 
   setTool(tool: SketcherTool): void {
