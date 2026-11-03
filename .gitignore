@@ -33,3 +33,4 @@ docs/external-reference
 /dist
 /.angular
 /src-tauri/target
+/site

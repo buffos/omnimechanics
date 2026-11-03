@@ -13,6 +13,11 @@ site_dir = "site"
 repo_url = "https://github.com/buffos/omnimechanics"
 repo_name = "GitHub"
 
+extra_javascript = [
+    "javascripts/mathjax.js",
+    "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+]
+
 # Navigation Structure
 nav = [
     { "Αρχική" = "index.md" },
@@ -33,6 +38,9 @@ nav = [
         { "Σχεδίαση & Στηρίξεις" = "guide/modeling.md" }
     ]}
 ]
+
+[project.markdown_extensions.pymdownx.arithmatex]
+generic = true
 
 # Theme Configuration
 [project.theme]
