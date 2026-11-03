@@ -21,9 +21,14 @@ extra_javascript = [
 # Navigation Structure
 nav = [
     { "Αρχική" = "index.md" },
+    { "Οδηγός Χρήσης (Mode 2)" = [
+        { "Περιβάλλον & Εργαλειοθήκες" = "guide/modeling.md" },
+        { "Φορτία, EC0 & EC8" = "guide/loads-and-combinations.md" }
+    ]},
     { "Θεωρητικό Υπόβαθρο" = [
-        { "Μέθοδος Άμεσης Δυσκαμψίας (DSM)" = "theory/linear-dsm.md" },
-        { "Μη Γραμμικότητα 2ης Τάξης (P-Δ)" = "theory/second-order-pdelta.md" },
+        { "Σύνοψη Μεθόδων & Αλγόριθμοι" = "theory/analysis-methods.md" },
+        { "1ης Τάξης (Linear DSM)" = "theory/linear-dsm.md" },
+        { "2ας Τάξης (P-Δ Nonlinear)" = "theory/second-order-pdelta.md" },
         { "Ελαστικός Λυγισμός Euler" = "theory/euler-buckling.md" },
         { "Καλώδια & Αλυσοειδής Irvine" = "theory/catenary-cables.md" },
     ]},
@@ -33,9 +38,6 @@ nav = [
     ]},
     { "Επαλήθευση & Benchmarks" = [
         { "Σύγκριση με OpenSees & Αναλυτικές" = "benchmarks/validation.md" }
-    ]},
-    { "Οδηγός Χρήσης" = [
-        { "Σχεδίαση & Στηρίξεις" = "guide/modeling.md" }
     ]}
 ]
 
