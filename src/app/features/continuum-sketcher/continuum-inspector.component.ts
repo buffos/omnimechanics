@@ -86,6 +86,60 @@ export class ContinuumInspectorComponent {
     this.store.updateSegmentTag(idx, seg.tag, spec);
   }
 
+  get currentBcSpec(): BoundaryConditionSpec {
+    const seg = this.selectedSegment;
+    if (!seg) return { kind: 'Free' };
+    return this.store.domain().tag_conditions[seg.tag] ?? { kind: 'Free' };
+  }
+
+  updateNeumannTx(val: number): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'NeumannTraction') {
+      this.store.updateSegmentTag(idx, seg.tag, { ...cur, tx_kn_m2: val });
+    }
+  }
+
+  updateNeumannTy(val: number): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'NeumannTraction') {
+      this.store.updateSegmentTag(idx, seg.tag, { ...cur, ty_kn_m2: val });
+    }
+  }
+
+  updateDirichletFix(fixX: boolean, fixY: boolean): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'DirichletDisplacement') {
+      this.store.updateSegmentTag(idx, seg.tag, { ...cur, fix_x: fixX, fix_y: fixY });
+    }
+  }
+
+  updateDirichletDisp(ux: number, uy: number): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'DirichletDisplacement') {
+      this.store.updateSegmentTag(idx, seg.tag, { ...cur, ux_m: ux, uy_m: uy });
+    }
+  }
+
+  updateVolumeElementType(val: 'Tri3' | 'Quad4'): void {
+    this.store.updateMeshingProfile({ volume_element_type: val });
+  }
+
+  updateBoundaryElementType(val: 'Line2' | 'Line3'): void {
+    this.store.updateMeshingProfile({ boundary_element_type: val });
+  }
+
   updateSelectedCutoutRadius(r: number): void {
     const cut = this.selectedCutout;
     if (!cut || cut.shape.kind !== 'Circle') return;

@@ -32,7 +32,7 @@
         <select
           id="seg-bc-select"
           class="styled-select"
-          [ngModel]="store.domain().tag_conditions[seg.tag]?.kind ?? 'Free'"
+          [ngModel]="currentBcSpec.kind"
           (ngModelChange)="updateSegmentBcKind($event)"
         >
           <option value="Free">Ελεύθερο (Free)</option>
@@ -41,6 +41,54 @@
           <option value="RobinImpedance">Έδραση / Ελατήριο (Robin)</option>
         </select>
       </div>
+
+      @if (currentBcSpec.kind === 'NeumannTraction') {
+        <div class="param-grid bc-details-grid">
+          <div class="param-item">
+            <label for="seg-tx">Τάση t<sub>x</sub> (kN/m²):</label>
+            <input
+              id="seg-tx"
+              type="number"
+              step="10"
+              class="styled-input"
+              [ngModel]="currentBcSpec.tx_kn_m2"
+              (ngModelChange)="updateNeumannTx(+$event)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="seg-ty">Τάση t<sub>y</sub> (kN/m²):</label>
+            <input
+              id="seg-ty"
+              type="number"
+              step="10"
+              class="styled-input"
+              [ngModel]="currentBcSpec.ty_kn_m2"
+              (ngModelChange)="updateNeumannTy(+$event)"
+            />
+          </div>
+        </div>
+      }
+
+      @if (currentBcSpec.kind === 'DirichletDisplacement') {
+        <div class="bc-checkbox-row">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              [checked]="currentBcSpec.fix_x"
+              (change)="updateDirichletFix($any($event.target).checked, currentBcSpec.fix_y)"
+            />
+            Πάκτωση X (u<sub>x</sub> = 0)
+          </label>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              [checked]="currentBcSpec.fix_y"
+              (change)="updateDirichletFix(currentBcSpec.fix_x, $any($event.target).checked)"
+            />
+            Πάκτωση Y (u<sub>y</sub> = 0)
+          </label>
+        </div>
+      }
 
       <div class="dim-display">
         <span class="dim-label">Μήκος Τμήματος:</span>
@@ -342,6 +390,33 @@
           [ngModel]="store.domain().meshing_profile.hole_refinement_factor"
           (ngModelChange)="store.updateMeshingProfile({ hole_refinement_factor: +$event })"
         />
+      </div>
+    </div>
+
+    <div class="param-grid">
+      <div class="param-item">
+        <label for="cdt-vol-elem">Στοιχεία Όγκου:</label>
+        <select
+          id="cdt-vol-elem"
+          class="styled-select"
+          [ngModel]="store.domain().meshing_profile.volume_element_type"
+          (ngModelChange)="updateVolumeElementType($event)"
+        >
+          <option value="Tri3">Tri3 (Τριγωνικά)</option>
+          <option value="Quad4">Quad4 (Τετραπλευρικά)</option>
+        </select>
+      </div>
+      <div class="param-item">
+        <label for="cdt-bnd-elem">Συνοριακά BEM:</label>
+        <select
+          id="cdt-bnd-elem"
+          class="styled-select"
+          [ngModel]="store.domain().meshing_profile.boundary_element_type"
+          (ngModelChange)="updateBoundaryElementType($event)"
+        >
+          <option value="Line2">Line2 (Γραμμικά)</option>
+          <option value="Line3">Line3 (Παραβολικά)</option>
+        </select>
       </div>
     </div>
 
