@@ -3,11 +3,11 @@
 - Issue number: `030`
 - Owning capability node: `/.okf/capabilities/cap-interactive-canvas.md`
 - Artifact root: `docs/architecture/cap-interactive-canvas/`
-- Issue file: `docs/agents/issues/pending/20261103-030-3d-viewport-orthographic-clipping-raycast-picking-colormaps.md`
+- Issue file: `docs/agents/issues/done/20261103-030-3d-viewport-orthographic-clipping-raycast-picking-colormaps.md`
 - Category: `feature`
 - Execution type: `AFK`
 - Review gate: `visual-review`
-- Suggested state: `ready-for-agent`
+- Suggested state: `done`
 
 ## Parent Artifacts
 
@@ -42,11 +42,11 @@ Implement **Vertical Slice 1** of the remaining `cap-interactive-canvas` specifi
 
 ## Acceptance criteria
 
-- [ ] Users can toggle between `Perspective` and `Orthographic` camera projections, orbit with polar angle clamped to $[0.05, \pi - 0.05]$, and auto-fit 2D/3D meshes via `Reset View` (`SC-005`).
-- [ ] Enabling the 3D clipping plane on axis `X`, `Y`, or `Z` and scrubbing $s \in [-1, 1]$ (or toggling `invertNormal`) slices the 3D volume mesh to reveal internal cavity surfaces and stress colors (`SC-006`).
-- [ ] Clicking a boundary facet in the viewport highlights all facets with that `BoundaryTag` and emits `BoundaryFacetPickEvent` for BC assignment; clicking empty canvas clears the highlight cleanly (`SC-007`).
-- [ ] Users can switch between `Turbo`, `Viridis`, `Coolwarm`, and `Jet` palettes across `Material`, `VonMises`, `PrincipalStress`, and `Displacement` channels with zero `NaN` values on uniform fields (`SC-008`), and changing deformation scale (`Auto`, `1000×`) never alters reported physical stress/displacement numbers (`SC-009`).
-- [ ] Vitest unit tests (`viewport-colormaps.spec.ts`), `npx ng build`, and `npm run check:limits` pass with 0 errors.
+- [x] Users can toggle between `Perspective` and `Orthographic` camera projections, orbit with polar angle clamped to $[0.05, \pi - 0.05]$, and auto-fit 2D/3D meshes via `Reset View` (`SC-005`).
+- [x] Enabling the 3D clipping plane on axis `X`, `Y`, or `Z` and scrubbing $s \in [-1, 1]$ (or toggling `invertNormal`) slices the 3D volume mesh to reveal internal cavity surfaces and stress colors (`SC-006`).
+- [x] Clicking a boundary facet in the viewport highlights all facets with that `BoundaryTag` and emits `BoundaryFacetPickEvent` for BC assignment; clicking empty canvas clears the highlight cleanly (`SC-007`).
+- [x] Users can switch between `Turbo`, `Viridis`, `Coolwarm`, and `Jet` palettes across `Material`, `VonMises`, `PrincipalStress`, and `Displacement` channels with zero `NaN` values on uniform fields (`SC-008`), and changing deformation scale (`Auto`, `1000×`) never alters reported physical stress/displacement numbers (`SC-009`).
+- [x] Vitest unit tests (`viewport-colormaps.spec.ts`), `npx ng build`, and `npm run check:limits` pass with 0 errors.
 
 ## Artifact sync required
 
@@ -85,8 +85,8 @@ Implement **Vertical Slice 1** of the remaining `cap-interactive-canvas` specifi
 
 | Scenario | Backend boundary | Frontend integration | End-to-end journey |
 |---|---|---|---|
-| `SC-005` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-006` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-007` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-008` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-009` | `not-applicable` | `planned` | `catalog-only` |
+| `SC-005` | `not-applicable` | `implemented: src/app/components/viewport/viewport-colormaps.spec.ts` | `catalog-only` |
+| `SC-006` | `not-applicable` | `implemented: src/app/components/viewport/viewport-colormaps.spec.ts` | `catalog-only` |
+| `SC-007` | `not-applicable` | `implemented: src/app/components/viewport/viewport-colormaps.spec.ts` | `catalog-only` |
+| `SC-008` | `not-applicable` | `implemented: src/app/components/viewport/viewport-colormaps.spec.ts` | `catalog-only` |
+| `SC-009` | `not-applicable` | `implemented: src/app/components/viewport/viewport-colormaps.spec.ts` | `catalog-only` |

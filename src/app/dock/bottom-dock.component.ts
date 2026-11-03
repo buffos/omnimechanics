@@ -1,23 +1,57 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { SolverService } from '../services/solver.service';
 import { MeshService } from '../services/mesh.service';
 import { MaterialService } from '../services/material.service';
+import { NotificationService } from '../shared/notification.service';
+import { I18nService } from '../shared/i18n.service';
 
 @Component({
   selector: 'app-bottom-dock',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './bottom-dock.component.html',
   styleUrls: ['./bottom-dock.component.css'],
 })
 export class BottomDockComponent {
-  readonly solverService = inject(SolverService);
-  readonly meshService = inject(MeshService);
-  readonly materialService = inject(MaterialService);
+  readonly solverService: SolverService;
+  readonly meshService: MeshService;
+  readonly materialService: MaterialService;
+  readonly notificationService: NotificationService;
+  readonly i18n: I18nService;
+
+  constructor(
+    solverServiceOverride?: SolverService,
+    meshServiceOverride?: MeshService,
+    materialServiceOverride?: MaterialService,
+    notificationServiceOverride?: NotificationService,
+    i18nOverride?: I18nService
+  ) {
+    this.solverService =
+      solverServiceOverride ?? inject(SolverService, { optional: true }) ?? new SolverService();
+    this.meshService =
+      meshServiceOverride ?? inject(MeshService, { optional: true }) ?? new MeshService();
+    this.materialService =
+      materialServiceOverride ??
+      inject(MaterialService, { optional: true }) ??
+      new MaterialService();
+    this.notificationService =
+      notificationServiceOverride ??
+      inject(NotificationService, { optional: true }) ??
+      new NotificationService();
+    this.i18n = i18nOverride ?? inject(I18nService, { optional: true }) ?? new I18nService();
+  }
 
   readonly isExpanded = signal<boolean>(true);
-  readonly activeTab = signal<'history' | 'diagnostics'>('history');
+  readonly activeTab = signal<'history' | 'diagnostics' | 'sweep'>('history');
+  readonly lastExportErrorCode = signal<string | null>(null);
+
+  readonly hasExportableData = computed<boolean>(() => {
+    const talbot = this.solverService.talbotTransientResult();
+    const newmark = this.solverService.newmarkTransientResult();
+    return Boolean(
+      (talbot && talbot.frames.length > 0) || (newmark && newmark.frames.length > 0)
+    );
+  });
 
   // Hover inspection on graph
   readonly hoverPoint = signal<{ x: number; y: number; time: number; valTalbot?: number; valNewmark?: number } | null>(null);
@@ -159,10 +193,24 @@ export class BottomDockComponent {
     const res = this.solverService.transientResult();
     if (!res || res.frames.length === 0) return;
 
-    const svg = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const svgEl = event.currentTarget as HTMLElement;
+    const svg = svgEl.getBoundingClientRect();
     const clickX = event.clientX - svg.left;
+    this.scrubHistoryChartToScreenX(clickX, svg.width || this.chartWidth);
+  }
+
+  /**
+   * Maps an SVG click X coordinate to normalized time t in [0, T_max], finds the nearest frame index k,
+   * and synchronizes the playback frame (`SC-010`).
+   */
+  scrubHistoryChartToScreenX(clickScreenX: number, svgClientWidth = this.chartWidth): number {
+    const res = this.solverService.transientResult();
+    if (!res || res.frames.length === 0) return 0;
+
+    const scaleRatio = svgClientWidth > 0 ? this.chartWidth / svgClientWidth : 1.0;
+    const viewBoxX = clickScreenX * scaleRatio;
     const w = this.chartWidth - this.padding.left - this.padding.right;
-    const normX = Math.max(0, Math.min(1, (clickX - this.padding.left) / w));
+    const normX = Math.max(0, Math.min(1, (viewBoxX - this.padding.left) / w));
 
     const targetTime = normX * this.plotBounds().maxT;
     let closestIdx = 0;
@@ -175,10 +223,22 @@ export class BottomDockComponent {
       }
     });
 
-    this.solverService.currentFrameIndex.set(closestIdx);
+    this.solverService.setFrame(closestIdx);
+    return closestIdx;
   }
 
-  exportCsv(): void {
+  exportCsv(): boolean {
+    if (!this.hasExportableData()) {
+      this.lastExportErrorCode.set('EXPORT_DATA_EMPTY');
+      const msg =
+        this.i18n.currentLang() === 'el'
+          ? 'EXPORT_DATA_EMPTY: Δεν υπάρχουν διαθέσιμα δεδομένα χρονοϊστορίας για εξαγωγή.'
+          : 'EXPORT_DATA_EMPTY: No transient or sweep series available to export.';
+      this.notificationService.show(msg, 'info');
+      return false;
+    }
+    this.lastExportErrorCode.set(null);
+
     const talbot = this.solverService.talbotTransientResult();
     const newmark = this.solverService.newmarkTransientResult();
     const staticVal = this.staticEulerBernoulliMm() ?? 0.0;
@@ -198,18 +258,33 @@ export class BottomDockComponent {
       csvContent += `${t.toFixed(4)},${dTal},${dNew},${staticVal.toFixed(6)}\n`;
     }
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `transient_response_history_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (typeof document !== 'undefined') {
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `transient_response_history_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    return true;
   }
 
-  exportSvg(): void {
+  exportSvg(): boolean {
+    if (!this.hasExportableData()) {
+      this.lastExportErrorCode.set('EXPORT_DATA_EMPTY');
+      const msg =
+        this.i18n.currentLang() === 'el'
+          ? 'EXPORT_DATA_EMPTY: Δεν υπάρχουν διαθέσιμα δεδομένα γραφήματος SVG για εξαγωγή.'
+          : 'EXPORT_DATA_EMPTY: No transient or sweep series available to export.';
+      this.notificationService.show(msg, 'info');
+      return false;
+    }
+    this.lastExportErrorCode.set(null);
+
+    if (typeof document === 'undefined') return true;
     const svgElem = document.getElementById('transient-response-svg');
-    if (!svgElem) return;
+    if (!svgElem) return false;
     const serializer = new XMLSerializer();
     const source = serializer.serializeToString(svgElem);
     const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
@@ -220,5 +295,6 @@ export class BottomDockComponent {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    return true;
   }
 }

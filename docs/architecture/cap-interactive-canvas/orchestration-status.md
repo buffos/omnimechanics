@@ -2,7 +2,7 @@
 
 - **Capability Node:** [`.okf/capabilities/cap-interactive-canvas.md`](../../../.okf/capabilities/cap-interactive-canvas.md)
 - **Pipeline Skill:** `bounded-capability-spec-orchestrator`
-- **Last Updated:** 2026-11-01
+- **Last Updated:** 2026-11-04
 
 ---
 
@@ -10,8 +10,8 @@
 
 - **State Evaluation Mode:** `own` (`state_policy` is absent in `.okf/capabilities/cap-interactive-canvas.md`, defaulting to `mode: own`).
 - **Reducer / Source:** Direct node evaluation (no structural child capability nodes).
-- **Previous Node State:** `bounded`
-- **Target / Eligible Node State:** `specified` (all 8 canonical reference artifacts are complete and pass the readiness review gate with 0 High and 0 Medium findings).
+- **Previous Node State:** `specified`
+- **Target / Eligible Node State:** `implemented` (all 8 canonical reference artifacts and Issues `030`–`031` covering `SC-001`..`SC-012` are implemented, verified, and approved).
 
 ---
 

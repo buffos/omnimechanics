@@ -28,7 +28,7 @@ Provide a unified, multi-faceted geometry modeling environment for OmniMechanics
 - **Structural Sub-capabilities:**
   - [Parametric Benchmark Presets & Conformal Meshing](/capabilities/cap-geometry-presets.md) (`implemented`): Pre-configured 2D/3D benchmarks with verified conformal tessellation.
   - [External CAD Ingestion & Polyline Healing](/capabilities/cap-geometry-cad-import.md) (`specified`): 2D DXF/SVG and 3D STL geometry parsers with topological gap healing.
-  - [Interactive Canvas Drafting & Geometry Sketcher](/capabilities/cap-geometry-canvas-sketcher.md) (roll-up, `specified`): split into the Mode 2 Structural Frame Modeler (`specified`) and the Continuum Domain Sketcher (`specified`).
+  - [Interactive Canvas Drafting & Geometry Sketcher](/capabilities/cap-geometry-canvas-sketcher.md) (roll-up, `implemented`): split into the Mode 2 Structural Frame Modeler (`implemented`) and the Continuum Domain Sketcher (`implemented`).
 - **Conformal Meshing Pipeline:**
   - 1D/2D boundary elements for BEM strictly conforming to 2D/3D interior elements for FEM.
   - Global mesh density control ($h$-refinement) and local adaptive refinement around cutouts and stress concentrations.

@@ -9,6 +9,8 @@ import {
   signal,
 } from '@angular/core';
 import type { Type } from '@angular/core';
+import { I18nService } from './i18n.service';
+import { NotificationService } from './notification.service';
 
 export interface DialogRef<TResult> {
   readonly id: number;
@@ -62,16 +64,41 @@ interface DialogEntry extends ActiveDialog {
 
 @Injectable({ providedIn: 'root' })
 export class DialogService {
-  private readonly environmentInjector = inject(EnvironmentInjector);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly environmentInjector: EnvironmentInjector | null;
+  private readonly destroyRef: DestroyRef | null;
+  private readonly notifications: NotificationService;
+  private readonly i18n: I18nService;
   private readonly entries = signal<DialogEntry[]>([]);
   private nextID = 0;
   private previousBodyOverflow: string | null = null;
   readonly stack = this.entries.asReadonly();
   readonly active = computed(() => this.entries().at(-1) ?? null);
+  readonly lastBlockedErrorCode = signal<string | null>(null);
 
-  constructor() {
-    this.destroyRef.onDestroy(() => this.unlockPageScroll());
+  constructor(notificationsOverride?: NotificationService, i18nOverride?: I18nService) {
+    let envInj: EnvironmentInjector | null = null;
+    let dRef: DestroyRef | null = null;
+    try {
+      envInj = inject(EnvironmentInjector, { optional: true });
+      dRef = inject(DestroyRef, { optional: true });
+    } catch {
+      envInj = null;
+      dRef = null;
+    }
+    this.environmentInjector = envInj;
+    this.destroyRef = dRef;
+    this.notifications =
+      notificationsOverride ?? this.tryInject(NotificationService) ?? new NotificationService();
+    this.i18n = i18nOverride ?? this.tryInject(I18nService) ?? new I18nService();
+    this.destroyRef?.onDestroy(() => this.unlockPageScroll());
+  }
+
+  private tryInject<T>(token: Type<T>): T | null {
+    try {
+      return inject(token, { optional: true });
+    } catch {
+      return null;
+    }
   }
 
   open<TResult, TData = undefined>(
@@ -93,13 +120,15 @@ export class DialogService {
       dispose: () => this.dispose(id),
       setDismissGuard: (guard) => this.setDismissGuard(id, guard),
     };
-    const injector = createEnvironmentInjector(
-      [
-        { provide: DIALOG_REF, useValue: ref },
-        { provide: DIALOG_DATA, useValue: config.data },
-      ],
-      this.environmentInjector,
-    );
+    const injector = this.environmentInjector
+      ? createEnvironmentInjector(
+          [
+            { provide: DIALOG_REF, useValue: ref },
+            { provide: DIALOG_DATA, useValue: config.data },
+          ],
+          this.environmentInjector,
+        )
+      : ({ destroy: () => {} } as EnvironmentInjector);
     const entry: DialogEntry = {
       component,
       config,
@@ -129,14 +158,20 @@ export class DialogService {
 
   private dismiss(id: number): void {
     const entry = this.active();
-    if (
-      entry !== null &&
-      entry.ref.id === id &&
-      entry.config.dismissible !== false &&
-      entry.dismissGuard()
-    ) {
-      this.close(id, undefined);
+    if (entry === null || entry.ref.id !== id) {
+      return;
     }
+    if (entry.config.dismissible === false || !entry.dismissGuard()) {
+      this.lastBlockedErrorCode.set('DIALOG_DISMISS_BLOCKED');
+      const msg =
+        this.i18n.currentLang() === 'el'
+          ? 'DIALOG_DISMISS_BLOCKED: Μη έγκυρες ή μη αποθηκευμένες αλλαγές στο παράθυρο διαλόγου.'
+          : 'DIALOG_DISMISS_BLOCKED: Unsaved or invalid configuration in modal dialog.';
+      this.notifications.show(msg, 'warning');
+      return;
+    }
+    this.lastBlockedErrorCode.set(null);
+    this.close(id, undefined);
   }
 
   private dispose(id: number): void {
@@ -167,7 +202,7 @@ export class DialogService {
 
   private unlockPageScroll(): void {
     if (typeof document === 'undefined' || this.previousBodyOverflow === null) return;
-    this.previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = this.previousBodyOverflow;
     this.previousBodyOverflow = null;
   }
 }

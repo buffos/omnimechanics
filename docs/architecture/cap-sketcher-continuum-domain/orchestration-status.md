@@ -3,17 +3,17 @@
 - **Owning Capability:** [`cap-sketcher-continuum-domain`](../../../.okf/capabilities/cap-sketcher-continuum-domain.md)
 - **Parent Capability:** [`cap-geometry-canvas-sketcher`](../../../.okf/capabilities/cap-geometry-canvas-sketcher.md)
 - **Shared Dependencies:** [`cap-geometry-presets`](../../../.okf/capabilities/cap-geometry-presets.md), [`cap-solver-core`](../../../.okf/capabilities/cap-solver-core.md), [`cap-material-field`](../../../.okf/capabilities/cap-material-field.md)
-- **Last Updated:** 2026-11-01
-- **Pipeline Status:** **Complete — Ready for `specified` state and downstream issue slicing**
+- **Last Updated:** 2026-11-03
+- **Pipeline Status:** **Implemented — All 3 vertical slices (`027`, `028`, `029`) delivered, verified, and archived**
 
 ---
 
 ## 1. State Evaluation
 
 - **State Evaluation Mode:** `own` (`state_policy` is absent on `.okf/capabilities/cap-sketcher-continuum-domain.md`, so the node is evaluated directly as a leaf capability rather than a roll-up).
-- **Previous Node State:** `bounded`
-- **Target / Qualified Node State:** `specified`
-- **Parent Roll-Up Relationship:** Structural child of [`cap-geometry-canvas-sketcher`](../../../.okf/capabilities/cap-geometry-canvas-sketcher.md) alongside sibling [`cap-sketcher-frame-modeler`](../../../.okf/capabilities/cap-sketcher-frame-modeler.md).
+- **Previous Node State:** `specified`
+- **Target / Qualified Node State:** `implemented`
+- **Parent Roll-Up Relationship:** Structural child of [`cap-geometry-canvas-sketcher`](../../../.okf/capabilities/cap-geometry-canvas-sketcher.md) alongside sibling [`cap-sketcher-frame-modeler`](../../../.okf/capabilities/cap-sketcher-frame-modeler.md) (both `implemented`, elevating parent roll-up `cap-geometry-canvas-sketcher` to `implemented`).
 
 ---
 

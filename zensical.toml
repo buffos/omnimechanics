@@ -23,6 +23,7 @@ nav = [
     { "Αρχική" = "index.md" },
     { "Οδηγός Χρήσης" = [
         { "Συνεχές Μέσο & CDT (Mode 1)" = "guide/continuum-sketcher.md" },
+        { "3D Προβολέας, Συνθήκες & Dock (Mode 1)" = "guide/3d-viewport-and-dock.md" },
         { "Πλαισιακοί Φορείς (Mode 2)" = "guide/modeling.md" },
         { "Φορτία, EC0 & EC8" = "guide/loads-and-combinations.md" }
     ]},

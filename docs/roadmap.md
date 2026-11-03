@@ -26,19 +26,19 @@ Derived navigation roadmap based on Open Knowledge Format (`.okf/`) capability g
 |---|---|---|---|---|
 | `cap-geometry-meshing` | Complete (Rollup) | Partial (Children) | In Progress | `specified` (rollup) |
 | ↳ `cap-geometry-presets` | Complete | Verified (2D/3D conformal tessellation) | Approved | `implemented` |
-| ↳ `cap-geometry-cad-import` | Complete | Pending Implementation | Specified | `specified` |
-| ↳ `cap-geometry-canvas-sketcher` | Complete (Rollup) | Issue 015 superseded | — | `specified` (rollup) |
-| ↳↳ `cap-sketcher-frame-modeler` | Complete (8-file spec set) | Ready for Slicing | Visual Review per slice | `specified` |
-| ↳↳ `cap-sketcher-continuum-domain` | Complete (8-file spec set) | Ready for Slicing | — | `specified` |
+| ↳ `cap-geometry-cad-import` | Complete | Pending Implementation (Issues 036-037) | Specified | `specified` |
+| ↳ `cap-geometry-canvas-sketcher` | Complete (Rollup) | Verified (Children 023-029 complete) | Approved | `implemented` (rollup) |
+| ↳↳ `cap-sketcher-frame-modeler` | Complete (8-file spec set) | Verified (Issues 023-026) | Approved | `implemented` |
+| ↳↳ `cap-sketcher-continuum-domain` | Complete (8-file spec set) | Verified (Issues 027-029) | Approved | `implemented` |
 | `cap-material-field` | Complete | Verified (5 Open-Closed FGM strategies) | Approved | `implemented` |
 | `cap-solver-core` | Complete | Verified (Static, Dynamic GMRES, Talbot, Newmark) | Approved | `implemented` |
-| `cap-interactive-canvas` | Complete (8-file spec set) | In Progress (Viewport, Modal Dialogs active) | Visual Review | `specified` |
+| `cap-interactive-canvas` | Complete (8-file spec set) | Verified (Issues 001, 030-031) | Approved | `implemented` |
 | `cap-parametric-benchmarking` | Complete | Verified (Mini-Papers 1-5, Issues 008-013) | Approved | `implemented` |
-| `cap-project-persistence` | Complete (8-file spec set) | Ready for Slicing | Pending | `specified` |
-| `cap-structural-mechanics-teaching` | Complete | Slice 1 Verified (Issue 014 closed) | Approved | `specified` |
-| `cap-eurocode-rc-design` | Complete | Ready for Slicing | Specified | `specified` |
-| `cap-frame-analysis-engine` | Complete (8-file spec set) | Ready for Slicing | — | `specified` |
-| `cap-eurocode-actions-combinations` | Complete (8-file spec set) | Ready for Slicing | — | `specified` |
+| `cap-project-persistence` | Complete (8-file spec set) | Pending Implementation (Issues 032-033) | Specified | `specified` |
+| `cap-structural-mechanics-teaching` | Complete | Slice 1 Verified (014), Pending (034-035) | Approved | `specified` |
+| `cap-eurocode-rc-design` | Complete | Pending Implementation (Issues 038-039) | Specified | `specified` |
+| `cap-frame-analysis-engine` | Complete (8-file spec set) | Verified (Issues 016-020) | Approved | `implemented` |
+| `cap-eurocode-actions-combinations` | Complete (8-file spec set) | Verified (Issues 021-022) | Approved | `implemented` |
 
 ---
 

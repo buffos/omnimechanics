@@ -11,7 +11,7 @@ export interface Notification {
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private readonly state = signal<Notification[]>([]);
-  private readonly dismissTimers = new Map<number, ReturnType<typeof window.setTimeout>>();
+  private readonly dismissTimers = new Map<number, ReturnType<typeof setTimeout>>();
   private nextID = 0;
 
   readonly notifications = this.state.asReadonly();
@@ -29,14 +29,14 @@ export class NotificationService {
 
   dismiss(id: number): void {
     const timer = this.dismissTimers.get(id);
-    if (timer !== undefined) window.clearTimeout(timer);
+    if (timer !== undefined) clearTimeout(timer);
     this.dismissTimers.delete(id);
     this.state.update((items) => items.filter((item) => item.id !== id));
   }
 
   private scheduleDismissal(id: number): void {
     const existingTimer = this.dismissTimers.get(id);
-    if (existingTimer !== undefined) window.clearTimeout(existingTimer);
-    this.dismissTimers.set(id, window.setTimeout(() => this.dismiss(id), 5000));
+    if (existingTimer !== undefined) clearTimeout(existingTimer);
+    this.dismissTimers.set(id, setTimeout(() => this.dismiss(id), 5000));
   }
 }

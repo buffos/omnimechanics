@@ -270,3 +270,46 @@
     - `038`: Eurocode 2 (EN 1992-1-1) ULS Beam Flexural & Variable-Angle Shear Design Engine (`Scenario 1`, `Scenario 2`) — unblocked (`ready-for-agent`).
     - `039`: EC2 Column N-M Interaction, SLS Crack/Deflection Checks & Interactive 2D Rebar Detailing Studio (`Scenario 1..4`) — blocked by `038`.
 - Linked `027`–`039` in their respective `.okf/capabilities/*.md` nodes. Roll-up capabilities (`cap-geometry-canvas-sketcher`, `cap-geometry-meshing`) derive their completion from their structural children.
+
+### Closeout for Issues 027, 028, 029 (`cap-sketcher-continuum-domain`)
+
+- Closed Issue 027 (`continuum-domain-polygon-cutout-validation-engine`):
+  - Delivered `ContinuumDomain`, `BoundaryLoop`, `Cutout` (`Circle`, `Rectangle`, `Polygon`), `InclusionRegion`, `BoundaryConditionSpec` (`DirichletDisplacement`, `NeumannTraction`, `RobinImpedance`, `Free`), and `MeshingProfile` in `src-tauri/src/continuum/types.rs`.
+  - Delivered `continuum_close_and_normalize_loop`, `continuum_preview_segment`, and `continuum_validate_domain` in `src-tauri/src/continuum/validation.rs`, enforcing CCW outer loops, CW hole loops with inward-pointing cavity normals, segment-segment and vertex-on-segment self-intersection rejection (`SELF_INTERSECTING_LOOP`), cutout/inclusion containment (`HOLE_OUTSIDE_OUTER_BOUNDARY`), overlap/nesting rejection (`HOLE_OVERLAPS_EXISTING_FEATURE`), and minimum clearance $d_{\min} = \max(10^{-3}\text{ m}, 0.1 \cdot h \cdot \alpha_{\text{hole}})$ (`CLEARANCE_BELOW_MINIMUM`) (`SC-002..SC-005`).
+  - Archived to `docs/agents/issues/done/20261103-027-continuum-domain-polygon-cutout-validation-engine.md` and removed from active registry `docs/agents/issues/issues.md`.
+- Closed Issue 028 (`conformal-cdt-mesher-boundary-tagging-inclusions`):
+  - Delivered `continuum_generate_mesh` (`src-tauri/src/continuum/cdt_mesher.rs`, `cdt_mesher_radial.rs`) supporting graded radial and general polygon Constrained Delaunay Triangulation into `Tri3` and pure `Quad4` volume elements and strictly conformal `Line2` and `Line3` (with mid-side node insertion) BEM boundary elements (`SC-001`).
+  - Propagated semantic boundary tags (`Bottom`, `Right`, `Top`, `Left`, `Hole`, custom tags), `boundary_provenance`, and `volume_provenance` (`"matrix"` vs. inclusion `subdomain_id`), while preserving internal `InclusionRegion` conformal interfaces without spurious hole boundary elements (`SC-006`, `SC-007`).
+  - Verified Mode 1 `PureFEM` and `BEMFEM` solver convergence on sketched domains (`SC-008`) and `STALE_MESH_HANDOFF` revision protection (`SC-009`).
+  - Archived to `docs/agents/issues/done/20261103-028-conformal-cdt-mesher-boundary-tagging-inclusions.md`, removed from active registry `docs/agents/issues/issues.md`, and cleared `028` from `Blocked by` on Issue `036`.
+- Closed Issue 029 (`mode1-continuum-sketcher-ui-canvas-solver-handoff`):
+  - Delivered Mode 1 interactive 2D Continuum Sketcher UI (`src/app/features/continuum-sketcher/`), including `ContinuumSketcherStore` with Undo/Redo stacks and structured Tauri `CanonicalError` formatting, AutoCAD-style coordinate entry (`x,y`, `@dx,dy`, `@L<θ`), `ContinuumInspectorComponent` (`Dirichlet`, `Neumann` Global/Local & trapezoidal, `Robin`, `Free`, `MeshingProfile`, `MeshQualityReport`), and 1-click Mode 1 `MeshService` handoff (`SC-001..SC-009`).
+  - Executed strict `/code-review-loop` (`6954720`) and updated the Zensical documentation site (`documentation/guide/continuum-sketcher.md`, `dd1dad8`).
+  - Verified 15/15 Rust `continuum` tests, 43/43 Vitest unit tests, `npm run build`, and `npm run check:limits` (211 files passing).
+  - Archived to `docs/agents/issues/done/20261103-029-mode1-continuum-sketcher-ui-canvas-solver-handoff.md` and removed from active registry `docs/agents/issues/issues.md`.
+- State transitions:
+  - `cap-sketcher-continuum-domain`: `specified` -> `implemented` (all 3 vertical slices `027`–`029` complete).
+  - `cap-geometry-canvas-sketcher` (`mode: rollup`, `reducer: min`): `specified` -> `implemented` (derived transition: both structural children `cap-sketcher-frame-modeler` and `cap-sketcher-continuum-domain` are now `implemented`).
+  - `cap-geometry-meshing` (`mode: rollup`, `reducer: min`): remains `specified` because child `cap-geometry-cad-import` (`036`–`037`) is still `specified`.
+- Totals (capabilities): foggy 0, bounded 0, specified 6, implemented 9.
+
+## 2026-11-04
+
+### Closeout for Issues 030, 031 (`cap-interactive-canvas`)
+
+- Closed Issue 030 (`3d-viewport-orthographic-clipping-raycast-picking-colormaps`):
+  - Delivered `OrthographicCamera` vs. `PerspectiveCamera` projection toggle, polar singularity clamp $\phi \in [0.05, \pi - 0.05]$, and `fitCameraToMesh` in `src/app/components/viewport/viewport.component.ts` and `viewport-scene.helpers.ts` (`SC-005`).
+  - Delivered 3D dynamic clipping plane (`ClippingPlaneConfig`: `enabled`, `axis: 'X' | 'Y' | 'Z'`, `normalizedOffset` $s \in [-1, 1]$, `invertNormal`) updating WebGL clipping planes on volume/boundary materials (`SC-006`).
+  - Delivered interactive `THREE.Raycaster` boundary facet picking (`SC-007`) resolving `BoundaryTag` (`Left`, `Right`, `Top`, `Bottom`, `Front`, `Back`, `Hole`), highlighting matching facets, and assigning `Dirichlet`, `Neumann`, or `Robin` conditions with empty-space miss handling (`RAYCAST_NO_BOUNDARY_HIT`).
+  - Delivered multi-palette scientific colormaps (`Turbo`, `Viridis`, `Coolwarm`, `Jet`), `PrincipalStress` scalar channel, degenerate-span protection (`FIELD_SPAN_DEGENERATE`, `SC-008`), `computeAutoDeformationScale` ($8\%$ of $L_{\max}$, `SC-009`), and 3D vector glyph arrows (`VectorGlyphOverlay`).
+  - Archived to `docs/agents/issues/done/20261103-030-3d-viewport-orthographic-clipping-raycast-picking-colormaps.md` and removed from active registry `docs/agents/issues/issues.md`.
+- Closed Issue 031 (`shared-2d-svg-kernel-shell-dialog-dock-verification`):
+  - Delivered canonical shared 2D SVG viewport & tension-side diagram kernel (`ViewportTransform2D`, `buildTensionSideDiagramPath`, `SemanticColorTokens` in `src/app/shared/svg-canvas-kernel.ts`) guaranteeing exact world $\leftrightarrow$ screen round-trip ($\le 10^{-9}$) and tension-side moment parity ($M > 0$ on local $-y$ bottom fibre) across Mode 2 and Mode 3 (`SC-012`).
+  - Enforced LIFO modal `DismissGuard` with bilingual warning toast (`DIALOG_DISMISS_BLOCKED`, `SC-003`) in `DialogService` and `SurroundingMediumDialogComponent`, and toast deduplication with 5000 ms timer reset in `NotificationService` (`SC-004`).
+  - Delivered synchronized transient/harmonic playback scrubbing between `BottomDockComponent` and `ViewportComponent` (`SC-010`), convergence residual streaming and `EXPORT_DATA_EMPTY` export guards (`SC-011`), and tri-mode workspace switching with timer cleanup (`SC-001`, `SC-002`).
+  - Added comprehensive user documentation in `documentation/guide/3d-viewport-and-dock.md`.
+  - Verified 60/60 Vitest unit tests (`viewport-colormaps.spec.ts`, `interactive-canvas.spec.ts`), `npx ng build`, and `npm run check:limits` (215 files passing).
+  - Archived to `docs/agents/issues/done/20261103-031-shared-2d-svg-kernel-shell-dialog-dock-verification.md` and removed from active registry `docs/agents/issues/issues.md`.
+- State transitions:
+  - `cap-interactive-canvas`: `specified` -> `implemented` (all scoped issues `001`, `030`, `031` complete and human visual review approved).
+- Totals (capabilities): foggy 0, bounded 0, specified 5, implemented 10.

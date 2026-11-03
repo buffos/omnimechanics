@@ -3,7 +3,7 @@
 - Issue number: `027`
 - Owning capability node: `/.okf/capabilities/cap-sketcher-continuum-domain.md`
 - Artifact root: `docs/architecture/cap-sketcher-continuum-domain/`
-- Issue file: `docs/agents/issues/pending/20261103-027-continuum-domain-polygon-cutout-validation-engine.md`
+- Issue file: `docs/agents/issues/done/20261103-027-continuum-domain-polygon-cutout-validation-engine.md`
 - Category: `feature`
 - Execution type: `AFK`
 - Review gate: `none`

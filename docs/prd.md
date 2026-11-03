@@ -53,14 +53,14 @@ workspaces:
 | [cap-geometry-meshing](../.okf/capabilities/cap-geometry-meshing.md) | roll-up: specified | Geometry umbrella |
 | ↳ [cap-geometry-presets](../.okf/capabilities/cap-geometry-presets.md) | implemented | Parametric presets + conformal meshing |
 | ↳ [cap-geometry-cad-import](../.okf/capabilities/cap-geometry-cad-import.md) | specified | DXF/SVG/STL ingestion |
-| ↳ [cap-geometry-canvas-sketcher](../.okf/capabilities/cap-geometry-canvas-sketcher.md) | roll-up: specified | Sketching umbrella |
-| ↳↳ [cap-sketcher-frame-modeler](../.okf/capabilities/cap-sketcher-frame-modeler.md) | specified | **Mode 2 workspace UI** ([PRD](architecture/cap-sketcher-frame-modeler/prd.md)) |
-| ↳↳ [cap-sketcher-continuum-domain](../.okf/capabilities/cap-sketcher-continuum-domain.md) | specified | Polygon/hole sketching → CDT mesh ([PRD](architecture/cap-sketcher-continuum-domain/prd.md)) |
-| [cap-frame-analysis-engine](../.okf/capabilities/cap-frame-analysis-engine.md) | specified | **2D DSM solver, structural model owner** ([PRD](architecture/cap-frame-analysis-engine/prd.md)) |
-| [cap-eurocode-actions-combinations](../.okf/capabilities/cap-eurocode-actions-combinations.md) | specified | **EN 1990 combinations, EN 1998 seismic (shared)** ([PRD](architecture/cap-eurocode-actions-combinations/prd.md)) |
+| ↳ [cap-geometry-canvas-sketcher](../.okf/capabilities/cap-geometry-canvas-sketcher.md) | roll-up: implemented | Sketching umbrella |
+| ↳↳ [cap-sketcher-frame-modeler](../.okf/capabilities/cap-sketcher-frame-modeler.md) | implemented | **Mode 2 workspace UI** ([PRD](architecture/cap-sketcher-frame-modeler/prd.md)) |
+| ↳↳ [cap-sketcher-continuum-domain](../.okf/capabilities/cap-sketcher-continuum-domain.md) | implemented | Polygon/hole sketching → CDT mesh ([PRD](architecture/cap-sketcher-continuum-domain/prd.md)) |
+| [cap-frame-analysis-engine](../.okf/capabilities/cap-frame-analysis-engine.md) | implemented | **2D DSM solver, structural model owner** ([PRD](architecture/cap-frame-analysis-engine/prd.md)) |
+| [cap-eurocode-actions-combinations](../.okf/capabilities/cap-eurocode-actions-combinations.md) | implemented | **EN 1990 combinations, EN 1998 seismic (shared)** ([PRD](architecture/cap-eurocode-actions-combinations/prd.md)) |
 | [cap-structural-mechanics-teaching](../.okf/capabilities/cap-structural-mechanics-teaching.md) | specified | Mode 3 + classifier + DSM walkthrough |
 | [cap-eurocode-rc-design](../.okf/capabilities/cap-eurocode-rc-design.md) | specified | EC2 RC design |
-| [cap-interactive-canvas](../.okf/capabilities/cap-interactive-canvas.md) | specified | Shared canvas/UI ([PRD](architecture/cap-interactive-canvas/prd.md)) |
+| [cap-interactive-canvas](../.okf/capabilities/cap-interactive-canvas.md) | implemented | Shared canvas/UI ([PRD](architecture/cap-interactive-canvas/prd.md)) |
 | [cap-project-persistence](../.okf/capabilities/cap-project-persistence.md) | specified | JSON project save/load ([PRD](architecture/cap-project-persistence/prd.md)) |
 
 ## 5. MVP for the current frontier (Mode 2)

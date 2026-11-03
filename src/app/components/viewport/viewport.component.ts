@@ -18,29 +18,51 @@ import {
   SimulationResult,
   TransientSimulationResult,
 } from "../../services/solver.service";
+import {
+  BoundaryConditionAssignment,
+  BoundaryFacetPickEvent,
+  BoundaryTag,
+  CameraProjectionMode,
+  ClippingPlaneConfig,
+  ColormapPalette,
+  ColormapType,
+  computeAutoDeformationScale,
+  derivePrincipalStressChannel,
+  evaluateColormap,
+  getColormapGradientCss,
+  normalizeScalarFieldValues,
+} from "./colormaps";
+import {
+  buildBoundaryElementGroup,
+  buildBoundaryVectorGlyphs,
+  buildVolumeAndEdgeGeometries,
+  clampSphericalCamera,
+  computeAutoFitCameraState,
+  computeOrthographicFrustum,
+  computeWorldClippingPlane,
+  createDefaultBoundaryAssignments,
+  disposeThreeObject,
+  normalizeBoundaryTag,
+  resolveBoundaryHitFromIntersections,
+  TAG_COLORS,
+} from "./viewport-scene.helpers";
 
-// Color mapping for boundary tags
-const TAG_COLORS: Record<string, number> = {
-  Left: 0x3b82f6,    // Blue (Fixed support)
-  Right: 0xef4444,   // Red (Traction load)
-  Top: 0xf59e0b,     // Amber / Yellow
-  Bottom: 0x10b981,  // Emerald green
-  Hole: 0xa855f7,    // Purple / Cavity
-  Front: 0x06b6d4,   // Cyan
-  Back: 0x6366f1,    // Indigo
-  Default: 0x94a3b8, // Slate gray
+export type {
+  BoundaryConditionAssignment,
+  BoundaryFacetPickEvent,
+  BoundaryTag,
+  CameraProjectionMode,
+  ClippingPlaneConfig,
+  ColormapPalette,
+  ColormapType,
 };
 
-export type ColormapType = "Material" | "VonMises" | "Displacement";
-
-import { turboColormap } from './colormaps';
-
 @Component({
-  selector: 'app-viewport',
+  selector: "app-viewport",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './viewport.component.html',
-  styleUrl: './viewport.component.css',
+  templateUrl: "./viewport.component.html",
+  styleUrl: "./viewport.component.css",
 })
 export class ViewportComponent implements OnDestroy {
   canvasContainer = viewChild.required<ElementRef<HTMLDivElement>>("canvasContainer");
@@ -55,9 +77,11 @@ export class ViewportComponent implements OnDestroy {
   currentFrameIndex = input<number>(0);
   isPlayingAnimation = input<boolean>(false);
 
+  // Outputs
   playAnimation = output<void>();
   pauseAnimation = output<void>();
   setFrameIndex = output<number>();
+  boundaryFacetPicked = output<BoundaryFacetPickEvent>();
 
   toggleAnimationPlayback(): void {
     if (this.isPlayingAnimation()) {
@@ -76,7 +100,7 @@ export class ViewportComponent implements OnDestroy {
   harmonicPhase = signal<number>(0);
   isPlayingHarmonic = signal<boolean>(true);
   readonly harmonicPhaseDegrees = computed(() => Math.round((this.harmonicPhase() * 180) / Math.PI));
-  private harmonicTimer: any = null;
+  private harmonicTimer: ReturnType<typeof setInterval> | null = null;
 
   toggleHarmonicPlayback(): void {
     if (this.isPlayingHarmonic()) {
@@ -90,7 +114,6 @@ export class ViewportComponent implements OnDestroy {
     this.isPlayingHarmonic.set(true);
     if (this.harmonicTimer) clearInterval(this.harmonicTimer);
     this.harmonicTimer = setInterval(() => {
-      // Step phase forward gracefully (~7 deg per 40ms)
       const next = (this.harmonicPhase() + 0.12) % (2 * Math.PI);
       this.harmonicPhase.set(next);
     }, 40);
@@ -110,14 +133,43 @@ export class ViewportComponent implements OnDestroy {
     this.harmonicPhase.set((deg * Math.PI) / 180);
   }
 
-  // Colormap & Deformation States
+  // Camera Projection & Layer Visibility States
+  cameraProjection = signal<CameraProjectionMode>("Perspective");
   showColormap = signal<boolean>(true);
   showWireframe = signal<boolean>(true);
   showBoundaries = signal<boolean>(true);
   showNodes = signal<boolean>(false);
+  showVectorGlyphs = signal<boolean>(true);
 
+  // Colormap Channel, Palette & Deformation States
   activeColormapType = signal<ColormapType>("Material");
+  activePalette = signal<ColormapPalette>("Turbo");
   deformationScale = signal<number>(50.0);
+
+  // 3D Dynamic Clipping Plane State (`SC-006`)
+  clippingPlane = signal<ClippingPlaneConfig>({
+    enabled: false,
+    axis: "Z",
+    normalizedOffset: 0.0,
+    invertNormal: false,
+  });
+
+  // Interactive Raycast Boundary Facet Picking & BC Assignment State (`SC-007`)
+  pickedBoundaryTag = signal<BoundaryTag | null>(null);
+  lastPickedEvent = signal<BoundaryFacetPickEvent | null>(null);
+  boundaryAssignments = signal<Map<BoundaryTag, BoundaryConditionAssignment>>(new Map());
+
+  readonly pickedBoundaryAssignment = computed<BoundaryConditionAssignment | null>(() => {
+    const tag = this.pickedBoundaryTag();
+    if (!tag) return null;
+    return (
+      this.boundaryAssignments().get(tag) ?? {
+        tag,
+        kind: "Neumann",
+        prescribedTraction: [0, 0, 0],
+      }
+    );
+  });
 
   readonly activeSimData = computed(() => {
     const domain = this.activeDomain();
@@ -193,25 +245,37 @@ export class ViewportComponent implements OnDestroy {
     return null;
   });
 
-  // Computed Boundary Tag Legend directly from mesh data
+  // Computed Boundary Tag Legend directly from mesh data + active BC assignments
   readonly detectedTags = computed(() => {
     const m = this.mesh();
     if (!m) return [];
-    const tagMap = new Map<string, number>();
+    const assignments = this.boundaryAssignments();
+    const picked = this.pickedBoundaryTag();
+    const tagMap = new Map<BoundaryTag, number>();
     for (const bnd of m.boundary_elements) {
-      tagMap.set(bnd.tag, (tagMap.get(bnd.tag) ?? 0) + 1);
+      const tag = normalizeBoundaryTag(bnd.tag);
+      tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);
     }
     return Array.from(tagMap.entries()).map(([name, count]) => {
       const colorVal = TAG_COLORS[name] ?? TAG_COLORS["Default"];
       const hex = `#${colorVal.toString(16).padStart(6, "0")}`;
-      return { name, hex, count };
+      const assignedCondition = assignments.get(name);
+      return {
+        name,
+        hex,
+        count,
+        isPicked: picked === name,
+        assignedCondition,
+      };
     });
   });
 
-  // Computed Colorbar Information
+  // Computed Colorbar Information (`SC-008`, `SC-009`)
   readonly activeColormapInfo = computed(() => {
     const sim = this.activeSimData();
     const type = this.activeColormapType();
+    const palette = this.activePalette();
+    const paletteGradientCss = getColormapGradientCss(palette);
 
     if (type === "VonMises" && sim) {
       return {
@@ -219,6 +283,17 @@ export class ViewportComponent implements OnDestroy {
         min: 0.0,
         max: sim.max_von_mises > 0 ? sim.max_von_mises : 1.0,
         unit: "MPa",
+        paletteGradientCss,
+      };
+    } else if (type === "PrincipalStress" && sim) {
+      const pStresses = derivePrincipalStressChannel(sim.von_mises_stresses, sim.displacements);
+      const norm = normalizeScalarFieldValues(pStresses);
+      return {
+        title: "Principal Stress \u03c3_1",
+        min: norm.min,
+        max: norm.max,
+        unit: "MPa",
+        paletteGradientCss,
       };
     } else if (type === "Displacement" && sim) {
       return {
@@ -226,6 +301,7 @@ export class ViewportComponent implements OnDestroy {
         min: 0.0,
         max: sim.max_displacement * 1000.0 > 0 ? sim.max_displacement * 1000.0 : 1.0,
         unit: "mm",
+        paletteGradientCss,
       };
     } else {
       const field = this.materialField();
@@ -235,15 +311,19 @@ export class ViewportComponent implements OnDestroy {
         min: field.min_val,
         max: field.max_val,
         unit: field.unit,
+        paletteGradientCss,
       };
     }
   });
 
   private scene!: THREE.Scene;
-  private camera!: THREE.PerspectiveCamera;
+  private perspectiveCamera!: THREE.PerspectiveCamera;
+  private orthographicCamera!: THREE.OrthographicCamera;
+  private activeCamera!: THREE.PerspectiveCamera | THREE.OrthographicCamera;
   private renderer: THREE.WebGLRenderer | null = null;
   private animFrameId: number | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private lastFittedMesh: MeshData | null = null;
 
   // Active mesh 3D root group
   private meshGroup: THREE.Group | null = null;
@@ -251,16 +331,18 @@ export class ViewportComponent implements OnDestroy {
   private wireframeMesh: THREE.LineSegments | null = null;
   private boundaryGroup: THREE.Group | null = null;
   private nodePoints: THREE.Points | null = null;
+  private glyphGroup: THREE.Group | null = null;
+  private threeClippingPlanes: THREE.Plane[] = [];
 
-  // Orbit controls state
+  // Orbit & Raycast interaction state
   private isDragging = false;
   private isRightDragging = false;
+  private pointerDownPos = { x: 0, y: 0 };
   private previousMousePosition = { x: 0, y: 0 };
   private spherical = { radius: 15, theta: 0, phi: Math.PI / 2.05 };
   private target = new THREE.Vector3(0, 0, 0);
 
   constructor() {
-    // Initialize Three.js once container is available
     effect(() => {
       const containerRef = this.canvasContainer();
       if (containerRef && !this.renderer) {
@@ -268,40 +350,63 @@ export class ViewportComponent implements OnDestroy {
       }
     });
 
-    // Re-render mesh whenever mesh, materialField, activeSimData, deformationScale, or colormap changes
+    // Reset boundary assignments and selection when mesh changes (`BR-3`)
+    effect(() => {
+      const currentMesh = this.mesh();
+      if (currentMesh && currentMesh !== this.lastFittedMesh) {
+        this.pickedBoundaryTag.set(null);
+        this.lastPickedEvent.set(null);
+        this.boundaryAssignments.set(createDefaultBoundaryAssignments(currentMesh));
+      }
+    });
+
+    // Re-render mesh whenever geometry, field, simulation, palette, clipping, or picking changes
     effect(() => {
       const currentMesh = this.mesh();
       const field = this.materialField();
       const sim = this.activeSimData();
       const scale = this.deformationScale();
       const colormapType = this.activeColormapType();
+      const palette = this.activePalette();
       const colormapActive = this.showColormap();
+      const clipCfg = this.clippingPlane();
+      const pickedTag = this.pickedBoundaryTag();
+      const assignments = this.boundaryAssignments();
 
       if (this.scene && currentMesh) {
-        this.renderMesh(currentMesh, field, sim, scale, colormapType, colormapActive);
+        this.renderMesh(
+          currentMesh,
+          field,
+          sim,
+          scale,
+          colormapType,
+          palette,
+          colormapActive,
+          clipCfg,
+          pickedTag,
+          assignments
+        );
       }
     });
 
-    // React to toggle changes
     effect(() => {
       const wf = this.showWireframe();
-      if (this.wireframeMesh) {
-        this.wireframeMesh.visible = wf;
-      }
+      if (this.wireframeMesh) this.wireframeMesh.visible = wf;
     });
 
     effect(() => {
       const bnd = this.showBoundaries();
-      if (this.boundaryGroup) {
-        this.boundaryGroup.visible = bnd;
-      }
+      if (this.boundaryGroup) this.boundaryGroup.visible = bnd;
     });
 
     effect(() => {
       const nds = this.showNodes();
-      if (this.nodePoints) {
-        this.nodePoints.visible = nds;
-      }
+      if (this.nodePoints) this.nodePoints.visible = nds;
+    });
+
+    effect(() => {
+      const glyphs = this.showVectorGlyphs();
+      if (this.glyphGroup) this.glyphGroup.visible = glyphs;
     });
 
     // Manage harmonic vibration timer based on active domain & harmonicResult
@@ -317,7 +422,7 @@ export class ViewportComponent implements OnDestroy {
       }
     });
 
-    // Auto-scale deformation on simulation completion so vibration is immediately visible
+    // Auto-scale deformation on simulation completion (`POL-1`, `SC-009`)
     effect(() => {
       const sim = this.activeSimData();
       const m = this.mesh();
@@ -340,22 +445,76 @@ export class ViewportComponent implements OnDestroy {
     const sim = this.activeSimData();
     const m = this.mesh();
     if (!sim || !m || sim.max_displacement <= 1e-12) return;
-    let minX = Infinity, maxX = -Infinity;
-    for (const [x] of m.nodes) {
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-    }
-    const L = Math.max(maxX - minX, 1.0);
-    // Standard FEA practice: normalize peak visual deformation to ~8% of structure dimension
-    const targetDeflection = 0.08 * L;
-    const computedScale = targetDeflection / sim.max_displacement;
-    let scaleVal = Math.round(computedScale);
-    if (scaleVal > 100) scaleVal = Math.round(scaleVal / 50) * 50;
-    this.deformationScale.set(Math.max(1, scaleVal));
+    this.deformationScale.set(computeAutoDeformationScale(m.nodes, sim.max_displacement));
   }
 
   setColormapType(type: ColormapType): void {
     this.activeColormapType.set(type);
+  }
+
+  setPalette(palette: ColormapPalette): void {
+    this.activePalette.set(palette);
+  }
+
+  setCameraProjection(mode: CameraProjectionMode): void {
+    this.cameraProjection.set(mode);
+    if (this.perspectiveCamera && this.orthographicCamera) {
+      this.activeCamera =
+        mode === "Orthographic" ? this.orthographicCamera : this.perspectiveCamera;
+      this.updateCameraFromSpherical();
+    }
+  }
+
+  toggleCameraProjection(): void {
+    const next: CameraProjectionMode =
+      this.cameraProjection() === "Perspective" ? "Orthographic" : "Perspective";
+    this.setCameraProjection(next);
+  }
+
+  toggleClippingPlane(): void {
+    this.clippingPlane.update((cfg) => ({ ...cfg, enabled: !cfg.enabled }));
+  }
+
+  setClippingAxis(axis: "X" | "Y" | "Z"): void {
+    this.clippingPlane.update((cfg) => ({ ...cfg, axis }));
+  }
+
+  onClippingOffsetInput(event: Event): void {
+    const val = +(event.target as HTMLInputElement).value;
+    this.clippingPlane.update((cfg) => ({
+      ...cfg,
+      normalizedOffset: Math.max(-1, Math.min(1, val)),
+    }));
+  }
+
+  toggleClippingInvert(): void {
+    this.clippingPlane.update((cfg) => ({ ...cfg, invertNormal: !cfg.invertNormal }));
+  }
+
+  selectBoundaryTagFromLegend(tag: BoundaryTag): void {
+    this.pickedBoundaryTag.update((cur) => (cur === tag ? null : tag));
+  }
+
+  clearPickedBoundaryTag(): void {
+    this.pickedBoundaryTag.set(null);
+  }
+
+  assignBoundaryConditionKind(kind: "Dirichlet" | "Neumann" | "Robin"): void {
+    const tag = this.pickedBoundaryTag();
+    if (!tag) return;
+    const nextMap = new Map(this.boundaryAssignments());
+    if (kind === "Dirichlet") {
+      nextMap.set(tag, { tag, kind: "Dirichlet", prescribedDisplacement: [0, 0, 0] });
+    } else if (kind === "Neumann") {
+      nextMap.set(tag, { tag, kind: "Neumann", prescribedTraction: [0, -50, 0] });
+    } else {
+      nextMap.set(tag, {
+        tag,
+        kind: "Robin",
+        robinImpedance: { eMediumMpa: 150, nuMedium: 0.3, rhoMedium: 2000 },
+      });
+    }
+    this.boundaryAssignments.set(nextMap);
   }
 
   toggleColormap(): void {
@@ -372,6 +531,10 @@ export class ViewportComponent implements OnDestroy {
 
   toggleNodes(): void {
     this.showNodes.update((v) => !v);
+  }
+
+  toggleVectorGlyphs(): void {
+    this.showVectorGlyphs.update((v) => !v);
   }
 
   resetView(): void {
@@ -392,6 +555,10 @@ export class ViewportComponent implements OnDestroy {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
+    if (this.meshGroup) {
+      disposeThreeObject(this.meshGroup);
+      this.meshGroup = null;
+    }
     if (this.renderer) {
       this.renderer.dispose();
       this.renderer = null;
@@ -403,23 +570,34 @@ export class ViewportComponent implements OnDestroy {
 
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 600;
+    const aspect = width / height;
 
-    // 1. Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color("#090d16");
 
-    // 2. Camera
-    this.camera = new THREE.PerspectiveCamera(45, width / height, 0.05, 2000);
+    this.perspectiveCamera = new THREE.PerspectiveCamera(45, aspect, 0.05, 2000);
+    const frustum = computeOrthographicFrustum(this.spherical.radius, aspect);
+    this.orthographicCamera = new THREE.OrthographicCamera(
+      frustum.left,
+      frustum.right,
+      frustum.top,
+      frustum.bottom,
+      -500,
+      2000
+    );
+    this.activeCamera =
+      this.cameraProjection() === "Orthographic"
+        ? this.orthographicCamera
+        : this.perspectiveCamera;
     this.updateCameraFromSpherical();
 
-    // 3. Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
+    this.renderer.localClippingEnabled = true;
     container.appendChild(this.renderer.domElement);
 
-    // 4. Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     this.scene.add(ambientLight);
 
@@ -432,37 +610,33 @@ export class ViewportComponent implements OnDestroy {
     dirLight2.position.set(-20, -10, -20);
     this.scene.add(dirLight2);
 
-    // 5. Grid Helper
     const grid = new THREE.GridHelper(40, 40, 0x334155, 0x1e293b);
     grid.position.y = -0.01;
     this.scene.add(grid);
 
-    // 6. Interaction
     this.setupInteraction(container);
 
-    // 7. Resize Observer
     this.resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width: w, height: h } = entry.contentRect;
         if (w > 0 && h > 0) {
-          this.camera.aspect = w / h;
-          this.camera.updateProjectionMatrix();
+          this.perspectiveCamera.aspect = w / h;
+          this.perspectiveCamera.updateProjectionMatrix();
+          this.syncOrthographicFrustum(w / h);
           this.renderer?.setSize(w, h);
         }
       }
     });
     this.resizeObserver.observe(container);
 
-    // 8. Animation Loop
     const animate = () => {
       this.animFrameId = requestAnimationFrame(animate);
-      if (this.renderer && this.scene && this.camera) {
-        this.renderer.render(this.scene, this.camera);
+      if (this.renderer && this.scene && this.activeCamera) {
+        this.renderer.render(this.scene, this.activeCamera);
       }
     };
     animate();
 
-    // If mesh is already available, render it immediately
     if (this.mesh()) {
       this.renderMesh(
         this.mesh()!,
@@ -470,9 +644,24 @@ export class ViewportComponent implements OnDestroy {
         this.activeSimData(),
         this.deformationScale(),
         this.activeColormapType(),
-        this.showColormap()
+        this.activePalette(),
+        this.showColormap(),
+        this.clippingPlane(),
+        this.pickedBoundaryTag(),
+        this.boundaryAssignments()
       );
     }
+  }
+
+  private syncOrthographicFrustum(aspectInput?: number): void {
+    if (!this.orthographicCamera || !this.perspectiveCamera) return;
+    const aspect = aspectInput ?? this.perspectiveCamera.aspect ?? 1.0;
+    const frustum = computeOrthographicFrustum(this.spherical.radius, aspect);
+    this.orthographicCamera.left = frustum.left;
+    this.orthographicCamera.right = frustum.right;
+    this.orthographicCamera.top = frustum.top;
+    this.orthographicCamera.bottom = frustum.bottom;
+    this.orthographicCamera.updateProjectionMatrix();
   }
 
   private setupInteraction(container: HTMLDivElement): void {
@@ -484,12 +673,24 @@ export class ViewportComponent implements OnDestroy {
       } else if (e.button === 2) {
         this.isRightDragging = true;
       }
+      this.pointerDownPos = { x: e.clientX, y: e.clientY };
       this.previousMousePosition = { x: e.clientX, y: e.clientY };
     });
 
-    window.addEventListener("mouseup", () => {
+    window.addEventListener("mouseup", (e: MouseEvent) => {
+      const wasLeftDrag = this.isDragging;
       this.isDragging = false;
       this.isRightDragging = false;
+
+      if (wasLeftDrag && e.button === 0) {
+        const dist = Math.hypot(
+          e.clientX - this.pointerDownPos.x,
+          e.clientY - this.pointerDownPos.y
+        );
+        if (dist < 4 && container.contains(e.target as Node)) {
+          this.handleCanvasPickClick(e, container);
+        }
+      }
     });
 
     container.addEventListener("mousemove", (e: MouseEvent) => {
@@ -500,15 +701,17 @@ export class ViewportComponent implements OnDestroy {
       this.previousMousePosition = { x: e.clientX, y: e.clientY };
 
       if (this.isDragging) {
-        this.spherical.theta -= deltaX * 0.008;
-        this.spherical.phi -= deltaY * 0.008;
-        this.spherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, this.spherical.phi));
+        this.spherical = clampSphericalCamera({
+          ...this.spherical,
+          theta: this.spherical.theta - deltaX * 0.008,
+          phi: this.spherical.phi - deltaY * 0.008,
+        });
         this.updateCameraFromSpherical();
       } else if (this.isRightDragging) {
         const panSpeed = this.spherical.radius * 0.0015;
         const forward = new THREE.Vector3();
-        this.camera.getWorldDirection(forward);
-        const right = new THREE.Vector3().crossVectors(forward, this.camera.up).normalize();
+        this.activeCamera.getWorldDirection(forward);
+        const right = new THREE.Vector3().crossVectors(forward, this.activeCamera.up).normalize();
         const up = new THREE.Vector3().crossVectors(right, forward).normalize();
 
         this.target.addScaledVector(right, -deltaX * panSpeed);
@@ -522,11 +725,50 @@ export class ViewportComponent implements OnDestroy {
       (e: WheelEvent) => {
         e.preventDefault();
         const zoomFactor = e.deltaY > 0 ? 1.08 : 0.92;
-        this.spherical.radius = Math.max(0.5, Math.min(250, this.spherical.radius * zoomFactor));
+        this.spherical = clampSphericalCamera({
+          ...this.spherical,
+          radius: this.spherical.radius * zoomFactor,
+        });
         this.updateCameraFromSpherical();
       },
       { passive: false }
     );
+  }
+
+  /**
+   * Raycast picking against `boundaryGroup` facets (`SC-007`).
+   */
+  private handleCanvasPickClick(e: MouseEvent, container: HTMLDivElement): void {
+    // Ignore clicks on HUD overlay controls
+    const targetEl = e.target as HTMLElement;
+    if (this.renderer && targetEl !== this.renderer.domElement) {
+      return;
+    }
+    if (!this.showBoundaries() || !this.boundaryGroup || !this.activeCamera) {
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.params.Line = { threshold: Math.max(0.15, this.spherical.radius * 0.025) };
+    raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.activeCamera);
+
+    const intersections = raycaster.intersectObjects(this.boundaryGroup.children, true);
+    const resolved = resolveBoundaryHitFromIntersections(intersections);
+
+    if ("hit" in resolved) {
+      this.pickedBoundaryTag.set(resolved.hit.tag);
+      this.lastPickedEvent.set(resolved.hit);
+      this.boundaryFacetPicked.emit(resolved.hit);
+    } else {
+      // RAYCAST_NO_BOUNDARY_HIT clears selection highlight without mutating assignments (`SC-007`)
+      this.pickedBoundaryTag.set(null);
+    }
   }
 
   private updateCameraFromSpherical(): void {
@@ -535,52 +777,25 @@ export class ViewportComponent implements OnDestroy {
     const y = this.target.y + radius * Math.cos(phi);
     const z = this.target.z + radius * Math.sin(phi) * Math.cos(theta);
 
-    this.camera.position.set(x, y, z);
-    this.camera.lookAt(this.target);
+    if (this.perspectiveCamera) {
+      this.perspectiveCamera.position.set(x, y, z);
+      this.perspectiveCamera.lookAt(this.target);
+    }
+    if (this.orthographicCamera) {
+      this.orthographicCamera.position.set(x, y, z);
+      this.orthographicCamera.lookAt(this.target);
+      this.syncOrthographicFrustum();
+    }
   }
 
   private fitCameraToMesh(meshData: MeshData): void {
     if (meshData.nodes.length === 0) return;
-
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-
-    for (const [x, y, z] of meshData.nodes) {
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-      if (z < minZ) minZ = z;
-      if (z > maxZ) maxZ = z;
-    }
-
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    const cz = (minZ + maxZ) / 2;
-    this.target.set(cx, cy, cz);
-
-    const dx = maxX - minX;
-    const dy = maxY - minY;
-    const dz = maxZ - minZ;
-    const maxDim = Math.max(dx, dy, dz, 1.0);
-
-    if (meshData.dimension === 2) {
-      this.spherical.theta = 0;
-      this.spherical.phi = Math.PI / 2.05;
-      this.spherical.radius = maxDim * 1.8;
-    } else {
-      this.spherical.theta = Math.PI / 4;
-      this.spherical.phi = Math.PI / 3;
-      this.spherical.radius = maxDim * 2.0;
-    }
-
+    const autoFit = computeAutoFitCameraState(meshData);
+    this.target.set(autoFit.target[0], autoFit.target[1], autoFit.target[2]);
+    this.spherical = { ...autoFit.spherical };
     this.updateCameraFromSpherical();
   }
 
-  /**
-   * Builds and renders the full mesh representation in Three.js:
-   * Supports deformed coordinates and field colormap (Material, von Mises stress, or Displacement).
-   */
   private renderMesh(
     meshData: MeshData,
     field: MaterialFieldResponse | null,
@@ -592,10 +807,15 @@ export class ViewportComponent implements OnDestroy {
     } | null,
     scale: number,
     colormapType: ColormapType,
-    colormapActive: boolean
+    palette: ColormapPalette,
+    colormapActive: boolean,
+    clipCfg: ClippingPlaneConfig,
+    pickedTag: BoundaryTag | null,
+    assignments: ReadonlyMap<BoundaryTag, BoundaryConditionAssignment>
   ): void {
     if (this.meshGroup) {
       this.scene.remove(this.meshGroup);
+      disposeThreeObject(this.meshGroup);
       this.meshGroup.clear();
       this.meshGroup = null;
     }
@@ -619,18 +839,36 @@ export class ViewportComponent implements OnDestroy {
       }
     }
 
-    // 2. Determine colormap values and span
+    // 2. Resolve 3D Clipping Plane (`SC-006`)
+    this.threeClippingPlanes = [];
+    if (clipCfg.enabled && meshData.dimension === 3) {
+      const worldPlane = computeWorldClippingPlane(clipCfg, displacedNodes);
+      const plane = new THREE.Plane(
+        new THREE.Vector3(worldPlane.normal[0], worldPlane.normal[1], worldPlane.normal[2]),
+        worldPlane.constant
+      );
+      this.threeClippingPlanes = [plane];
+    }
+
+    // 3. Determine colormap values and span (`SC-008`)
     let colorValues: number[] | null = null;
     let minVal = 0.0;
     let maxVal = 1.0;
 
     if (colormapActive) {
-      if (colormapType === "VonMises" && sim && sim.von_mises_stresses && sim.von_mises_stresses.length === numNodes) {
+      if (colormapType === "VonMises" && sim?.von_mises_stresses?.length === numNodes) {
         colorValues = sim.von_mises_stresses;
         minVal = 0.0;
         maxVal = (sim.max_von_mises ?? 1.0) > 0 ? (sim.max_von_mises ?? 1.0) : 1.0;
-      } else if (colormapType === "Displacement" && sim && sim.displacements && sim.displacements.length === numNodes) {
-        colorValues = sim.displacements.map(([ux, uy, uz]) => Math.sqrt(ux * ux + uy * uy + uz * uz) * 1000.0);
+      } else if (colormapType === "PrincipalStress" && sim?.von_mises_stresses?.length === numNodes) {
+        colorValues = derivePrincipalStressChannel(sim.von_mises_stresses, sim.displacements);
+        const norm = normalizeScalarFieldValues(colorValues);
+        minVal = norm.min;
+        maxVal = norm.max;
+      } else if (colormapType === "Displacement" && sim?.displacements?.length === numNodes) {
+        colorValues = sim.displacements.map(
+          ([ux, uy, uz]) => Math.sqrt(ux * ux + uy * uy + uz * uz) * 1000.0
+        );
         minVal = 0.0;
         const maxD = sim.max_displacement ?? 0.001;
         maxVal = maxD * 1000.0 > 0 ? maxD * 1000.0 : 1.0;
@@ -641,13 +879,14 @@ export class ViewportComponent implements OnDestroy {
       }
     }
 
-    // 3. Build Volume Geometry
-    const { volumeGeometry, edgeGeometry } = this.buildVolumeGeometry(
+    // 4. Build Volume Geometry
+    const { volumeGeometry, edgeGeometry } = buildVolumeAndEdgeGeometries(
       meshData,
       displacedNodes,
       colorValues,
       minVal,
       maxVal,
+      palette,
       colormapActive
     );
 
@@ -661,34 +900,45 @@ export class ViewportComponent implements OnDestroy {
       polygonOffset: true,
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1,
+      clippingPlanes: this.threeClippingPlanes,
+      clipShadows: true,
     });
 
     this.volumeMesh = new THREE.Mesh(volumeGeometry, volumeMat);
     this.meshGroup.add(this.volumeMesh);
 
-    // 4. Wireframe lines
+    // 5. Wireframe lines
     const wireframeMat = new THREE.LineBasicMaterial({
       color: hasColors ? 0x0f172a : 0x475569,
       transparent: true,
       opacity: hasColors ? 0.35 : 0.45,
+      clippingPlanes: this.threeClippingPlanes,
     });
     this.wireframeMesh = new THREE.LineSegments(edgeGeometry, wireframeMat);
     this.wireframeMesh.visible = this.showWireframe();
     this.meshGroup.add(this.wireframeMesh);
 
-    // 5. Boundary Elements (BEM domain) colored by tag
-    this.boundaryGroup = new THREE.Group();
-
-    if (meshData.dimension === 2) {
-      this.buildBoundaryLines2D(meshData, displacedNodes);
-    } else {
-      this.buildBoundarySurfaces3D(meshData, displacedNodes);
-    }
-
+    // 6. Boundary Elements colored by tag + raycast highlight (`SC-007`)
+    this.boundaryGroup = buildBoundaryElementGroup(
+      meshData,
+      displacedNodes,
+      pickedTag,
+      this.threeClippingPlanes
+    );
     this.boundaryGroup.visible = this.showBoundaries();
     this.meshGroup.add(this.boundaryGroup);
 
-    // 6. Node markers (Points)
+    // 7. Vector Glyph Overlay (`WF-4`)
+    this.glyphGroup = buildBoundaryVectorGlyphs(
+      meshData,
+      displacedNodes,
+      assignments,
+      this.threeClippingPlanes
+    );
+    this.glyphGroup.visible = this.showVectorGlyphs();
+    this.meshGroup.add(this.glyphGroup);
+
+    // 8. Node markers (Points)
     const nodeGeometry = new THREE.BufferGeometry();
     const nodeCoords = new Float32Array(numNodes * 3);
     for (let i = 0; i < numNodes; i++) {
@@ -701,6 +951,7 @@ export class ViewportComponent implements OnDestroy {
       color: 0x38bdf8,
       size: 4,
       sizeAttenuation: false,
+      clippingPlanes: this.threeClippingPlanes,
     });
     this.nodePoints = new THREE.Points(nodeGeometry, nodeMaterial);
     this.nodePoints.visible = this.showNodes();
@@ -708,190 +959,10 @@ export class ViewportComponent implements OnDestroy {
 
     this.scene.add(this.meshGroup);
 
-    // Fit camera to mesh so it's centered and fully visible
-    this.fitCameraToMesh(meshData);
-  }
-
-  private buildVolumeGeometry(
-    meshData: MeshData,
-    displacedNodes: [number, number, number][],
-    colorValues: number[] | null,
-    minVal: number,
-    maxVal: number,
-    colormapActive: boolean
-  ): {
-    volumeGeometry: THREE.BufferGeometry;
-    edgeGeometry: THREE.BufferGeometry;
-  } {
-    const indices: number[] = [];
-    const edgeIndices: number[] = [];
-
-    const addEdge = (a: number, b: number) => {
-      edgeIndices.push(a, b);
-    };
-
-    for (const elem of meshData.volume_elements) {
-      const n = elem.nodes;
-      switch (elem.elem_type) {
-        case "Tri3":
-          indices.push(n[0], n[1], n[2]);
-          addEdge(n[0], n[1]);
-          addEdge(n[1], n[2]);
-          addEdge(n[2], n[0]);
-          break;
-
-        case "Quad4":
-          indices.push(n[0], n[1], n[2]);
-          indices.push(n[0], n[2], n[3]);
-          addEdge(n[0], n[1]);
-          addEdge(n[1], n[2]);
-          addEdge(n[2], n[3]);
-          addEdge(n[3], n[0]);
-          break;
-
-        case "Tet4":
-          indices.push(n[0], n[1], n[2]);
-          indices.push(n[0], n[2], n[3]);
-          indices.push(n[0], n[3], n[1]);
-          indices.push(n[1], n[3], n[2]);
-          addEdge(n[0], n[1]);
-          addEdge(n[1], n[2]);
-          addEdge(n[2], n[0]);
-          addEdge(n[0], n[3]);
-          addEdge(n[1], n[3]);
-          addEdge(n[2], n[3]);
-          break;
-
-        case "Hex8":
-          const hexFaces = [
-            [n[0], n[1], n[2], n[3]],
-            [n[4], n[7], n[6], n[5]],
-            [n[0], n[4], n[5], n[1]],
-            [n[2], n[6], n[7], n[3]],
-            [n[0], n[3], n[7], n[4]],
-            [n[1], n[5], n[6], n[2]],
-          ];
-          for (const f of hexFaces) {
-            indices.push(f[0], f[1], f[2]);
-            indices.push(f[0], f[2], f[3]);
-          }
-          addEdge(n[0], n[1]); addEdge(n[1], n[2]); addEdge(n[2], n[3]); addEdge(n[3], n[0]);
-          addEdge(n[4], n[5]); addEdge(n[5], n[6]); addEdge(n[6], n[7]); addEdge(n[7], n[4]);
-          addEdge(n[0], n[4]); addEdge(n[1], n[5]); addEdge(n[2], n[6]); addEdge(n[3], n[7]);
-          break;
-      }
-    }
-
-    const flatPositions = new Float32Array(displacedNodes.length * 3);
-    for (let i = 0; i < displacedNodes.length; i++) {
-      flatPositions[i * 3 + 0] = displacedNodes[i][0];
-      flatPositions[i * 3 + 1] = displacedNodes[i][1];
-      flatPositions[i * 3 + 2] = displacedNodes[i][2];
-    }
-
-    const volumeGeometry = new THREE.BufferGeometry();
-    volumeGeometry.setAttribute("position", new THREE.BufferAttribute(flatPositions, 3));
-    volumeGeometry.setIndex(indices);
-
-    // Compute scientific vertex colormap if active
-    if (colormapActive && colorValues && colorValues.length === displacedNodes.length) {
-      const colors = new Float32Array(displacedNodes.length * 3);
-      const span = maxVal - minVal > 1e-9 ? maxVal - minVal : 1.0;
-
-      for (let i = 0; i < displacedNodes.length; i++) {
-        const val = colorValues[i];
-        const t = (val - minVal) / span;
-        const [r, g, b] = turboColormap(t);
-        colors[i * 3 + 0] = r;
-        colors[i * 3 + 1] = g;
-        colors[i * 3 + 2] = b;
-      }
-      volumeGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    }
-
-    volumeGeometry.computeVertexNormals();
-
-    const edgeGeometry = new THREE.BufferGeometry();
-    edgeGeometry.setAttribute("position", new THREE.BufferAttribute(flatPositions, 3));
-    edgeGeometry.setIndex(edgeIndices);
-
-    return { volumeGeometry, edgeGeometry };
-  }
-
-  private buildBoundaryLines2D(
-    meshData: MeshData,
-    displacedNodes: [number, number, number][]
-  ): void {
-    const groupedLines = new Map<string, number[]>();
-
-    for (const bnd of meshData.boundary_elements) {
-      if (!groupedLines.has(bnd.tag)) {
-        groupedLines.set(bnd.tag, []);
-      }
-      const arr = groupedLines.get(bnd.tag)!;
-      for (const nodeIdx of bnd.nodes) {
-        const pt = displacedNodes[nodeIdx];
-        arr.push(pt[0], pt[1], pt[2] + 0.01);
-      }
-    }
-
-    for (const [tag, coords] of groupedLines.entries()) {
-      const lineGeom = new THREE.BufferGeometry();
-      lineGeom.setAttribute("position", new THREE.Float32BufferAttribute(coords, 3));
-      const colorVal = TAG_COLORS[tag] ?? TAG_COLORS["Default"];
-      const lineMat = new THREE.LineBasicMaterial({
-        color: colorVal,
-        linewidth: 3,
-      });
-      const lineSegments = new THREE.LineSegments(lineGeom, lineMat);
-      this.boundaryGroup!.add(lineSegments);
-    }
-  }
-
-  private buildBoundarySurfaces3D(
-    meshData: MeshData,
-    displacedNodes: [number, number, number][]
-  ): void {
-    const groupedTriangles = new Map<string, number[]>();
-
-    for (const bnd of meshData.boundary_elements) {
-      if (!groupedTriangles.has(bnd.tag)) {
-        groupedTriangles.set(bnd.tag, []);
-      }
-      const arr = groupedTriangles.get(bnd.tag)!;
-      if (bnd.nodes.length >= 3) {
-        const p0 = displacedNodes[bnd.nodes[0]];
-        const p1 = displacedNodes[bnd.nodes[1]];
-        const p2 = displacedNodes[bnd.nodes[2]];
-        arr.push(p0[0], p0[1], p0[2]);
-        arr.push(p1[0], p1[1], p1[2]);
-        arr.push(p2[0], p2[1], p2[2]);
-
-        if (bnd.nodes.length === 4) {
-          const p3 = displacedNodes[bnd.nodes[3]];
-          arr.push(p0[0], p0[1], p0[2]);
-          arr.push(p2[0], p2[1], p2[2]);
-          arr.push(p3[0], p3[1], p3[2]);
-        }
-      }
-    }
-
-    for (const [tag, coords] of groupedTriangles.entries()) {
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute("position", new THREE.Float32BufferAttribute(coords, 3));
-      geom.computeVertexNormals();
-
-      const colorVal = TAG_COLORS[tag] ?? TAG_COLORS["Default"];
-      const mat = new THREE.MeshStandardMaterial({
-        color: colorVal,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.65,
-        depthWrite: false,
-      });
-
-      const mesh = new THREE.Mesh(geom, mat);
-      this.boundaryGroup!.add(mesh);
+    // Only auto-fit camera when the mesh reference itself changes
+    if (this.lastFittedMesh !== meshData) {
+      this.lastFittedMesh = meshData;
+      this.fitCameraToMesh(meshData);
     }
   }
 }

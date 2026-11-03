@@ -3,9 +3,9 @@ type: capability
 title: Continuum Domain Sketcher (Polygons, Cutouts & Conformal Mesh Handoff)
 description: Sketching of closed 2D continuum boundaries with holes and cutouts, with loop validation and constrained Delaunay handoff into conformal FEM/BEM meshes for Mode 1 solvers.
 tags: [sketcher, continuum, polygon, cutout, cdt, delaunay, meshing, bem-fem]
-timestamp: 2026-11-01T19:20:00Z
+timestamp: 2026-11-03T18:00:00Z
 state: implemented
-state_changed: 2026-11-03T07:45:00Z
+state_changed: 2026-11-03T18:00:00Z
 project: /project.md
 parent: /capabilities/cap-geometry-canvas-sketcher.md
 shared_with:
@@ -53,4 +53,4 @@ conformal BEM-FEM meshing pipeline.
 
 # Notes
 
-Scheduled after the frame modeler slices.
+- 2026-11-03: All 3 vertical delivery slices (`027` polygon/cutout/clearance validation engine, `028` conformal CDT mesher with `Tri3`/`Quad4`, `Line2`/`Line3`, inclusions & provenance, and `029` Mode 1 2D Continuum Sketcher UI, Inspector & solver handoff) implemented, strict code-review-loop verified, and archived to `docs/agents/issues/done/`.

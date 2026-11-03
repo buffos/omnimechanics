@@ -195,12 +195,13 @@
       border-radius: 8px;
       padding: 10px 14px;
       z-index: 10;
-      pointer-events: none;
+      pointer-events: auto;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      max-width: 540px;
     }
 
     .legend-title {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -211,21 +212,108 @@
     .legend-items {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 6px;
     }
 
-    .legend-item {
-      display: flex;
+    .legend-item-btn {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.775rem;
+      font-size: 0.75rem;
       color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .legend-item-btn:hover {
+      border-color: rgba(255, 255, 255, 0.35);
+      background: rgba(30, 41, 59, 0.9);
+    }
+
+    .legend-item-btn.picked {
+      border-color: #38bdf8;
+      background: rgba(2, 132, 199, 0.3);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+    }
+
+    .bc-badge {
+      font-size: 0.65rem;
+      font-family: monospace;
+      background: rgba(56, 189, 248, 0.18);
+      color: #38bdf8;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .picked-bc-bar {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .picked-bc-label {
+      font-size: 0.75rem;
+      color: #e2e8f0;
     }
 
     .legend-swatch {
       width: 10px;
       height: 10px;
       border-radius: 2px;
+    }
+
+    /* 3D Clipping Plane Panel */
+    .clipping-panel {
+      position: absolute;
+      bottom: 84px;
+      right: 16px;
+      background: rgba(15, 20, 32, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 10px;
+      padding: 10px 14px;
+      z-index: 12;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 260px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .clipping-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .clipping-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #38bdf8;
+    }
+
+    .clipping-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .clip-bound {
+      font-size: 0.72rem;
+      font-family: monospace;
+      color: #cbd5e1;
+      white-space: nowrap;
     }
 
     /* Colorbar Panel */
@@ -239,12 +327,42 @@
       border-radius: 8px;
       padding: 12px 14px;
       z-index: 10;
-      pointer-events: none;
+      pointer-events: auto;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
       gap: 8px;
-      min-width: 130px;
+      min-width: 145px;
+    }
+
+    .palette-switcher {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .palette-chip {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #94a3b8;
+      font-size: 0.675rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .palette-chip:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .palette-chip.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+      font-weight: 600;
     }
 
     .colorbar-title {

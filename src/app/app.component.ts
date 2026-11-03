@@ -83,11 +83,19 @@ export class AppComponent implements OnInit {
   readonly isContinuumSketcherActive = signal<boolean>(false);
 
   openContinuumSketcher(): void {
+    this.solverService.pauseAnimation();
     this.isContinuumSketcherActive.set(true);
   }
 
   closeContinuumSketcher(): void {
     this.isContinuumSketcherActive.set(false);
+  }
+
+  switchWorkspaceMode(mode: 'continuum' | 'modeler' | 'structural' | 'teaching'): void {
+    if (mode !== 'continuum') {
+      this.solverService.pauseAnimation();
+    }
+    this.workspaceModeService.setMode(mode);
   }
 
   // Workflow Sidebar Navigation Tab

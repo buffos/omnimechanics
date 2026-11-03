@@ -3,11 +3,11 @@
 - Issue number: `031`
 - Owning capability node: `/.okf/capabilities/cap-interactive-canvas.md`
 - Artifact root: `docs/architecture/cap-interactive-canvas/`
-- Issue file: `docs/agents/issues/pending/20261103-031-shared-2d-svg-kernel-shell-dialog-dock-verification.md`
+- Issue file: `docs/agents/issues/done/20261103-031-shared-2d-svg-kernel-shell-dialog-dock-verification.md`
 - Category: `feature`
 - Execution type: `AFK`
 - Review gate: `visual-review`
-- Suggested state: `ready-for-agent`
+- Suggested state: `done`
 
 ## Parent Artifacts
 
@@ -37,11 +37,11 @@ Implement **Vertical Slice 2** of `cap-interactive-canvas`: extract the canonica
 
 ## Acceptance criteria
 
-- [ ] `ViewportTransform2D` and `buildTensionSideDiagramPath` pass exact round-trip identity ($\le 10^{-9}$) and tension-side moment parity ($M > 0$ plotted on local $-y$ tension side) across Mode 2 and Mode 3 (`SC-012`).
-- [ ] `DialogService` enforces LIFO stack ordering, blocks `Escape`/backdrop dismissal when `dismissGuard()` returns `false` (`DIALOG_DISMISS_BLOCKED`), and restores focus on close (`SC-003`).
-- [ ] `NotificationService` deduplicates identical active toasts and resets their 5000 ms auto-dismiss timer (`SC-004`).
-- [ ] Tri-mode switching (`SC-001`), bilingual `el`/`en` toggling (`SC-002`), synchronized viewport-dock playback scrubbing (`SC-010`), and convergence streaming / `EXPORT_DATA_EMPTY` guards (`SC-011`) pass automated Vitest integration tests (`interactive-canvas.spec.ts`).
-- [ ] All 12 scenarios (`SC-001`..`SC-012`) of `cap-interactive-canvas` are verified, `npx vitest run`, `npx ng build`, and `npm run check:limits` pass with 0 errors.
+- [x] `ViewportTransform2D` and `buildTensionSideDiagramPath` pass exact round-trip identity ($\le 10^{-9}$) and tension-side moment parity ($M > 0$ plotted on local $-y$ tension side) across Mode 2 and Mode 3 (`SC-012`).
+- [x] `DialogService` enforces LIFO stack ordering, blocks `Escape`/backdrop dismissal when `dismissGuard()` returns `false` (`DIALOG_DISMISS_BLOCKED`), and restores focus on close (`SC-003`).
+- [x] `NotificationService` deduplicates identical active toasts and resets their 5000 ms auto-dismiss timer (`SC-004`).
+- [x] Tri-mode switching (`SC-001`), bilingual `el`/`en` toggling (`SC-002`), synchronized viewport-dock playback scrubbing (`SC-010`), and convergence streaming / `EXPORT_DATA_EMPTY` guards (`SC-011`) pass automated Vitest integration tests (`interactive-canvas.spec.ts`).
+- [x] All 12 scenarios (`SC-001`..`SC-012`) of `cap-interactive-canvas` are verified, `npx vitest run`, `npx ng build`, and `npm run check:limits` pass with 0 errors.
 
 ## Artifact sync required
 
@@ -57,7 +57,7 @@ Implement **Vertical Slice 2** of `cap-interactive-canvas`: extract the canonica
 
 ## Blocked by
 
-- Blocked by `docs/agents/issues/pending/20261103-030-3d-viewport-orthographic-clipping-raycast-picking-colormaps.md`
+- None - Issue 030 implemented and awaiting human visual review
 
 ## Artifact anchors
 
@@ -82,10 +82,10 @@ Implement **Vertical Slice 2** of `cap-interactive-canvas`: extract the canonica
 
 | Scenario | Backend boundary | Frontend integration | End-to-end journey |
 |---|---|---|---|
-| `SC-001` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-002` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-003` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-004` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-010` | `not-applicable` | `planned` | `catalog-only` |
-| `SC-011` | `implemented: src-tauri/src/solver/` | `planned` | `catalog-only` |
-| `SC-012` | `not-applicable` | `planned` | `catalog-only` |
+| `SC-001` | `not-applicable` | `implemented: src/app/shared/interactive-canvas.spec.ts` | `catalog-only` |
+| `SC-002` | `not-applicable` | `implemented: src/app/shared/interactive-canvas.spec.ts` | `catalog-only` |
+| `SC-003` | `not-applicable` | `implemented: src/app/shared/interactive-canvas.spec.ts` | `catalog-only` |
+| `SC-004` | `not-applicable` | `implemented: src/app/shared/interactive-canvas.spec.ts` | `catalog-only` |
+| `SC-010` | `not-applicable` | `implemented: src/app/shared/interactive-canvas.spec.ts` | `catalog-only` |
+| `SC-011` | `implemented: src-tauri/src/solver/` | `implemented: src/app/shared/interactive-canvas.spec.ts` | `catalog-only` |
+| `SC-012` | `not-applicable` | `implemented: src/app/shared/interactive-canvas.spec.ts` | `catalog-only` |

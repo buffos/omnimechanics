@@ -24,28 +24,30 @@
     </div>
 
     <!-- Active Legend Badges -->
-    <div class="dock-legend" *ngIf="isExpanded() && activeTab() === 'history'">
-      @if (solverService.talbotTransientResult(); as talbot) {
-        <span class="legend-badge talbot">
-          <span class="legend-dot"></span>
-          <span>Talbot: {{ (talbot.max_overall_displacement * 1000).toFixed(3) }} mm</span>
-        </span>
-      }
+    @if (isExpanded() && activeTab() === 'history') {
+      <div class="dock-legend">
+        @if (solverService.talbotTransientResult(); as talbot) {
+          <span class="legend-badge talbot">
+            <span class="legend-dot"></span>
+            <span>Talbot: {{ (talbot.max_overall_displacement * 1000).toFixed(3) }} mm</span>
+          </span>
+        }
 
-      @if (solverService.newmarkTransientResult(); as newmark) {
-        <span class="legend-badge newmark">
-          <span class="legend-dot"></span>
-          <span>Newmark-&beta;: {{ (newmark.max_overall_displacement * 1000).toFixed(3) }} mm</span>
-        </span>
-      }
+        @if (solverService.newmarkTransientResult(); as newmark) {
+          <span class="legend-badge newmark">
+            <span class="legend-dot"></span>
+            <span>Newmark-&beta;: {{ (newmark.max_overall_displacement * 1000).toFixed(3) }} mm</span>
+          </span>
+        }
 
-      @if (staticEulerBernoulliMm(); as staticVal) {
-        <span class="legend-badge static">
-          <span class="legend-line"></span>
-          <span>Static EB: {{ staticVal.toFixed(3) }} mm</span>
-        </span>
-      }
-    </div>
+        @if (staticEulerBernoulliMm(); as staticVal) {
+          <span class="legend-badge static">
+            <span class="legend-line"></span>
+            <span>Static EB: {{ staticVal.toFixed(3) }} mm</span>
+          </span>
+        }
+      </div>
+    }
 
     <!-- Right Controls -->
     <div class="dock-actions">
@@ -54,7 +56,7 @@
         class="dock-action-btn"
         (click)="exportCsv()"
         title="Export response time-series as CSV for Excel/Origin"
-        [disabled]="!solverService.talbotTransientResult() && !solverService.newmarkTransientResult()"
+        [disabled]="!hasExportableData()"
       >
         <span>📥 CSV</span>
       </button>
@@ -64,7 +66,7 @@
         class="dock-action-btn"
         (click)="exportSvg()"
         title="Export vector chart as SVG for publication"
-        [disabled]="!solverService.talbotTransientResult() && !solverService.newmarkTransientResult()"
+        [disabled]="!hasExportableData()"
       >
         <span>📷 SVG</span>
       </button>
@@ -226,7 +228,7 @@
           <div class="diag-cards">
             <div class="diag-card">
               <span class="card-label">Last Mode Executed</span>
-              <span class="card-value">{{ solverService.simulationRegime() | uppercase }} ({{ solverService.transientMethod() }})</span>
+              <span class="card-value">{{ solverService.simulationRegime().toUpperCase() }} ({{ solverService.transientMethod() }})</span>
             </div>
             <div class="diag-card">
               <span class="card-label">Execution Wall Time</span>

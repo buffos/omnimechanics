@@ -1,14 +1,15 @@
 import { Injectable, signal } from '@angular/core';
 
-export type WorkspaceMode = 'continuum' | 'modeler' | 'teaching';
+export type WorkspaceMode = 'continuum' | 'modeler' | 'structural' | 'teaching';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WorkspaceModeService {
-  readonly activeMode = signal<WorkspaceMode>('continuum');
+  readonly activeMode = signal<'continuum' | 'modeler' | 'teaching'>('continuum');
 
   setMode(mode: WorkspaceMode): void {
-    this.activeMode.set(mode);
+    const normalized = mode === 'structural' ? 'modeler' : mode;
+    this.activeMode.set(normalized);
   }
 }

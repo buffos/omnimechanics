@@ -236,6 +236,18 @@ export class SurroundingMediumDialogComponent {
   readonly rhoMedium = signal<number>(this.data?.rhoMedium ?? 2000.0);
   readonly preset = signal<'soft' | 'stiff' | 'rock' | 'custom'>('stiff');
 
+  constructor() {
+    this.dialogRef.setDismissGuard(() => {
+      if (!this.enabled()) return true;
+      return (
+        this.eMediumMpa() > 0 &&
+        this.nuMedium() >= 0 &&
+        this.nuMedium() < 0.5 &&
+        this.rhoMedium() > 0
+      );
+    });
+  }
+
   applyPreset(presetKey: 'soft' | 'stiff' | 'rock'): void {
     this.preset.set(presetKey);
     if (presetKey === 'soft') {

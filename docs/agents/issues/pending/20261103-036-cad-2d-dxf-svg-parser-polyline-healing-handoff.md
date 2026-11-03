@@ -55,7 +55,7 @@ Implement **Vertical Slice 1** of `cap-geometry-cad-import`: the 2D vector CAD i
 
 ## Blocked by
 
-- Blocked by `docs/agents/issues/pending/20261103-028-conformal-cdt-mesher-boundary-tagging-inclusions.md`
+- None - can start immediately (Issue `028` completed)
 
 ## Artifact anchors
 

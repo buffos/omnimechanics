@@ -3,11 +3,11 @@
 - Issue number: `029`
 - Owning capability node: `/.okf/capabilities/cap-sketcher-continuum-domain.md`
 - Artifact root: `docs/architecture/cap-sketcher-continuum-domain/`
-- Issue file: `docs/agents/issues/pending/20261103-029-mode1-continuum-sketcher-ui-canvas-solver-handoff.md`
+- Issue file: `docs/agents/issues/done/20261103-029-mode1-continuum-sketcher-ui-canvas-solver-handoff.md`
 - Category: `feature`
 - Execution type: `AFK`
 - Review gate: `visual-review`
-- Suggested state: `ready-for-agent`
+- Suggested state: `done`
 
 ## Parent Artifacts
 

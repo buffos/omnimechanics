@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { TeachingService } from '../teaching.service';
 import { I18nService } from '../../../shared/i18n.service';
+import { buildTensionSideDiagramPath } from '../../../shared/svg-canvas-kernel';
 import { Node2D, Member2D, Support2D, ReactionResult, MemberDiagramData } from '../teaching.types';
 
 @Component({
@@ -172,27 +173,24 @@ export class TeachingCanvasComponent {
         if (v > maxVal) maxVal = v;
       }
     }
-    const maxPixelOffset = 70; // Max diagram height in pixels
 
-    // Base axis line
-    let path = `M ${x0} ${y0} `;
-
-    // Sample points offset perpendicularly
-    for (const s of diag.samples) {
-      const ratio = s.x / mem.length;
-      const bx = x0 + ratio * (x1 - x0);
-      const by = y0 + ratio * (y1 - y0);
-
-      const val = type === 'M' ? s.m : type === 'Q' ? s.q : s.n;
-      // In structural mechanics, positive M is drawn on tension side (downward)
-      const offset = (val / maxVal) * maxPixelOffset;
-      const px = bx;
-      const py = by + offset;
-      path += `L ${px} ${py} `;
-    }
-
-    // Close to axis
-    path += `L ${x1} ${y1} Z`;
+    const { path } = buildTensionSideDiagramPath(
+      {
+        start: { x: x0, y: y0 },
+        end: { x: x1, y: y1 },
+        length: mem.length,
+      },
+      diag.samples.map((s) => ({
+        x: s.x,
+        value: type === 'M' ? s.m : type === 'Q' ? s.q : s.n,
+      })),
+      {
+        kind: type,
+        maxAbsValue: maxVal,
+        maxPixelOffset: 70,
+        tensionSidePositiveM: true,
+      }
+    );
     return path;
   }
 }

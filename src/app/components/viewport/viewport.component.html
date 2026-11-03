@@ -1,272 +1,445 @@
 <div class="viewport-container" #canvasContainer>
-      <!-- HUD / Overlay controls -->
-      <div class="viewport-hud">
-        <div class="hud-chip">
-          <span class="status-dot"></span>
-          <span>Three.js WebGL Conformal Mesh</span>
-        </div>
-        @if (mesh()) {
-          <div class="hud-stats">
-            <span>Dim: {{ mesh()!.dimension }}D</span>
-            <span class="divider">|</span>
-            <span>Nodes: {{ mesh()!.stats.num_nodes }}</span>
-            <span class="divider">|</span>
-            <span>Vol (FEM): {{ mesh()!.stats.num_volume_elements }}</span>
-            <span class="divider">|</span>
-            <span>Bnd (BEM): {{ mesh()!.stats.num_boundary_elements }}</span>
-          </div>
-        }
+  <!-- HUD / Overlay controls -->
+  <div class="viewport-hud">
+    <div class="hud-chip">
+      <span class="status-dot"></span>
+      <span>Three.js WebGL Conformal Mesh</span>
+    </div>
+    @if (mesh()) {
+      <div class="hud-stats">
+        <span>Dim: {{ mesh()!.dimension }}D</span>
+        <span class="divider">|</span>
+        <span>Nodes: {{ mesh()!.stats.num_nodes }}</span>
+        <span class="divider">|</span>
+        <span>Vol (FEM): {{ mesh()!.stats.num_volume_elements }}</span>
+        <span class="divider">|</span>
+        <span>Bnd (BEM): {{ mesh()!.stats.num_boundary_elements }}</span>
       </div>
+    }
+  </div>
 
-      <!-- Convergence & Multi-Domain Solver HUD Overlay -->
-      @if (activeSimData(); as sim) {
-        <div class="convergence-panel">
-          <div class="conv-header">
-            <span
-              class="conv-badge"
-              [class.converged]="sim.converged"
-              [class.iterating]="!sim.converged"
-            >
-              {{ sim.converged ? 'SOLVED' : 'ITERATING' }}
-            </span>
-            <span class="conv-mode">{{ sim.mode }}</span>
-          </div>
-          <div class="conv-metrics">
-            <div class="conv-metric">
-              <span class="metric-label">{{ sim.type === 'transient' ? 'Frames' : 'Iterations' }}</span>
-              <span class="metric-value">{{ sim.iterations }}</span>
-            </div>
-            <div class="conv-metric">
-              <span class="metric-label">Compute Time</span>
-              <span class="metric-value">{{ sim.execution_time_ms.toFixed(1) }} ms</span>
-            </div>
-            <div class="conv-metric">
-              <span class="metric-label">{{ sim.type === 'harmonic' ? 'Peak Amplitude' : 'Max Deflection' }}</span>
-              <span class="metric-value highlight">{{ (sim.max_displacement * 1000).toFixed(3) }} mm</span>
-            </div>
-            <div class="conv-metric">
-              <span class="metric-label">Max &sigma;vM</span>
-              <span class="metric-value highlight">{{ sim.max_von_mises.toFixed(2) }} MPa</span>
-            </div>
-          </div>
-          @if (sim.history && sim.history.length > 0) {
-            <div class="conv-history">
-              <div class="history-title">Residual History (||R|| / ||F||)</div>
-              <div class="history-items">
-                @for (log of sim.history.slice(-4); track log.iteration) {
-                  <div class="history-row">
-                    <span class="iter-tag">Iter {{ log.iteration }}</span>
-                    <span class="res-tag">{{ log.relative_error.toExponential(2) }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-          }
+  <!-- Convergence & Multi-Domain Solver HUD Overlay -->
+  @if (activeSimData(); as sim) {
+    <div class="convergence-panel">
+      <div class="conv-header">
+        <span
+          class="conv-badge"
+          [class.converged]="sim.converged"
+          [class.iterating]="!sim.converged"
+        >
+          {{ sim.converged ? 'SOLVED' : 'ITERATING' }}
+        </span>
+        <span class="conv-mode">{{ sim.mode }}</span>
+      </div>
+      <div class="conv-metrics">
+        <div class="conv-metric">
+          <span class="metric-label">{{ sim.type === 'transient' ? 'Frames' : 'Iterations' }}</span>
+          <span class="metric-value">{{ sim.iterations }}</span>
         </div>
-      }
-
-      <!-- Boundary Tag Legend -->
-      @if (mesh() && detectedTags().length > 0) {
-        <div class="legend-panel">
-          <div class="legend-title">Boundary Tags (BEM &amp; Boundary Conditions)</div>
-          <div class="legend-items">
-            @for (tag of detectedTags(); track tag.name) {
-              <div class="legend-item">
-                <span class="legend-swatch" [style.background-color]="tag.hex"></span>
-                <span class="legend-label">{{ tag.name }} ({{ tag.count }})</span>
+        <div class="conv-metric">
+          <span class="metric-label">Compute Time</span>
+          <span class="metric-value">{{ sim.execution_time_ms.toFixed(1) }} ms</span>
+        </div>
+        <div class="conv-metric">
+          <span class="metric-label">{{ sim.type === 'harmonic' ? 'Peak Amplitude' : 'Max Deflection' }}</span>
+          <span class="metric-value highlight">{{ (sim.max_displacement * 1000).toFixed(3) }} mm</span>
+        </div>
+        <div class="conv-metric">
+          <span class="metric-label">Max &sigma;vM</span>
+          <span class="metric-value highlight">{{ sim.max_von_mises.toFixed(2) }} MPa</span>
+        </div>
+      </div>
+      @if (sim.history && sim.history.length > 0) {
+        <div class="conv-history">
+          <div class="history-title">Residual History (||R|| / ||F||)</div>
+          <div class="history-items">
+            @for (log of sim.history.slice(-4); track log.iteration) {
+              <div class="history-row">
+                <span class="iter-tag">Iter {{ log.iteration }}</span>
+                <span class="res-tag">{{ log.relative_error.toExponential(2) }}</span>
               </div>
             }
           </div>
         </div>
       }
+    </div>
+  }
 
-      <!-- Colorbar Panel -->
-      @if (activeColormapInfo() && showColormap()) {
-        <div class="colorbar-panel">
-          <div class="colorbar-title">{{ activeColormapInfo()!.title }}</div>
-          <div class="colorbar-content">
-            <div class="colorbar-gradient"></div>
-            <div class="colorbar-labels">
-              <span class="label-max">{{ activeColormapInfo()!.max.toFixed(2) }} {{ activeColormapInfo()!.unit }}</span>
-              <span class="label-mid">{{ ((activeColormapInfo()!.max + activeColormapInfo()!.min) / 2).toFixed(2) }}</span>
-              <span class="label-min">{{ activeColormapInfo()!.min.toFixed(2) }} {{ activeColormapInfo()!.unit }}</span>
-            </div>
-          </div>
+  <!-- 3D Dynamic Clipping Plane Control Bar (`SC-006`) -->
+  @if (mesh() && mesh()!.dimension === 3 && clippingPlane().enabled) {
+    <div class="clipping-panel">
+      <div class="clipping-header">
+        <span class="clipping-title">✂ 3D Clipping Plane</span>
+        <div class="button-group compact">
+          <button
+            type="button"
+            class="toggle-btn scale-btn"
+            [class.active]="clippingPlane().axis === 'X'"
+            (click)="setClippingAxis('X')"
+          >
+            X
+          </button>
+          <button
+            type="button"
+            class="toggle-btn scale-btn"
+            [class.active]="clippingPlane().axis === 'Y'"
+            (click)="setClippingAxis('Y')"
+          >
+            Y
+          </button>
+          <button
+            type="button"
+            class="toggle-btn scale-btn"
+            [class.active]="clippingPlane().axis === 'Z'"
+            (click)="setClippingAxis('Z')"
+          >
+            Z
+          </button>
+          <button
+            type="button"
+            class="toggle-btn scale-btn"
+            [class.active]="clippingPlane().invertNormal"
+            (click)="toggleClippingInvert()"
+            title="Invert section normal"
+          >
+            Flip
+          </button>
         </div>
-      }
+      </div>
+      <div class="clipping-slider-row">
+        <span class="clip-bound">-1.0</span>
+        <input
+          type="range"
+          min="-1"
+          max="1"
+          step="0.02"
+          [value]="clippingPlane().normalizedOffset"
+          (input)="onClippingOffsetInput($event)"
+          class="timeline-slider"
+        />
+        <span class="clip-bound">s = {{ clippingPlane().normalizedOffset.toFixed(2) }}</span>
+      </div>
+    </div>
+  }
 
-      <!-- Viewport Display Toggles & Deformation Controls -->
-      <div class="hud-toggles">
-        <!-- Colormap Mode Selector (when simulation results are available) -->
-        @if (activeSimData()) {
-          <div class="button-group">
-            <button
-              type="button"
-              class="toggle-btn"
-              [class.active]="activeColormapType() === 'Material'"
-              (click)="setColormapType('Material')"
-            >
-              Material
-            </button>
-            <button
-              type="button"
-              class="toggle-btn"
-              [class.active]="activeColormapType() === 'VonMises'"
-              (click)="setColormapType('VonMises')"
-            >
-              &sigma;vM Stress
-            </button>
-            <button
-              type="button"
-              class="toggle-btn"
-              [class.active]="activeColormapType() === 'Displacement'"
-              (click)="setColormapType('Displacement')"
-            >
-              ||u|| Disp
-            </button>
-          </div>
-
-          <!-- Deformation Scale Buttons -->
-          <div class="button-group">
-            <span class="group-label">Scale ({{ deformationScale() }}&times;):</span>
-            <button
-              type="button"
-              class="toggle-btn scale-btn auto-scale-btn"
-              (click)="autoScale()"
-              title="Auto-scale deformation to 8% of model size"
-            >
-              Auto
-            </button>
-            <button
-              type="button"
-              class="toggle-btn scale-btn"
-              [class.active]="deformationScale() === 10"
-              (click)="deformationScale.set(10)"
-            >
-              10&times;
-            </button>
-            <button
-              type="button"
-              class="toggle-btn scale-btn"
-              [class.active]="deformationScale() === 100"
-              (click)="deformationScale.set(100)"
-            >
-              100&times;
-            </button>
-            <button
-              type="button"
-              class="toggle-btn scale-btn"
-              [class.active]="deformationScale() === 1000"
-              (click)="deformationScale.set(1000)"
-            >
-              1k&times;
-            </button>
-            <button
-              type="button"
-              class="toggle-btn scale-btn"
-              [class.active]="deformationScale() === 5000"
-              (click)="deformationScale.set(5000)"
-            >
-              5k&times;
-            </button>
-            <button
-              type="button"
-              class="toggle-btn scale-btn"
-              [class.active]="deformationScale() === 20000"
-              (click)="deformationScale.set(20000)"
-            >
-              20k&times;
-            </button>
-          </div>
+  <!-- Boundary Tag Legend & Interactive Facet Picking Inspector (`SC-007`) -->
+  @if (mesh() && detectedTags().length > 0) {
+    <div class="legend-panel">
+      <div class="legend-title">
+        Boundary Tags (Click facet or tag to assign BC)
+      </div>
+      <div class="legend-items">
+        @for (tag of detectedTags(); track tag.name) {
+          <button
+            type="button"
+            class="legend-item-btn"
+            [class.picked]="tag.isPicked"
+            (click)="selectBoundaryTagFromLegend(tag.name)"
+          >
+            <span class="legend-swatch" [style.background-color]="tag.hex"></span>
+            <span class="legend-label">{{ tag.name }} ({{ tag.count }})</span>
+            @if (tag.assignedCondition) {
+              <span class="bc-badge">{{ tag.assignedCondition.kind }}</span>
+            }
+          </button>
         }
-
-        <button
-          type="button"
-          class="toggle-btn"
-          [class.active]="showColormap()"
-          (click)="toggleColormap()"
-        >
-          Colormap
-        </button>
-        <button
-          type="button"
-          class="toggle-btn"
-          [class.active]="showWireframe()"
-          (click)="toggleWireframe()"
-        >
-          Wireframe
-        </button>
-        <button
-          type="button"
-          class="toggle-btn"
-          [class.active]="showBoundaries()"
-          (click)="toggleBoundaries()"
-        >
-          Boundary Tags
-        </button>
-        <button
-          type="button"
-          class="toggle-btn"
-          [class.active]="showNodes()"
-          (click)="toggleNodes()"
-        >
-          Nodes
-        </button>
-        <button type="button" class="toggle-btn reset-btn" (click)="resetView()">
-          Reset View
-        </button>
       </div>
 
-      <!-- Harmonic Vibration Playback Bar -->
-      @if (activeSimData()?.type === 'harmonic' && harmonicResult(); as hr) {
-        <div class="playback-bar">
-          <button
-            type="button"
-            class="play-btn"
-            (click)="toggleHarmonicPlayback()"
-          >
-            {{ isPlayingHarmonic() ? '❚❚ Pause Vibration' : '▶ Play Vibration' }}
-          </button>
-          <div class="timeline-slider-wrapper">
-            <input
-              type="range"
-              min="0"
-              max="360"
-              [value]="harmonicPhaseDegrees()"
-              (input)="onHarmonicPhaseInput($event)"
-              class="timeline-slider"
-            />
-          </div>
-          <span class="time-label">
-            &theta; = {{ harmonicPhaseDegrees() }}&deg; &middot; f = {{ hr.frequency_hz }} Hz
+      @if (pickedBoundaryAssignment(); as pickedBc) {
+        <div class="picked-bc-bar">
+          <span class="picked-bc-label">
+            Selected: <strong>{{ pickedBc.tag }}</strong>
           </span>
-        </div>
-      }
-
-      <!-- Transient Wave Playback Timeline Bar -->
-      @if (activeSimData()?.type === 'transient' && transientResult(); as tr) {
-        <div class="playback-bar">
-          <button
-            type="button"
-            class="play-btn"
-            (click)="toggleAnimationPlayback()"
-          >
-            {{ isPlayingAnimation() ? '❚❚ Pause Wave' : '▶ Play Wave' }}
-          </button>
-          <div class="timeline-slider-wrapper">
-            <input
-              type="range"
-              min="0"
-              [max]="tr.frames.length - 1"
-              [value]="currentFrameIndex()"
-              (input)="onTimelineInput($event)"
-              class="timeline-slider"
-            />
+          <div class="button-group compact">
+            <button
+              type="button"
+              class="toggle-btn scale-btn"
+              [class.active]="pickedBc.kind === 'Dirichlet'"
+              (click)="assignBoundaryConditionKind('Dirichlet')"
+            >
+              Dirichlet (u&#772;=0)
+            </button>
+            <button
+              type="button"
+              class="toggle-btn scale-btn"
+              [class.active]="pickedBc.kind === 'Neumann'"
+              (click)="assignBoundaryConditionKind('Neumann')"
+            >
+              Neumann (t&#772;=P)
+            </button>
+            <button
+              type="button"
+              class="toggle-btn scale-btn"
+              [class.active]="pickedBc.kind === 'Robin'"
+              (click)="assignBoundaryConditionKind('Robin')"
+            >
+              Robin (Z(s))
+            </button>
+            <button
+              type="button"
+              class="toggle-btn scale-btn"
+              (click)="clearPickedBoundaryTag()"
+              title="Clear selection"
+            >
+              &times;
+            </button>
           </div>
-          <span class="time-label">
-            t = {{ (tr.frames[currentFrameIndex()].time * 1000).toFixed(2) }} ms
-            / {{ (tr.time_points[tr.time_points.length - 1] * 1000).toFixed(1) }} ms
-          </span>
         </div>
       }
     </div>
+  }
+
+  <!-- Colorbar Panel (`SC-008`) -->
+  @if (activeColormapInfo() && showColormap()) {
+    <div class="colorbar-panel">
+      <div class="colorbar-title">{{ activeColormapInfo()!.title }}</div>
+      <div class="colorbar-content">
+        <div
+          class="colorbar-gradient"
+          [style.background]="activeColormapInfo()!.paletteGradientCss"
+        ></div>
+        <div class="colorbar-labels">
+          <span class="label-max">{{ activeColormapInfo()!.max.toFixed(2) }} {{ activeColormapInfo()!.unit }}</span>
+          <span class="label-mid">{{ ((activeColormapInfo()!.max + activeColormapInfo()!.min) / 2).toFixed(2) }}</span>
+          <span class="label-min">{{ activeColormapInfo()!.min.toFixed(2) }} {{ activeColormapInfo()!.unit }}</span>
+        </div>
+      </div>
+      <!-- Scientific Palette Switcher -->
+      <div class="palette-switcher">
+        @for (pal of ['Turbo', 'Viridis', 'Coolwarm', 'Jet']; track pal) {
+          <button
+            type="button"
+            class="palette-chip"
+            [class.active]="activePalette() === pal"
+            (click)="setPalette($any(pal))"
+          >
+            {{ pal }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Viewport Display Toggles & Deformation Controls -->
+  <div class="hud-toggles">
+    <!-- Colormap Channel Selector (when simulation results are available) -->
+    @if (activeSimData()) {
+      <div class="button-group">
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="activeColormapType() === 'Material'"
+          (click)="setColormapType('Material')"
+        >
+          Material
+        </button>
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="activeColormapType() === 'VonMises'"
+          (click)="setColormapType('VonMises')"
+        >
+          &sigma;vM Stress
+        </button>
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="activeColormapType() === 'PrincipalStress'"
+          (click)="setColormapType('PrincipalStress')"
+        >
+          &sigma;1 Principal
+        </button>
+        <button
+          type="button"
+          class="toggle-btn"
+          [class.active]="activeColormapType() === 'Displacement'"
+          (click)="setColormapType('Displacement')"
+        >
+          ||u|| Disp
+        </button>
+      </div>
+
+      <!-- Deformation Scale Buttons (`SC-009`) -->
+      <div class="button-group">
+        <span class="group-label">Scale ({{ deformationScale() }}&times;):</span>
+        <button
+          type="button"
+          class="toggle-btn scale-btn auto-scale-btn"
+          (click)="autoScale()"
+          title="Auto-scale deformation to 8% of model size"
+        >
+          Auto
+        </button>
+        <button
+          type="button"
+          class="toggle-btn scale-btn"
+          [class.active]="deformationScale() === 1"
+          (click)="deformationScale.set(1)"
+        >
+          1&times;
+        </button>
+        <button
+          type="button"
+          class="toggle-btn scale-btn"
+          [class.active]="deformationScale() === 10"
+          (click)="deformationScale.set(10)"
+        >
+          10&times;
+        </button>
+        <button
+          type="button"
+          class="toggle-btn scale-btn"
+          [class.active]="deformationScale() === 100"
+          (click)="deformationScale.set(100)"
+        >
+          100&times;
+        </button>
+        <button
+          type="button"
+          class="toggle-btn scale-btn"
+          [class.active]="deformationScale() === 1000"
+          (click)="deformationScale.set(1000)"
+        >
+          1k&times;
+        </button>
+        <button
+          type="button"
+          class="toggle-btn scale-btn"
+          [class.active]="deformationScale() === 5000"
+          (click)="deformationScale.set(5000)"
+        >
+          5k&times;
+        </button>
+        <button
+          type="button"
+          class="toggle-btn scale-btn"
+          [class.active]="deformationScale() === 20000"
+          (click)="deformationScale.set(20000)"
+        >
+          20k&times;
+        </button>
+      </div>
+    }
+
+    <!-- Camera Projection Mode (`SC-005`) -->
+    <button
+      type="button"
+      class="toggle-btn"
+      [class.active]="cameraProjection() === 'Orthographic'"
+      (click)="toggleCameraProjection()"
+      title="Toggle Perspective / Orthographic camera projection"
+    >
+      {{ cameraProjection() === 'Orthographic' ? 'Ortho Cam' : 'Persp Cam' }}
+    </button>
+
+    <!-- 3D Clipping Plane Toggle (`SC-006`) -->
+    @if (mesh() && mesh()!.dimension === 3) {
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="clippingPlane().enabled"
+        (click)="toggleClippingPlane()"
+        title="Slice 3D volume with interactive clipping plane"
+      >
+        ✂ Clip 3D
+      </button>
+    }
+
+    <button
+      type="button"
+      class="toggle-btn"
+      [class.active]="showColormap()"
+      (click)="toggleColormap()"
+    >
+      Colormap
+    </button>
+    <button
+      type="button"
+      class="toggle-btn"
+      [class.active]="showWireframe()"
+      (click)="toggleWireframe()"
+    >
+      Wireframe
+    </button>
+    <button
+      type="button"
+      class="toggle-btn"
+      [class.active]="showBoundaries()"
+      (click)="toggleBoundaries()"
+    >
+      Boundary Tags
+    </button>
+    <button
+      type="button"
+      class="toggle-btn"
+      [class.active]="showVectorGlyphs()"
+      (click)="toggleVectorGlyphs()"
+    >
+      Force Vectors
+    </button>
+    <button
+      type="button"
+      class="toggle-btn"
+      [class.active]="showNodes()"
+      (click)="toggleNodes()"
+    >
+      Nodes
+    </button>
+    <button type="button" class="toggle-btn reset-btn" (click)="resetView()">
+      Reset View
+    </button>
+  </div>
+
+  <!-- Harmonic Vibration Playback Bar -->
+  @if (activeSimData()?.type === 'harmonic' && harmonicResult(); as hr) {
+    <div class="playback-bar">
+      <button
+        type="button"
+        class="play-btn"
+        (click)="toggleHarmonicPlayback()"
+      >
+        {{ isPlayingHarmonic() ? '❚❚ Pause Vibration' : '▶ Play Vibration' }}
+      </button>
+      <div class="timeline-slider-wrapper">
+        <input
+          type="range"
+          min="0"
+          max="360"
+          [value]="harmonicPhaseDegrees()"
+          (input)="onHarmonicPhaseInput($event)"
+          class="timeline-slider"
+        />
+      </div>
+      <span class="time-label">
+        &theta; = {{ harmonicPhaseDegrees() }}&deg; &middot; f = {{ hr.frequency_hz }} Hz
+      </span>
+    </div>
+  }
+
+  <!-- Transient Wave Playback Timeline Bar -->
+  @if (activeSimData()?.type === 'transient' && transientResult(); as tr) {
+    <div class="playback-bar">
+      <button
+        type="button"
+        class="play-btn"
+        (click)="toggleAnimationPlayback()"
+      >
+        {{ isPlayingAnimation() ? '❚❚ Pause Wave' : '▶ Play Wave' }}
+      </button>
+      <div class="timeline-slider-wrapper">
+        <input
+          type="range"
+          min="0"
+          [max]="tr.frames.length - 1"
+          [value]="currentFrameIndex()"
+          (input)="onTimelineInput($event)"
+          class="timeline-slider"
+        />
+      </div>
+      <span class="time-label">
+        t = {{ (tr.frames[currentFrameIndex()].time * 1000).toFixed(2) }} ms
+        / {{ (tr.time_points[tr.time_points.length - 1] * 1000).toFixed(1) }} ms
+      </span>
+    </div>
+  }
+</div>

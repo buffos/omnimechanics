@@ -3,9 +3,9 @@ type: capability
 title: Interactive 3D Visualization Canvas & UI
 description: Angular 20+ and Three.js visual workbench featuring interactive boundary condition/load picking on mesh faces, material heatmaps, deformed shape animations, 3D clipping planes, and real-time convergence dashboards.
 tags: [ui, threejs, angular, tauri, visualization, picking, 3d, signals]
-timestamp: 2026-11-01T19:20:00Z
-state: specified
-state_changed: 2026-11-01T19:20:00Z
+timestamp: 2026-11-04T00:10:00Z
+state: implemented
+state_changed: 2026-11-04T00:10:00Z
 project: /project.md
 parent: /project.md
 artifact_root: docs/architecture/cap-interactive-canvas
@@ -19,8 +19,8 @@ scenarios: docs/architecture/cap-interactive-canvas/acceptance-scenarios.md
 readiness_review: docs/architecture/cap-interactive-canvas/readiness-review.md
 issues:
   - docs/agents/issues/done/20261028-001-scaffold-tauri-angular-rust.md
-  - docs/agents/issues/pending/20261103-030-3d-viewport-orthographic-clipping-raycast-picking-colormaps.md
-  - docs/agents/issues/pending/20261103-031-shared-2d-svg-kernel-shell-dialog-dock-verification.md
+  - docs/agents/issues/done/20261103-030-3d-viewport-orthographic-clipping-raycast-picking-colormaps.md
+  - docs/agents/issues/done/20261103-031-shared-2d-svg-kernel-shell-dialog-dock-verification.md
 ---
 
 # Intent

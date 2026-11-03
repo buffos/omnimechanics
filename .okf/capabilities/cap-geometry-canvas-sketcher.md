@@ -3,9 +3,9 @@ type: capability
 title: Interactive 2D Canvas Drafting & Custom Geometry Sketcher
 description: Roll-up for user-driven sketching inside the application viewport, split into the Mode 2 structural frame modeler and the continuum domain sketcher.
 tags: [sketcher, cad, drafting, drawing, interactive, 2d, rollup]
-timestamp: 2026-11-01T19:20:00Z
-state: specified
-state_changed: 2026-11-01T19:20:00Z
+timestamp: 2026-11-03T18:00:00Z
+state: implemented
+state_changed: 2026-11-03T18:00:00Z
 state_policy:
   mode: rollup
   source: structural_children
@@ -50,3 +50,4 @@ meshing input). This node owns no delivery scope of its own. Its state is the mi
   node into a roll-up. Issue 015 is archived as superseded.
 - The earlier inline domain sketch (`SketchModel` with boundaries) is retired. The structural model is now
   owned by the frame analysis engine, and the continuum model by the continuum sketcher.
+- 2026-11-03: Both structural children (`cap-sketcher-frame-modeler` via Issues `023`–`026` and `cap-sketcher-continuum-domain` via Issues `027`–`029`) are now `implemented`; derived roll-up state transitioned to `implemented`.

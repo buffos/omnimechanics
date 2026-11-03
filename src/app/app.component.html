@@ -5,7 +5,7 @@
     [activeDimension]="activeDimension()"
     [activeDomain]="activeDomain()"
     [backendStatus]="backendStatus()"
-    (modeChange)="workspaceModeService.setMode($event)"
+    (modeChange)="switchWorkspaceMode($event)"
     (dimensionChange)="setDimension($event)"
     (domainChange)="setDomain($event)"
     (openGuide)="openSolverMethodsDialog()"
