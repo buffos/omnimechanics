@@ -95,6 +95,10 @@ pub enum TractionFrame {
     LocalNormalTangential,
 }
 
+fn default_traction_frame() -> TractionFrame {
+    TractionFrame::Global
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum BoundaryConditionSpec {
@@ -106,8 +110,15 @@ pub enum BoundaryConditionSpec {
         uy_m: f64,
     },
     NeumannTraction {
+        #[serde(default)]
         tx_kn_m2: f64,
+        #[serde(default)]
         ty_kn_m2: f64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        tx_end_kn_m2: Option<f64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        ty_end_kn_m2: Option<f64>,
+        #[serde(default = "default_traction_frame")]
         coordinate_frame: TractionFrame,
     },
     RobinImpedance {

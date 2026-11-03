@@ -78,6 +78,8 @@ export type BoundaryConditionSpec =
       kind: 'NeumannTraction';
       tx_kn_m2: number;
       ty_kn_m2: number;
+      tx_end_kn_m2?: number | null;
+      ty_end_kn_m2?: number | null;
       coordinate_frame: TractionFrame;
     }
   | {

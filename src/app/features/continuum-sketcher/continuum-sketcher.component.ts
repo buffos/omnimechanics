@@ -270,10 +270,6 @@ export class ContinuumSketcherComponent implements OnInit {
     this.store.inspectorTab.set('element');
   }
 
-  openMeshSettings(): void {
-    this.store.inspectorTab.set('mesh');
-  }
-
   // --- AutoCAD-Style Coordinate Input Parser (Y-up) ---
   submitCoordinateEntry(): void {
     const raw = this.coordInputValue().trim();
@@ -341,13 +337,6 @@ export class ContinuumSketcherComponent implements OnInit {
     return this.w2s((last.x + cand.x) / 2, (last.y + cand.y) / 2);
   }
 
-  handleSolveAndHandoff(): void {
-    const ok = this.store.sendToMode1Solver();
-    if (ok) {
-      this.close.emit();
-    }
-  }
-
   getTagColor(tag: string): string {
     switch (tag.toLowerCase()) {
       case 'bottom':
@@ -410,46 +399,93 @@ export class ContinuumSketcherComponent implements OnInit {
   getSegmentTractionArrows(seg: BoundarySegment): { x1: number; y1: number; x2: number; y2: number }[] {
     const condition = this.store.domain().tag_conditions[seg.tag];
     if (!condition || condition.kind !== 'NeumannTraction') return [];
-    const { tx_kn_m2, ty_kn_m2 } = condition;
-    if (tx_kn_m2 === 0 && ty_kn_m2 === 0) return [];
 
     const verts = this.store.domain().outer_boundary.vertices;
     const v1 = verts.find((v) => v.id === seg.start_vertex_id);
     const v2 = verts.find((v) => v.id === seg.end_vertex_id);
     if (!v1 || !v2) return [];
 
-    const mag = Math.hypot(tx_kn_m2, ty_kn_m2);
-    const arrowPx = Math.min(45, Math.max(22, Math.log10(mag + 1) * 20));
-    const dirX = tx_kn_m2 / mag;
-    const dirY = ty_kn_m2 / mag;
+    const segDx = v2.x - v1.x;
+    const segDy = v2.y - v1.y;
+    const segLen = Math.hypot(segDx, segDy);
+    if (segLen < 1e-6) return [];
 
-    // In screen coordinates: Y is down, so positive world Y is negative screen Y
-    const dx = dirX * arrowPx;
-    const dy = -dirY * arrowPx;
+    const txStart = condition.tx_kn_m2;
+    const tyStart = condition.ty_kn_m2;
+    const txEnd = condition.tx_end_kn_m2 ?? txStart;
+    const tyEnd = condition.ty_end_kn_m2 ?? tyStart;
 
+    if (txStart === 0 && tyStart === 0 && txEnd === 0 && tyEnd === 0) return [];
+
+    const tanX = segDx / segLen;
+    const tanY = segDy / segLen;
+    const normX = seg.outward_normal[0];
+    const normY = seg.outward_normal[1];
+    const isLocal = condition.coordinate_frame === 'LocalNormalTangential';
+
+    const tSamples = [0.1, 0.3, 0.5, 0.7, 0.9];
     const arrows: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    for (const t of [0.25, 0.5, 0.75]) {
-      const wx = v1.x + t * (v2.x - v1.x);
-      const wy = v1.y + t * (v2.y - v1.y);
+    const maxMag = Math.max(Math.hypot(txStart, tyStart), Math.hypot(txEnd, tyEnd), 1);
+
+    for (const t of tSamples) {
+      const q1 = (1 - t) * txStart + t * txEnd;
+      const q2 = (1 - t) * tyStart + t * tyEnd;
+      const currentMag = Math.hypot(q1, q2);
+      if (currentMag < 1e-4) continue;
+
+      const dirX = isLocal ? q1 * tanX + q2 * normX : q1;
+      const dirY = isLocal ? q1 * tanY + q2 * normY : q2;
+      const worldMag = Math.hypot(dirX, dirY);
+      if (worldMag < 1e-4) continue;
+
+      const ratio = worldMag / maxMag;
+      const arrowPx = 16 + ratio * 26;
+      const screenDx = (dirX / worldMag) * arrowPx;
+      const screenDy = -(dirY / worldMag) * arrowPx;
+
+      const wx = v1.x + t * segDx;
+      const wy = v1.y + t * segDy;
       const s = this.w2s(wx, wy);
-      arrows.push({
-        x1: s.x,
-        y1: s.y,
-        x2: s.x + dx,
-        y2: s.y + dy,
-      });
+
+      arrows.push({ x1: s.x, y1: s.y, x2: s.x + screenDx, y2: s.y + screenDy });
     }
+
     return arrows;
   }
 
   getSegmentTractionLabel(seg: BoundarySegment): string | null {
     const condition = this.store.domain().tag_conditions[seg.tag];
     if (!condition || condition.kind !== 'NeumannTraction') return null;
-    const { tx_kn_m2, ty_kn_m2 } = condition;
-    if (tx_kn_m2 === 0 && ty_kn_m2 === 0) return null;
-    if (tx_kn_m2 === 0) return `ty = ${ty_kn_m2} kN/m²`;
-    if (ty_kn_m2 === 0) return `tx = ${tx_kn_m2} kN/m²`;
-    return `t = (${tx_kn_m2}, ${ty_kn_m2}) kN/m²`;
+
+    const txStart = condition.tx_kn_m2;
+    const tyStart = condition.ty_kn_m2;
+    const txEnd = condition.tx_end_kn_m2 ?? txStart;
+    const tyEnd = condition.ty_end_kn_m2 ?? tyStart;
+
+    if (txStart === 0 && tyStart === 0 && txEnd === 0 && tyEnd === 0) return null;
+
+    const isLocal = condition.coordinate_frame === 'LocalNormalTangential';
+    const isTrapezoidal = txEnd !== txStart || tyEnd !== tyStart;
+
+    if (isLocal) {
+      if (isTrapezoidal) {
+        if (txStart === 0 && txEnd === 0) return `tn: ${tyStart} → ${tyEnd} kN/m²`;
+        if (tyStart === 0 && tyEnd === 0) return `ts: ${txStart} → ${txEnd} kN/m²`;
+        return `Local tn: ${tyStart}→${tyEnd}, ts: ${txStart}→${txEnd}`;
+      }
+      if (txStart === 0) return `tn = ${tyStart} kN/m²`;
+      if (tyStart === 0) return `ts = ${txStart} kN/m²`;
+      return `tn = ${tyStart}, ts = ${txStart} kN/m²`;
+    }
+
+    if (isTrapezoidal) {
+      if (txStart === 0 && txEnd === 0) return `ty: ${tyStart} → ${tyEnd} kN/m²`;
+      if (tyStart === 0 && tyEnd === 0) return `tx: ${txStart} → ${txEnd} kN/m²`;
+      return `t: (${txStart},${tyStart}) → (${txEnd},${tyEnd}) kN/m²`;
+    }
+    if (txStart === 0) return `ty = ${tyStart} kN/m²`;
+    if (tyStart === 0) return `tx = ${txStart} kN/m²`;
+    return `t = (${txStart}, ${tyStart}) kN/m²`;
   }
 
   isSegmentFixed(seg: BoundarySegment): boolean {

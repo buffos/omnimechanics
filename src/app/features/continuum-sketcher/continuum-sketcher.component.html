@@ -116,20 +116,6 @@
         </span>
       </div>
 
-      <button type="button" class="btn-action btn-settings" (click)="openMeshSettings()" title="Άνοιγμα ρυθμίσεων πλέγματος (CDT)">
-        <span class="icon">⚙️</span> <span>Ρυθμίσεις</span>
-      </button>
-
-      <button type="button" class="btn-action btn-mesh" [disabled]="store.isMeshing() || store.domain().outer_boundary.closure_state !== 'ClosedValid'"
-              (click)="store.generateMesh()" title="Δημιουργία σύμμορφου πλέγματος CDT Tri3 + Line2">
-        <span class="icon">⚡</span> <span>{{ store.isMeshing() ? 'Υπολογισμός...' : 'Δημιουργία Mesh' }}</span>
-      </button>
-
-      <button type="button" class="btn-action btn-solve" [disabled]="!store.meshHandoff() || store.meshStatus() === 'Stale'"
-              (click)="handleSolveAndHandoff()" title="Μεταφορά πλέγματος στον επιλυτή και επιστροφή στην 3D προβολή">
-        <span class="icon">🚀</span> <span>Επίλυση &amp; 3D Προβολή</span>
-      </button>
-
       <button type="button" class="btn-action btn-close" (click)="close.emit()" title="Επιστροφή στο κύριο περιβάλλον">
         <span>↩ Επιστροφή</span>
       </button>

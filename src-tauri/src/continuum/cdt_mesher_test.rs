@@ -241,4 +241,18 @@ mod tests {
         let err = verify_mesh_freshness(&domain, &handoff).unwrap_err();
         assert_eq!(err.code, "STALE_MESH_HANDOFF");
     }
+
+    #[test]
+    fn test_sc010_quad4_mesh_generation() {
+        let mut domain = create_perforated_plate_domain();
+        domain.meshing_profile.volume_element_type = VolumeElementKind::Quad4;
+        let handoff = generate_conformal_mesh(&domain).expect("Quad4 meshing must succeed");
+
+        assert!(
+            handoff.mesh_data.volume_elements.iter().all(|e| e.elem_type == crate::mesh::types::ElementType::Quad4),
+            "All generated volume elements must be Quad4"
+        );
+        assert!(handoff.quality_report.is_conformal, "Quad4 mesh must be 100% conformal");
+        assert!(handoff.mesh_data.volume_elements.len() > 0);
+    }
 }

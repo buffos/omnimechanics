@@ -164,7 +164,14 @@ fn generate_radial_conformal_mesh(
                 let d02 = (nodes[n0][0] - nodes[n2][0]).hypot(nodes[n0][1] - nodes[n2][1]);
                 let d13 = (nodes[n1][0] - nodes[n3][0]).hypot(nodes[n1][1] - nodes[n3][1]);
 
-                if d02 <= d13 {
+                if prof.volume_element_type == VolumeElementKind::Quad4 {
+                    volume_elements.push(VolumeElement {
+                        id: vol_id,
+                        elem_type: ElementType::Quad4,
+                        nodes: vec![n0, n1, n2, n3],
+                    });
+                    vol_id += 1;
+                } else if d02 <= d13 {
                     volume_elements.push(VolumeElement {
                         id: vol_id,
                         elem_type: ElementType::Tri3,
@@ -252,7 +259,14 @@ fn generate_radial_conformal_mesh(
             let d02 = (nodes[n0][0] - nodes[n2][0]).hypot(nodes[n0][1] - nodes[n2][1]);
             let d13 = (nodes[n1][0] - nodes[n3][0]).hypot(nodes[n1][1] - nodes[n3][1]);
 
-            if d02 <= d13 {
+            if prof.volume_element_type == VolumeElementKind::Quad4 {
+                volume_elements.push(VolumeElement {
+                    id: vol_id,
+                    elem_type: ElementType::Quad4,
+                    nodes: vec![n0, n1, n2, n3],
+                });
+                vol_id += 1;
+            } else if d02 <= d13 {
                 volume_elements.push(VolumeElement {
                     id: vol_id,
                     elem_type: ElementType::Tri3,
@@ -421,6 +435,37 @@ fn evaluate_mesh_quality(
             let aspect = (a * b * c * s) / (8.0 * area * area);
             min_aspect_ratio = min_aspect_ratio.min(aspect);
             max_aspect_ratio = max_aspect_ratio.max(aspect);
+        } else if elem.nodes.len() == 4 {
+            let p0 = nodes[elem.nodes[0]];
+            let p1 = nodes[elem.nodes[1]];
+            let p2 = nodes[elem.nodes[2]];
+            let p3 = nodes[elem.nodes[3]];
+
+            let d01 = ((p1[0] - p0[0]).powi(2) + (p1[1] - p0[1]).powi(2)).sqrt();
+            let d12 = ((p2[0] - p1[0]).powi(2) + (p2[1] - p1[1]).powi(2)).sqrt();
+            let d23 = ((p3[0] - p2[0]).powi(2) + (p3[1] - p2[1]).powi(2)).sqrt();
+            let d30 = ((p0[0] - p3[0]).powi(2) + (p0[1] - p3[1]).powi(2)).sqrt();
+
+            let max_edge = d01.max(d12).max(d23).max(d30);
+            let min_edge = d01.min(d12).min(d23).min(d30).max(1e-12);
+            let aspect = max_edge / min_edge;
+            min_aspect_ratio = min_aspect_ratio.min(aspect);
+            max_aspect_ratio = max_aspect_ratio.max(aspect);
+
+            let quad_points = [p0, p1, p2, p3];
+            for k in 0..4 {
+                let prev = quad_points[(k + 3) % 4];
+                let curr = quad_points[k];
+                let next = quad_points[(k + 1) % 4];
+                let v1 = [prev[0] - curr[0], prev[1] - curr[1]];
+                let v2 = [next[0] - curr[0], next[1] - curr[1]];
+                let l1 = (v1[0] * v1[0] + v1[1] * v1[1]).sqrt().max(1e-12);
+                let l2 = (v2[0] * v2[0] + v2[1] * v2[1]).sqrt().max(1e-12);
+                let cos_ang = ((v1[0] * v2[0] + v1[1] * v2[1]) / (l1 * l2)).clamp(-1.0, 1.0);
+                let ang_deg = cos_ang.acos().to_degrees();
+                min_angle_deg = min_angle_deg.min(ang_deg);
+                max_angle_deg = max_angle_deg.max(ang_deg);
+            }
         }
     }
 
@@ -477,18 +522,39 @@ fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<Conformal
     }
     cx /= n as f64;
     cy /= n as f64;
-    let center_idx = nodes.len();
-    nodes.push([cx, cy, 0.0]);
-
-    // Volume triangles from center
-    for i in 0..n {
-        let n0 = i;
-        let n1 = (i + 1) % n;
+    let prof = &domain.meshing_profile;
+    if prof.volume_element_type == VolumeElementKind::Quad4 && n == 4 {
         volume_elements.push(VolumeElement {
-            id: i,
-            elem_type: ElementType::Tri3,
-            nodes: vec![center_idx, n0, n1],
+            id: 0,
+            elem_type: ElementType::Quad4,
+            nodes: vec![0, 1, 2, 3],
         });
+    } else {
+        let center_idx = nodes.len();
+        nodes.push([cx, cy, 0.0]);
+
+        if prof.volume_element_type == VolumeElementKind::Quad4 && n % 2 == 0 {
+            for k in 0..(n / 2) {
+                let n0 = 2 * k;
+                let n1 = (2 * k + 1) % n;
+                let n2 = (2 * k + 2) % n;
+                volume_elements.push(VolumeElement {
+                    id: k,
+                    elem_type: ElementType::Quad4,
+                    nodes: vec![center_idx, n0, n1, n2],
+                });
+            }
+        } else {
+            for i in 0..n {
+                let n0 = i;
+                let n1 = (i + 1) % n;
+                volume_elements.push(VolumeElement {
+                    id: i,
+                    elem_type: ElementType::Tri3,
+                    nodes: vec![center_idx, n0, n1],
+                });
+            }
+        }
     }
 
     // Boundary elements

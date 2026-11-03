@@ -92,6 +92,40 @@ export class ContinuumInspectorComponent {
     return this.store.domain().tag_conditions[seg.tag] ?? { kind: 'Free' };
   }
 
+  get isNeumannTrapezoidal(): boolean {
+    const cur = this.currentBcSpec;
+    return cur.kind === 'NeumannTraction' && (cur.tx_end_kn_m2 != null || cur.ty_end_kn_m2 != null);
+  }
+
+  updateNeumannFrame(frame: 'Global' | 'LocalNormalTangential'): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'NeumannTraction') {
+      this.store.updateSegmentTag(idx, seg.tag, { ...cur, coordinate_frame: frame });
+    }
+  }
+
+  toggleNeumannTrapezoidal(enabled: boolean): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'NeumannTraction') {
+      if (enabled) {
+        this.store.updateSegmentTag(idx, seg.tag, {
+          ...cur,
+          tx_end_kn_m2: cur.tx_kn_m2,
+          ty_end_kn_m2: cur.ty_kn_m2,
+        });
+      } else {
+        const { tx_end_kn_m2: _x, ty_end_kn_m2: _y, ...rest } = cur;
+        this.store.updateSegmentTag(idx, seg.tag, { ...rest, tx_end_kn_m2: null, ty_end_kn_m2: null });
+      }
+    }
+  }
+
   updateNeumannTx(val: number): void {
     const seg = this.selectedSegment;
     const idx = this.store.selectedSegmentIdx();
@@ -102,6 +136,16 @@ export class ContinuumInspectorComponent {
     }
   }
 
+  updateNeumannTxEnd(val: number): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'NeumannTraction') {
+      this.store.updateSegmentTag(idx, seg.tag, { ...cur, tx_end_kn_m2: val });
+    }
+  }
+
   updateNeumannTy(val: number): void {
     const seg = this.selectedSegment;
     const idx = this.store.selectedSegmentIdx();
@@ -109,6 +153,16 @@ export class ContinuumInspectorComponent {
     const cur = this.currentBcSpec;
     if (cur.kind === 'NeumannTraction') {
       this.store.updateSegmentTag(idx, seg.tag, { ...cur, ty_kn_m2: val });
+    }
+  }
+
+  updateNeumannTyEnd(val: number): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'NeumannTraction') {
+      this.store.updateSegmentTag(idx, seg.tag, { ...cur, ty_end_kn_m2: val });
     }
   }
 

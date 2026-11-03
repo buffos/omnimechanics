@@ -45,17 +45,65 @@
         </div>
 
         @if (currentBcSpec.kind === 'NeumannTraction') {
+          <div class="control-row">
+            <label for="seg-traction-frame">Σύστημα Αξόνων:</label>
+            <select id="seg-traction-frame" class="styled-select" [ngModel]="currentBcSpec.coordinate_frame" (ngModelChange)="updateNeumannFrame($event)">
+              <option value="Global">Καθολικό (Global X-Y)</option>
+              <option value="LocalNormalTangential">Τοπικό Στοιχείου (X=Εφαπτομενικό, Y=Κάθετο Normal)</option>
+            </select>
+          </div>
+
+          <div class="bc-checkbox-row">
+            <label class="checkbox-label">
+              <input type="checkbox" [checked]="isNeumannTrapezoidal" (change)="toggleNeumannTrapezoidal($any($event.target).checked)" />
+              Γραμμική Μεταβολή (Τραπεζοειδής / Τριγωνική Φόρτιση)
+            </label>
+          </div>
+
           <div class="param-grid bc-details-grid">
             <div class="param-item">
-              <label for="seg-tx">Τάση t<sub>x</sub> (kN/m²):</label>
+              <label for="seg-tx">
+                @if (currentBcSpec.coordinate_frame === 'LocalNormalTangential') {
+                  {{ isNeumannTrapezoidal ? 'Εφαπτομενικό ts,1 (kN/m²):' : 'Εφαπτομενικό ts (kN/m²):' }}
+                } @else {
+                  {{ isNeumannTrapezoidal ? 'Τάση tx,1 (kN/m²):' : 'Τάση tx (kN/m²):' }}
+                }
+              </label>
               <input id="seg-tx" type="number" step="10" class="styled-input"
                      [ngModel]="currentBcSpec.tx_kn_m2" (ngModelChange)="updateNeumannTx(+$event)" />
             </div>
+
+            @if (isNeumannTrapezoidal) {
+              <div class="param-item">
+                <label for="seg-tx-end">
+                  {{ currentBcSpec.coordinate_frame === 'LocalNormalTangential' ? 'ts,2 (kN/m²):' : 'tx,2 (kN/m²):' }}
+                </label>
+                <input id="seg-tx-end" type="number" step="10" class="styled-input"
+                       [ngModel]="currentBcSpec.tx_end_kn_m2 ?? currentBcSpec.tx_kn_m2" (ngModelChange)="updateNeumannTxEnd(+$event)" />
+              </div>
+            }
+
             <div class="param-item">
-              <label for="seg-ty">Τάση t<sub>y</sub> (kN/m²):</label>
+              <label for="seg-ty">
+                @if (currentBcSpec.coordinate_frame === 'LocalNormalTangential') {
+                  {{ isNeumannTrapezoidal ? 'Κάθετο tn,1 (kN/m²):' : 'Τάση ty,1 (kN/m²):' }}
+                } @else {
+                  {{ isNeumannTrapezoidal ? 'Τάση ty,1 (kN/m²):' : 'Τάση ty (kN/m²):' }}
+                }
+              </label>
               <input id="seg-ty" type="number" step="10" class="styled-input"
                      [ngModel]="currentBcSpec.ty_kn_m2" (ngModelChange)="updateNeumannTy(+$event)" />
             </div>
+
+            @if (isNeumannTrapezoidal) {
+              <div class="param-item">
+                <label for="seg-ty-end">
+                  {{ currentBcSpec.coordinate_frame === 'LocalNormalTangential' ? 'tn,2 (kN/m²):' : 'ty,2 (kN/m²):' }}
+                </label>
+                <input id="seg-ty-end" type="number" step="10" class="styled-input"
+                       [ngModel]="currentBcSpec.ty_end_kn_m2 ?? currentBcSpec.ty_kn_m2" (ngModelChange)="updateNeumannTyEnd(+$event)" />
+              </div>
+            }
           </div>
         }
 

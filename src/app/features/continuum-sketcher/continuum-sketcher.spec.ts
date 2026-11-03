@@ -189,4 +189,33 @@ describe('Mode 1 Interactive 2D Continuum Sketcher UI (Issue 029)', () => {
     await store.closeOuterLoop();
     expect(store.domain().outer_boundary.closure_state).toBe('ClosedValid');
   });
+
+  it('supports trapezoidal/triangular loads and local normal-tangential frame', () => {
+    store.loadTemplatePerforatedPlate();
+    // Assign trapezoidal local traction on top boundary
+    store.updateSegmentTag(2, 'Top', {
+      kind: 'NeumannTraction',
+      tx_kn_m2: 0,
+      ty_kn_m2: 100,
+      tx_end_kn_m2: 0,
+      ty_end_kn_m2: 250,
+      coordinate_frame: 'LocalNormalTangential',
+    });
+
+    const cond = store.domain().tag_conditions['Top'];
+    expect(cond.kind).toBe('NeumannTraction');
+    if (cond.kind === 'NeumannTraction') {
+      expect(cond.coordinate_frame).toBe('LocalNormalTangential');
+      expect(cond.ty_kn_m2).toBe(100);
+      expect(cond.ty_end_kn_m2).toBe(250);
+    }
+  });
+
+  it('supports configuring Quad4 volume element meshing profile', () => {
+    store.loadTemplatePerforatedPlate();
+    expect(store.domain().meshing_profile.volume_element_type).toBe('Tri3');
+
+    store.updateMeshingProfile({ volume_element_type: 'Quad4' });
+    expect(store.domain().meshing_profile.volume_element_type).toBe('Quad4');
+  });
 });
