@@ -186,6 +186,40 @@ export class ContinuumInspectorComponent {
     }
   }
 
+  updateRobinImpedance(kn: number, ks: number, cn: number, cs: number): void {
+    const seg = this.selectedSegment;
+    const idx = this.store.selectedSegmentIdx();
+    if (!seg || idx === null) return;
+    const cur = this.currentBcSpec;
+    if (cur.kind === 'RobinImpedance') {
+      this.store.updateSegmentTag(idx, seg.tag, {
+        ...cur,
+        kn_kn_m3: Math.max(0, kn),
+        ks_kn_m3: Math.max(0, ks),
+        cn_kn_s_m3: Math.max(0, cn),
+        cs_kn_s_m3: Math.max(0, cs),
+      });
+    }
+  }
+
+  updateSegmentLocalElementSize(val: number): void {
+    const idx = this.store.selectedSegmentIdx();
+    if (idx === null) return;
+    this.store.updateSegmentLocalElementSize(idx, val > 0 ? val : undefined);
+  }
+
+  updateSelectedCutoutTag(tag: string): void {
+    const cut = this.selectedCutout;
+    if (!cut || !tag.trim()) return;
+    this.store.updateCutout(cut.id, { tag: tag.trim() });
+  }
+
+  updateSelectedCutoutLocalSize(val: number): void {
+    const cut = this.selectedCutout;
+    if (!cut) return;
+    this.store.updateCutout(cut.id, { local_element_size: val > 0 ? val : undefined });
+  }
+
   updateVolumeElementType(val: 'Tri3' | 'Quad4'): void {
     this.store.updateMeshingProfile({ volume_element_type: val });
   }

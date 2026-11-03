@@ -127,6 +127,8 @@ export class ContinuumSketcherStore {
   }
 
   readonly domain = signal<ContinuumDomain>(createDefaultTemplateDomain());
+  readonly undoStack = signal<ContinuumDomain[]>([]);
+  readonly redoStack = signal<ContinuumDomain[]>([]);
   readonly activeTool = signal<SketcherTool>('Select');
   readonly selectedSegmentIdx = signal<number | null>(null);
   readonly selectedCutoutId = signal<string | null>(null);
@@ -142,11 +144,55 @@ export class ContinuumSketcherStore {
   readonly isMeshing = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
 
+  readonly canUndo = computed<boolean>(() => this.undoStack().length > 0);
+  readonly canRedo = computed<boolean>(() => this.redoStack().length > 0);
+
   readonly meshStatus = computed<'Unmeshed' | 'Current' | 'Stale'>(() => {
     const handoff = this.meshHandoff();
     if (!handoff) return 'Unmeshed';
     return handoff.domain_revision === this.domain().revision ? 'Current' : 'Stale';
   });
+
+  private pushUndoState(): void {
+    const snap = structuredClone(this.domain());
+    this.undoStack.update((s) => [...s.slice(-29), snap]);
+    this.redoStack.set([]);
+  }
+
+  undo(): void {
+    const stack = this.undoStack();
+    if (stack.length === 0) return;
+    const prev = stack[stack.length - 1];
+    this.undoStack.set(stack.slice(0, -1));
+    this.redoStack.update((r) => [...r, structuredClone(this.domain())]);
+    this.domain.set(prev);
+    this.errorMessage.set(null);
+  }
+
+  redo(): void {
+    const stack = this.redoStack();
+    if (stack.length === 0) return;
+    const next = stack[stack.length - 1];
+    this.redoStack.set(stack.slice(0, -1));
+    this.undoStack.update((u) => [...u, structuredClone(this.domain())]);
+    this.domain.set(next);
+    this.errorMessage.set(null);
+  }
+
+  private formatIpcError(err: unknown): string {
+    if (err && typeof err === 'object') {
+      const rec = err as Record<string, unknown>;
+      if (typeof rec['code'] === 'string') {
+        const el = typeof rec['message_el'] === 'string' ? rec['message_el'] : '';
+        const en = typeof rec['message_en'] === 'string' ? rec['message_en'] : '';
+        return `[${rec['code']}] ${el || en}`;
+      }
+      if (typeof rec['message'] === 'string') {
+        return rec['message'];
+      }
+    }
+    return err instanceof Error ? err.message : String(err);
+  }
 
   loadTemplatePerforatedPlate(): void {
     this.domain.set(createDefaultTemplateDomain());
@@ -184,6 +230,7 @@ export class ContinuumSketcherStore {
   }
 
   addRectangleBoundary(width = 10.0, height = 6.0): void {
+    this.pushUndoState();
     const halfW = width / 2;
     const halfH = height / 2;
     const verts: Vertex2D[] = [
@@ -266,6 +313,7 @@ export class ContinuumSketcherStore {
       }
     }
 
+    this.pushUndoState();
     const newVert: Vertex2D = {
       id: `v${verts.length}`,
       x,
@@ -300,6 +348,7 @@ export class ContinuumSketcherStore {
         },
       });
 
+      this.pushUndoState();
       this.domain.update((d) => ({
         ...d,
         revision: d.revision + 1,
@@ -308,12 +357,13 @@ export class ContinuumSketcherStore {
       this.errorMessage.set(null);
       this.activeTool.set('Select');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = this.formatIpcError(err);
       this.errorMessage.set(`Loop closure rejected: ${msg}`);
     }
   }
 
   addCircularCutout(centerX: number, centerY: number, radius = 1.0): void {
+    this.pushUndoState();
     const newCutout: Cutout = {
       id: `cutout_${Date.now()}`,
       shape: {
@@ -335,6 +385,7 @@ export class ContinuumSketcherStore {
   }
 
   addRectangularCutout(centerX: number, centerY: number, width = 2.0, height = 2.0): void {
+    this.pushUndoState();
     const newCutout: Cutout = {
       id: `cutout_${Date.now()}`,
       shape: {
@@ -357,6 +408,7 @@ export class ContinuumSketcherStore {
   }
 
   addPolygonalCutout(centerX: number, centerY: number, radius = 1.2, sides = 6): void {
+    this.pushUndoState();
     const vertices: Vertex2D[] = [];
     for (let i = 0; i < sides; i++) {
       const angle = (i / sides) * 2 * Math.PI;
@@ -385,6 +437,7 @@ export class ContinuumSketcherStore {
   }
 
   updateCutout(id: string, updates: Partial<Cutout>): void {
+    this.pushUndoState();
     this.domain.update((d) => ({
       ...d,
       revision: d.revision + 1,
@@ -393,6 +446,7 @@ export class ContinuumSketcherStore {
   }
 
   removeCutout(id: string): void {
+    this.pushUndoState();
     this.domain.update((d) => ({
       ...d,
       revision: d.revision + 1,
@@ -404,6 +458,7 @@ export class ContinuumSketcherStore {
   }
 
   addCircularInclusion(centerX: number, centerY: number, radius = 1.2): void {
+    this.pushUndoState();
     const newInclusion: InclusionRegion = {
       id: `inclusion_${Date.now()}`,
       shape: {
@@ -435,6 +490,7 @@ export class ContinuumSketcherStore {
     youngs = 210.0,
     nu = 0.3
   ): void {
+    this.pushUndoState();
     const newInclusion: InclusionRegion = {
       id: `inclusion_${Date.now()}`,
       shape: {
@@ -459,6 +515,7 @@ export class ContinuumSketcherStore {
   }
 
   updateInclusion(id: string, updates: Partial<InclusionRegion>): void {
+    this.pushUndoState();
     this.domain.update((d) => ({
       ...d,
       revision: d.revision + 1,
@@ -467,6 +524,7 @@ export class ContinuumSketcherStore {
   }
 
   removeInclusion(id: string): void {
+    this.pushUndoState();
     this.domain.update((d) => ({
       ...d,
       revision: d.revision + 1,
@@ -481,6 +539,7 @@ export class ContinuumSketcherStore {
     const cur = this.domain();
     const segs = [...cur.outer_boundary.segments];
     if (segmentIdx < 0 || segmentIdx >= segs.length) return;
+    this.pushUndoState();
 
     segs[segmentIdx] = {
       ...segs[segmentIdx],
@@ -500,7 +559,29 @@ export class ContinuumSketcherStore {
     }));
   }
 
+  updateSegmentLocalElementSize(segmentIdx: number, localElementSize?: number): void {
+    const cur = this.domain();
+    const segs = [...cur.outer_boundary.segments];
+    if (segmentIdx < 0 || segmentIdx >= segs.length) return;
+    this.pushUndoState();
+
+    segs[segmentIdx] = {
+      ...segs[segmentIdx],
+      local_element_size: localElementSize && localElementSize > 0 ? localElementSize : undefined,
+    };
+
+    this.domain.update((d) => ({
+      ...d,
+      revision: d.revision + 1,
+      outer_boundary: {
+        ...d.outer_boundary,
+        segments: segs,
+      },
+    }));
+  }
+
   updateMeshingProfile(profile: Partial<MeshingProfile>): void {
+    this.pushUndoState();
     this.domain.update((d) => ({
       ...d,
       revision: d.revision + 1,
@@ -512,17 +593,34 @@ export class ContinuumSketcherStore {
   }
 
   async validateDomain(): Promise<DomainValidationResponse> {
-    const res = await invoke<DomainValidationResponse>('continuum_validate_domain', {
-      request: { domain: this.domain() },
-    });
-    this.validationResponse.set(res);
-    if (!res.is_valid_for_meshing) {
-      const msgs = res.diagnostics.map((d) => d.message_en).join('; ');
-      this.errorMessage.set(msgs);
-    } else {
-      this.errorMessage.set(null);
+    try {
+      const res = await invoke<DomainValidationResponse>('continuum_validate_domain', {
+        request: { domain: this.domain() },
+      });
+      this.validationResponse.set(res);
+      if (!res.is_valid_for_meshing) {
+        const msgs = res.diagnostics.map((d) => `[${d.code}] ${d.message_el || d.message_en}`).join('; ');
+        this.errorMessage.set(msgs);
+      } else {
+        this.errorMessage.set(null);
+      }
+      return res;
+    } catch (err: unknown) {
+      const rec = err && typeof err === 'object' ? (err as Record<string, unknown>) : {};
+      const diag = {
+        code: typeof rec['code'] === 'string' ? rec['code'] : 'VALIDATION_ERROR',
+        message_el: typeof rec['message_el'] === 'string' ? rec['message_el'] : this.formatIpcError(err),
+        message_en: typeof rec['message_en'] === 'string' ? rec['message_en'] : this.formatIpcError(err),
+        details: typeof rec['details'] === 'object' && rec['details'] ? (rec['details'] as Record<string, unknown>) : undefined,
+      };
+      const failedRes: DomainValidationResponse = {
+        is_valid_for_meshing: false,
+        diagnostics: [diag],
+      };
+      this.validationResponse.set(failedRes);
+      this.errorMessage.set(this.formatIpcError(err));
+      return failedRes;
     }
-    return res;
   }
 
   async generateMesh(): Promise<ConformalMeshHandoff | null> {
@@ -537,13 +635,12 @@ export class ContinuumSketcherStore {
 
       const handoff = await invoke<ConformalMeshHandoff>('continuum_generate_mesh', {
         request: { domain: this.domain() },
-        domain: this.domain(),
       });
 
       this.meshHandoff.set(handoff);
       return handoff;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = this.formatIpcError(err);
       this.errorMessage.set(`Meshing failed: ${msg}`);
       return null;
     } finally {

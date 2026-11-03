@@ -36,9 +36,10 @@ vi.mock('@tauri-apps/api/core', () => ({
       };
     }
     if (cmd === 'continuum_generate_mesh') {
+      const dom = args.request?.domain ?? args.domain;
       const mockHandoff: ConformalMeshHandoff = {
-        domain_id: args.domain.id,
-        domain_revision: args.domain.revision,
+        domain_id: dom.id,
+        domain_revision: dom.revision,
         mesh_data: {
           dimension: 2,
           nodes: [
@@ -217,5 +218,34 @@ describe('Mode 1 Interactive 2D Continuum Sketcher UI (Issue 029)', () => {
 
     store.updateMeshingProfile({ volume_element_type: 'Quad4' });
     expect(store.domain().meshing_profile.volume_element_type).toBe('Quad4');
+  });
+
+  it('SC-003 & SC-004: formats structured Tauri CanonicalError rejections and supports Undo/Redo', async () => {
+    const { invoke } = await import('@tauri-apps/api/core');
+    store.loadTemplatePerforatedPlate();
+    const initialCutouts = store.domain().cutouts.length;
+
+    store.addCircularCutout(9.5, 5.0, 1.5);
+    expect(store.domain().cutouts.length).toBe(initialCutouts + 1);
+    expect(store.canUndo()).toBe(true);
+
+    // Undo and Redo
+    store.undo();
+    expect(store.domain().cutouts.length).toBe(initialCutouts);
+    expect(store.canRedo()).toBe(true);
+    store.redo();
+    expect(store.domain().cutouts.length).toBe(initialCutouts + 1);
+
+    // Simulate Rust CanonicalError rejection on validateDomain
+    vi.mocked(invoke).mockRejectedValueOnce({
+      code: 'HOLE_OUTSIDE_OUTER_BOUNDARY',
+      message_el: "Η οπή 'H1' εξέρχεται του εξωτερικού περιγράμματος.",
+      message_en: "Hole 'H1' lies outside the outer boundary.",
+    });
+
+    const valRes = await store.validateDomain();
+    expect(valRes.is_valid_for_meshing).toBe(false);
+    expect(valRes.diagnostics[0].code).toBe('HOLE_OUTSIDE_OUTER_BOUNDARY');
+    expect(store.errorMessage()).toContain('[HOLE_OUTSIDE_OUTER_BOUNDARY]');
   });
 });

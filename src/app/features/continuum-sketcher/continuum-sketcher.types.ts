@@ -141,12 +141,25 @@ export interface MeshQualityReport {
   outward_normals_verified: boolean;
 }
 
+export interface ElementProvenance {
+  element_id: number;
+  parent_feature_id: string;
+  tag: string;
+}
+
+export interface VolumeProvenance {
+  element_id: number;
+  subdomain_id: string;
+}
+
 export interface ConformalMeshHandoff {
   domain_id: string;
   domain_revision: number;
   mesh_data: MeshData;
   quality_report: MeshQualityReport;
   tag_element_counts: Record<string, number>;
+  boundary_provenance?: ElementProvenance[];
+  volume_provenance?: VolumeProvenance[];
 }
 
 export type SketcherTool =

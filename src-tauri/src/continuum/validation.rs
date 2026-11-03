@@ -144,6 +144,26 @@ pub fn close_and_normalize_loop(
                 ).with_details(details));
             }
         }
+        // Check non-incident vertex lying on segment [p1, p2]
+        for k in 0..n {
+            if k == i || k == (i + 1) % n {
+                continue;
+            }
+            let vk = coords[k];
+            if point_on_segment(vk, p1, p2, 1e-6) || distance_point_to_segment(vk, p1, p2) < EPSILON_LEN {
+                let details = serde_json::json!({
+                    "loop_id": loop_id,
+                    "segment_a": format!("S{}", i + 1),
+                    "vertex": vertices[k].id,
+                    "intersection_point": [vk.0, vk.1],
+                });
+                return Err(CanonicalError::new(
+                    "SELF_INTERSECTING_LOOP",
+                    format!("Η κορυφή '{}' εφάπτεται στο μη γειτονικό τμήμα S{}.", vertices[k].id, i + 1),
+                    format!("Vertex '{}' touches non-incident segment S{}.", vertices[k].id, i + 1),
+                ).with_details(details));
+            }
+        }
     }
 
     let area = compute_signed_area(&coords);
@@ -367,16 +387,59 @@ pub fn discretize_cutout_shape(shape: &CutoutShape, default_angular_divs: usize)
     }
 }
 
+/// Validates intrinsic shape geometry of a CutoutShape (used for both cutouts and inclusions).
+fn validate_feature_shape(id: &str, shape: &CutoutShape, is_hole: bool) -> Result<(), CanonicalError> {
+    match shape {
+        CutoutShape::Circle { radius, angular_divisions, .. } => {
+            if !radius.is_finite() || *radius < 1e-3 {
+                return Err(CanonicalError::new(
+                    "DEGENERATE_POLYGON_AREA",
+                    format!("Η ακτίνα του κυκλικού στοιχείου '{}' πρέπει να είναι >= 10⁻³ m.", id),
+                    format!("Radius of circular feature '{}' must be >= 10⁻³ m.", id),
+                ));
+            }
+            if *angular_divisions < 12 {
+                return Err(CanonicalError::new(
+                    "INVALID_MESHING_PROFILE",
+                    format!("Ο αριθμός γωνιακών υποδιαιρέσεων του '{}' πρέπει να είναι >= 12.", id),
+                    format!("Angular divisions of circular feature '{}' must be >= 12.", id),
+                ));
+            }
+        }
+        CutoutShape::Rectangle { width, height, .. } => {
+            if !width.is_finite() || !height.is_finite() || *width < 1e-3 || *height < 1e-3 {
+                return Err(CanonicalError::new(
+                    "DEGENERATE_POLYGON_AREA",
+                    format!("Οι διαστάσεις του ορθογωνίου '{}' πρέπει να είναι >= 10⁻³ m.", id),
+                    format!("Dimensions of rectangular feature '{}' must be >= 10⁻³ m.", id),
+                ));
+            }
+        }
+        CutoutShape::Polygon { vertices } => {
+            close_and_normalize_loop(id, vertices, is_hole)?;
+        }
+    }
+    Ok(())
+}
+
 /// Validates an entire ContinuumDomain against topological and clearance rules.
 pub fn validate_domain(domain: &ContinuumDomain) -> Result<DomainValidationResponse, CanonicalError> {
-    let mut diagnostics = Vec::new();
+    let diagnostics = Vec::new();
 
     // 1. Validate Outer Boundary
     let outer_vertices = &domain.outer_boundary.vertices;
-    let outer_loop = match close_and_normalize_loop("L_OUTER", outer_vertices, false) {
-        Ok(l) => l,
-        Err(e) => return Err(e),
-    };
+    let outer_loop = close_and_normalize_loop("L_OUTER", outer_vertices, false)?;
+    for seg in &domain.outer_boundary.segments {
+        if let Some(h_loc) = seg.local_element_size {
+            if !h_loc.is_finite() || h_loc <= 0.0 {
+                return Err(CanonicalError::new(
+                    "INVALID_MESHING_PROFILE",
+                    format!("Το τοπικό μέγεθος στοιχείου στο τμήμα '{}' πρέπει να είναι > 0.", seg.id),
+                    format!("Local element size on segment '{}' must be > 0.", seg.id),
+                ));
+            }
+        }
+    }
 
     let outer_poly: Vec<(f64, f64)> = outer_loop.vertices.iter().map(|v| (v.x, v.y)).collect();
     let num_outer = outer_poly.len();
@@ -397,6 +460,16 @@ pub fn validate_domain(domain: &ContinuumDomain) -> Result<DomainValidationRespo
     let mut feature_records = Vec::new();
 
     for c in &domain.cutouts {
+        validate_feature_shape(&c.id, &c.shape, true)?;
+        if let Some(h_loc) = c.local_element_size {
+            if !h_loc.is_finite() || h_loc <= 0.0 {
+                return Err(CanonicalError::new(
+                    "INVALID_MESHING_PROFILE",
+                    format!("Το τοπικό μέγεθος στοιχείου στην οπή '{}' πρέπει να είναι > 0.", c.id),
+                    format!("Local element size on cutout '{}' must be > 0.", c.id),
+                ));
+            }
+        }
         let pts = discretize_cutout_shape(&c.shape, 32);
         let mut cx = 0.0;
         let mut cy = 0.0;
@@ -417,6 +490,34 @@ pub fn validate_domain(domain: &ContinuumDomain) -> Result<DomainValidationRespo
     }
 
     for inc in &domain.inclusions {
+        validate_feature_shape(&inc.id, &inc.shape, false)?;
+        if let Some(e_mod) = inc.youngs_modulus_override_gpa {
+            if !e_mod.is_finite() || e_mod <= 0.0 {
+                return Err(CanonicalError::new(
+                    "INVALID_BOUNDARY_CONDITION",
+                    format!("Μη έγκυρο μέτρο ελαστικότητας E στο ένθεμα '{}' (E > 0 GPa).", inc.id),
+                    format!("Invalid Young's modulus override on inclusion '{}' (E > 0 GPa).", inc.id),
+                ));
+            }
+        }
+        if let Some(nu) = inc.poisson_ratio_override {
+            if !nu.is_finite() || nu <= -1.0 || nu >= 0.5 {
+                return Err(CanonicalError::new(
+                    "INVALID_BOUNDARY_CONDITION",
+                    format!("Μη έγκυρος λόγος Poisson ν στο ένθεμα '{}' (-1.0 < ν < 0.5).", inc.id),
+                    format!("Invalid Poisson ratio override on inclusion '{}' (-1.0 < nu < 0.5).", inc.id),
+                ));
+            }
+        }
+        if let Some(h_loc) = inc.local_element_size {
+            if !h_loc.is_finite() || h_loc <= 0.0 {
+                return Err(CanonicalError::new(
+                    "INVALID_MESHING_PROFILE",
+                    format!("Το τοπικό μέγεθος στοιχείου στο ένθεμα '{}' πρέπει να είναι > 0.", inc.id),
+                    format!("Local element size on inclusion '{}' must be > 0.", inc.id),
+                ));
+            }
+        }
         let pts = discretize_cutout_shape(&inc.shape, 32);
         let mut cx = 0.0;
         let mut cy = 0.0;
@@ -505,14 +606,24 @@ pub fn validate_domain(domain: &ContinuumDomain) -> Result<DomainValidationRespo
             let any_f2_in_f1 = f2.pts.iter().any(|&p| is_point_inside_polygon(p, &f1.pts)) || is_point_inside_polygon(f2.center, &f1.pts);
 
             if segments_intersect || any_f1_in_f2 || any_f2_in_f1 {
+                let is_nested_in_void = (any_f1_in_f2 && f2.is_cutout) || (any_f2_in_f1 && f1.is_cutout);
                 let details = serde_json::json!({
                     "feature_a": f1.id,
                     "feature_b": f2.id,
+                    "nested_in_cutout": is_nested_in_void,
                 });
                 return Err(CanonicalError::new(
                     "HOLE_OVERLAPS_EXISTING_FEATURE",
-                    format!("Οι οπές/ενθέματα '{}' και '{}' επικαλύπτονται ή τέμνονται.", f1.id, f2.id),
-                    format!("Features '{}' and '{}' overlap or intersect.", f1.id, f2.id),
+                    if is_nested_in_void {
+                        format!("Δεν επιτρέπεται η ένθεση του '{}' εντός της οπής '{}'.", f1.id, f2.id)
+                    } else {
+                        format!("Οι οπές/ενθέματα '{}' και '{}' επικαλύπτονται ή τέμνονται.", f1.id, f2.id)
+                    },
+                    if is_nested_in_void {
+                        format!("Nesting feature inside cutout void between '{}' and '{}' is forbidden.", f1.id, f2.id)
+                    } else {
+                        format!("Features '{}' and '{}' overlap or intersect.", f1.id, f2.id)
+                    },
                 ).with_details(details));
             }
 

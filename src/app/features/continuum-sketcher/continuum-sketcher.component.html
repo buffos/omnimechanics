@@ -3,10 +3,18 @@
   <header class="continuum-toolbar">
     <!-- CAD Creation Tools -->
     <div class="toolbar-group">
-      <!-- Select Tool -->
+      <!-- Select & Undo/Redo Tools -->
       <button type="button" class="tool-btn" [class.active]="store.activeTool() === 'Select'"
               (click)="selectTool('Select')" title="Επιλογή & Επεξεργασία Στοιχείων (V)">
         <span class="icon">↖</span> <span class="label">Select</span>
+      </button>
+      <button type="button" class="tool-btn" [disabled]="!store.canUndo()"
+              (click)="store.undo()" title="Αναίρεση (Undo)">
+        <span class="icon">↶</span>
+      </button>
+      <button type="button" class="tool-btn" [disabled]="!store.canRedo()"
+              (click)="store.redo()" title="Επανάληψη (Redo)">
+        <span class="icon">↷</span>
       </button>
 
       <!-- Outer Boundary Flyout -->
@@ -264,7 +272,7 @@
                      [class.selected-feature]="store.selectedCutoutId() === cutout.id"
                      (click)="selectCutout(cutout.id, $event)" class="cutout-polygon" />
             <text [attr.x]="w2s(cutout.shape.vertices[0].x, cutout.shape.vertices[0].y).x"
-                  [attr.y]="w2s(cutout.shape.vertices[0].y, cutout.shape.vertices[0].y).y" class="cutout-label">
+                  [attr.y]="w2s(cutout.shape.vertices[0].x, cutout.shape.vertices[0].y).y" class="cutout-label">
               Πολύγωνο ({{ cutout.shape.vertices.length }})
             </text>
           }

@@ -413,4 +413,72 @@ mod tests {
             n_coarse, n_fine
         );
     }
+
+    #[test]
+    fn test_sc014_general_polygon_with_cutout_and_line3_provenance() {
+        let outer_vertices = vec![
+            Vertex2D { id: "p0".into(), x: -5.0, y: -5.0 },
+            Vertex2D { id: "p1".into(), x: 6.0, y: -4.0 },
+            Vertex2D { id: "p2".into(), x: 5.0, y: 6.0 },
+            Vertex2D { id: "p3".into(), x: -4.0, y: 5.0 },
+            Vertex2D { id: "p4".into(), x: -6.0, y: 0.0 },
+        ];
+        let outer = close_and_normalize_loop("PentagonLoop", &outer_vertices, false).unwrap();
+
+        let domain = ContinuumDomain {
+            id: "CD_GenHole".into(),
+            revision: 4,
+            outer_boundary: outer,
+            cutouts: vec![Cutout {
+                id: "H_RECT".into(),
+                shape: CutoutShape::Rectangle {
+                    center_x: 0.0,
+                    center_y: 0.0,
+                    width: 2.0,
+                    height: 2.0,
+                    rotation_deg: 0.0,
+                },
+                tag: "Hole".into(),
+                local_element_size: Some(0.5),
+            }],
+            inclusions: vec![],
+            tag_conditions: Default::default(),
+            meshing_profile: MeshingProfile {
+                target_element_size: 1.0,
+                hole_refinement_factor: 0.5,
+                min_angle_deg: 20.0,
+                volume_element_type: VolumeElementKind::Tri3,
+                boundary_element_type: BoundaryElementKind::Line3,
+            },
+        };
+
+        let handoff = generate_conformal_mesh(&domain).expect("General polygon with rectangular cutout must mesh");
+        assert!(handoff.quality_report.is_conformal);
+        assert!(handoff.tag_element_counts.get("Hole").copied().unwrap_or(0) >= 8);
+        assert_eq!(handoff.boundary_provenance.len(), handoff.mesh_data.boundary_elements.len());
+        assert_eq!(handoff.volume_provenance.len(), handoff.mesh_data.volume_elements.len());
+        assert!(
+            handoff
+                .mesh_data
+                .boundary_elements
+                .iter()
+                .all(|b| b.elem_type == crate::mesh::types::ElementType::Line3 && b.nodes.len() == 3),
+            "Line3 boundary element profile must emit 3-node Line3 elements"
+        );
+        // Ensure no volume element centroid lies inside the [-1, 1] x [-1, 1] rectangular hole
+        for v in &handoff.mesh_data.volume_elements {
+            let cx = (handoff.mesh_data.nodes[v.nodes[0]][0]
+                + handoff.mesh_data.nodes[v.nodes[1]][0]
+                + handoff.mesh_data.nodes[v.nodes[2]][0])
+                / 3.0;
+            let cy = (handoff.mesh_data.nodes[v.nodes[0]][1]
+                + handoff.mesh_data.nodes[v.nodes[1]][1]
+                + handoff.mesh_data.nodes[v.nodes[2]][1])
+                / 3.0;
+            assert!(
+                !(cx.abs() < 0.99 && cy.abs() < 0.99),
+                "No volume element centroid may lie inside the rectangular cutout void"
+            );
+        }
+    }
 }

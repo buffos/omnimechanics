@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use super::types::*;
-use super::cdt_mesher::evaluate_mesh_quality;
+use super::cdt_mesher::finalize_conformal_handoff;
 use crate::frame::types::CanonicalError;
-use crate::mesh::types::{BoundaryElement, ElementType, MeshData, MeshStats, VolumeElement};
+use crate::mesh::types::{BoundaryElement, ElementType, VolumeElement};
 
 pub fn ray_from_point_to_box(
     px: f64,
@@ -38,11 +38,11 @@ pub fn generate_radial_conformal_mesh(
     domain: &ContinuumDomain,
     is_cutout: bool,
 ) -> Result<ConformalMeshHandoff, CanonicalError> {
-    let (center_x, center_y, radius, ang_divs, tag) = if is_cutout {
+    let (center_x, center_y, radius, ang_divs, tag, feat_id, h_override) = if is_cutout {
         let c = &domain.cutouts[0];
         match c.shape {
             CutoutShape::Circle { center_x, center_y, radius, angular_divisions } => {
-                (center_x, center_y, radius, angular_divisions, c.tag.clone())
+                (center_x, center_y, radius, angular_divisions, c.tag.clone(), c.id.clone(), c.local_element_size)
             }
             _ => unreachable!(),
         }
@@ -50,7 +50,7 @@ pub fn generate_radial_conformal_mesh(
         let inc = &domain.inclusions[0];
         match inc.shape {
             CutoutShape::Circle { center_x, center_y, radius, angular_divisions } => {
-                (center_x, center_y, radius, angular_divisions, "Inclusion".to_string())
+                (center_x, center_y, radius, angular_divisions, "Inclusion".to_string(), inc.id.clone(), inc.local_element_size)
             }
             _ => unreachable!(),
         }
@@ -59,7 +59,7 @@ pub fn generate_radial_conformal_mesh(
     let prof = &domain.meshing_profile;
     let h = prof.target_element_size.max(0.05);
     let alpha = prof.hole_refinement_factor.clamp(0.1, 1.0);
-    let h_hole = h * alpha;
+    let h_hole = h_override.unwrap_or(h * alpha).max(0.01);
 
     // Outer boundary bounds
     let mut min_x = f64::INFINITY;
@@ -175,6 +175,7 @@ pub fn generate_radial_conformal_mesh(
     };
 
     let outer_start_node_idx = nodes.len();
+    let inclusion_vol_count = volume_elements.len();
 
     // Concentric outer rings from r = radius to outer boundary
     for ring in 0..=nr {
@@ -263,6 +264,7 @@ pub fn generate_radial_conformal_mesh(
     }
 
     let mut bnd_id = 0;
+    let mut boundary_provenance: Vec<ElementProvenance> = Vec::new();
 
     // 1. Hole Boundary (only if is_cutout)
     if is_cutout {
@@ -278,6 +280,11 @@ pub fn generate_radial_conformal_mesh(
                 nodes: vec![n0, n1],
                 tag: tag.clone(),
                 normal,
+            });
+            boundary_provenance.push(ElementProvenance {
+                element_id: bnd_id,
+                parent_feature_id: feat_id.clone(),
+                tag: tag.clone(),
             });
             *tag_counts.entry(tag.clone()).or_insert(0) += 1;
             bnd_id += 1;
@@ -295,20 +302,20 @@ pub fn generate_radial_conformal_mesh(
             (0.5 * (p0[0] + p1[0]), 0.5 * (p0[1] + p1[1]))
         };
 
-        let (seg_tag, normal) = if (x_mid_bnd - max_x).abs() < 1e-3 {
-            ("Right", [1.0, 0.0, 0.0])
+        let (seg_tag, default_seg_id, normal) = if (x_mid_bnd - max_x).abs() < 1e-3 {
+            ("Right", "S2", [1.0, 0.0, 0.0])
         } else if (y_mid_bnd - max_y).abs() < 1e-3 {
-            ("Top", [0.0, 1.0, 0.0])
+            ("Top", "S3", [0.0, 1.0, 0.0])
         } else if (x_mid_bnd - min_x).abs() < 1e-3 {
-            ("Left", [-1.0, 0.0, 0.0])
+            ("Left", "S4", [-1.0, 0.0, 0.0])
         } else {
-            ("Bottom", [0.0, -1.0, 0.0])
+            ("Bottom", "S1", [0.0, -1.0, 0.0])
         };
 
-        let final_tag = domain.outer_boundary.segments.iter()
+        let (final_tag, source_seg_id) = domain.outer_boundary.segments.iter()
             .find(|s| s.tag.eq_ignore_ascii_case(seg_tag))
-            .map(|s| s.tag.clone())
-            .unwrap_or_else(|| seg_tag.to_string());
+            .map(|s| (s.tag.clone(), s.id.clone()))
+            .unwrap_or_else(|| (seg_tag.to_string(), default_seg_id.to_string()));
 
         boundary_elements.push(BoundaryElement {
             id: bnd_id,
@@ -317,30 +324,35 @@ pub fn generate_radial_conformal_mesh(
             tag: final_tag.clone(),
             normal,
         });
+        boundary_provenance.push(ElementProvenance {
+            element_id: bnd_id,
+            parent_feature_id: source_seg_id,
+            tag: final_tag.clone(),
+        });
         *tag_counts.entry(final_tag).or_insert(0) += 1;
         bnd_id += 1;
     }
 
-    let quality_report = evaluate_mesh_quality(&nodes, &volume_elements, &boundary_elements);
+    let volume_provenance: Vec<VolumeProvenance> = volume_elements
+        .iter()
+        .enumerate()
+        .map(|(idx, v)| VolumeProvenance {
+            element_id: v.id,
+            subdomain_id: if !is_cutout && idx < inclusion_vol_count {
+                feat_id.clone()
+            } else {
+                "matrix".to_string()
+            },
+        })
+        .collect();
 
-    let mesh_data = MeshData {
-        dimension: 2,
-        stats: MeshStats {
-            num_nodes: nodes.len(),
-            num_boundary_elements: boundary_elements.len(),
-            num_volume_elements: volume_elements.len(),
-            dimension: 2,
-        },
+    Ok(finalize_conformal_handoff(
+        domain,
         nodes,
         boundary_elements,
         volume_elements,
-    };
-
-    Ok(ConformalMeshHandoff {
-        domain_id: domain.id.clone(),
-        domain_revision: domain.revision,
-        mesh_data,
-        quality_report,
-        tag_element_counts: tag_counts,
-    })
+        tag_counts,
+        boundary_provenance,
+        volume_provenance,
+    ))
 }

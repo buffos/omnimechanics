@@ -248,10 +248,27 @@ pub struct MeshQualityReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElementProvenance {
+    pub element_id: usize,
+    pub parent_feature_id: String,
+    pub tag: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VolumeProvenance {
+    pub element_id: usize,
+    pub subdomain_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConformalMeshHandoff {
     pub domain_id: String,
     pub domain_revision: u64,
     pub mesh_data: crate::mesh::types::MeshData,
     pub quality_report: MeshQualityReport,
     pub tag_element_counts: std::collections::HashMap<String, usize>,
+    #[serde(default)]
+    pub boundary_provenance: Vec<ElementProvenance>,
+    #[serde(default)]
+    pub volume_provenance: Vec<VolumeProvenance>,
 }

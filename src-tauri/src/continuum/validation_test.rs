@@ -203,4 +203,50 @@ mod tests {
         }).expect("Bottom edge of hole exists");
         assert_eq!(bottom_seg.outward_normal, [0.0, 1.0, 0.0]);
     }
+
+    #[test]
+    fn test_vertex_on_non_incident_segment_and_intrinsic_feature_validation() {
+        // 1. Vertex touching non-incident segment
+        let vertices = vec![
+            Vertex2D { id: "V1".into(), x: 0.0, y: 0.0 },
+            Vertex2D { id: "V2".into(), x: 4.0, y: 0.0 },
+            Vertex2D { id: "V3".into(), x: 4.0, y: 4.0 },
+            Vertex2D { id: "V4".into(), x: 2.0, y: 0.0 }, // touches segment S1 (V1->V2)
+            Vertex2D { id: "V5".into(), x: 0.0, y: 4.0 },
+        ];
+        let err = close_and_normalize_loop("L_TOUCH", &vertices, false).unwrap_err();
+        assert_eq!(err.code, "SELF_INTERSECTING_LOOP");
+
+        // 2. Inclusion with invalid Poisson ratio >= 0.5 rejected
+        let outer_vertices = vec![
+            Vertex2D { id: "V1".into(), x: -5.0, y: -5.0 },
+            Vertex2D { id: "V2".into(), x: 5.0, y: -5.0 },
+            Vertex2D { id: "V3".into(), x: 5.0, y: 5.0 },
+            Vertex2D { id: "V4".into(), x: -5.0, y: 5.0 },
+        ];
+        let outer = close_and_normalize_loop("L_OUTER", &outer_vertices, false).unwrap();
+        let domain_bad_inc = ContinuumDomain {
+            id: "CD1".into(),
+            revision: 1,
+            outer_boundary: outer,
+            cutouts: vec![],
+            inclusions: vec![InclusionRegion {
+                id: "INC_BAD".into(),
+                shape: CutoutShape::Circle {
+                    center_x: 0.0,
+                    center_y: 0.0,
+                    radius: 1.0,
+                    angular_divisions: 16,
+                },
+                material_label: "BadNu".into(),
+                youngs_modulus_override_gpa: Some(200.0),
+                poisson_ratio_override: Some(0.55),
+                local_element_size: None,
+            }],
+            tag_conditions: Default::default(),
+            meshing_profile: Default::default(),
+        };
+        let err_inc = validate_domain(&domain_bad_inc).unwrap_err();
+        assert_eq!(err_inc.code, "INVALID_BOUNDARY_CONDITION");
+    }
 }

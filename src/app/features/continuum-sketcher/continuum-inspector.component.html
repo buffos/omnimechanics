@@ -29,9 +29,16 @@
             <option value="Right">Right</option>
             <option value="Top">Top</option>
             <option value="Left">Left</option>
+            <option value="Hole">Hole</option>
             <option value="Cutout">Cutout</option>
             <option value="Interface">Interface</option>
           </select>
+        </div>
+
+        <div class="control-row">
+          <label for="seg-local-h">Τοπικό h<sub>seg</sub> (m):</label>
+          <input id="seg-local-h" type="number" step="0.05" min="0" placeholder="Προεπιλογή h" class="styled-input"
+                 [ngModel]="seg.local_element_size ?? 0" (ngModelChange)="updateSegmentLocalElementSize(+$event)" />
         </div>
 
         <div class="control-row">
@@ -111,12 +118,53 @@
           <div class="bc-checkbox-row">
             <label class="checkbox-label">
               <input type="checkbox" [checked]="currentBcSpec.fix_x" (change)="updateDirichletFix($any($event.target).checked, currentBcSpec.fix_y)" />
-              Πάκτωση X (u<sub>x</sub> = 0)
+              Πάκτωση X (u<sub>x</sub>)
             </label>
             <label class="checkbox-label">
               <input type="checkbox" [checked]="currentBcSpec.fix_y" (change)="updateDirichletFix(currentBcSpec.fix_x, $any($event.target).checked)" />
-              Πάκτωση Y (u<sub>y</sub> = 0)
+              Πάκτωση Y (u<sub>y</sub>)
             </label>
+          </div>
+          <div class="param-grid bc-details-grid">
+            <div class="param-item">
+              <label for="seg-ux">u<sub>x</sub> (m):</label>
+              <input id="seg-ux" type="number" step="0.001" class="styled-input"
+                     [ngModel]="currentBcSpec.ux_m" (ngModelChange)="updateDirichletDisp(+$event, currentBcSpec.uy_m)" />
+            </div>
+            <div class="param-item">
+              <label for="seg-uy">u<sub>y</sub> (m):</label>
+              <input id="seg-uy" type="number" step="0.001" class="styled-input"
+                     [ngModel]="currentBcSpec.uy_m" (ngModelChange)="updateDirichletDisp(currentBcSpec.ux_m, +$event)" />
+            </div>
+          </div>
+        }
+
+        @if (currentBcSpec.kind === 'RobinImpedance') {
+          <div class="param-grid bc-details-grid">
+            <div class="param-item">
+              <label for="seg-kn">k<sub>n</sub> (kN/m³):</label>
+              <input id="seg-kn" type="number" step="500" min="0" class="styled-input"
+                     [ngModel]="currentBcSpec.kn_kn_m3"
+                     (ngModelChange)="updateRobinImpedance(+$event, currentBcSpec.ks_kn_m3, currentBcSpec.cn_kn_s_m3, currentBcSpec.cs_kn_s_m3)" />
+            </div>
+            <div class="param-item">
+              <label for="seg-ks">k<sub>s</sub> (kN/m³):</label>
+              <input id="seg-ks" type="number" step="500" min="0" class="styled-input"
+                     [ngModel]="currentBcSpec.ks_kn_m3"
+                     (ngModelChange)="updateRobinImpedance(currentBcSpec.kn_kn_m3, +$event, currentBcSpec.cn_kn_s_m3, currentBcSpec.cs_kn_s_m3)" />
+            </div>
+            <div class="param-item">
+              <label for="seg-cn">c<sub>n</sub> (kN·s/m³):</label>
+              <input id="seg-cn" type="number" step="50" min="0" class="styled-input"
+                     [ngModel]="currentBcSpec.cn_kn_s_m3"
+                     (ngModelChange)="updateRobinImpedance(currentBcSpec.kn_kn_m3, currentBcSpec.ks_kn_m3, +$event, currentBcSpec.cs_kn_s_m3)" />
+            </div>
+            <div class="param-item">
+              <label for="seg-cs">c<sub>s</sub> (kN·s/m³):</label>
+              <input id="seg-cs" type="number" step="50" min="0" class="styled-input"
+                     [ngModel]="currentBcSpec.cs_kn_s_m3"
+                     (ngModelChange)="updateRobinImpedance(currentBcSpec.kn_kn_m3, currentBcSpec.ks_kn_m3, currentBcSpec.cn_kn_s_m3, +$event)" />
+            </div>
           </div>
         }
 
@@ -184,6 +232,19 @@
         @if (cut.shape.kind === 'Polygon') {
           <div class="shape-type-info">Πολυγωνική Οπή ({{ cut.shape.vertices.length }} κορυφές)</div>
         }
+
+        <div class="param-grid">
+          <div class="param-item">
+            <label for="cut-tag">Ετικέτα (Tag)</label>
+            <input id="cut-tag" type="text" class="styled-input" [ngModel]="cut.tag"
+                   (ngModelChange)="updateSelectedCutoutTag($event)" />
+          </div>
+          <div class="param-item">
+            <label for="cut-loc-h">Τοπικό h (m)</label>
+            <input id="cut-loc-h" type="number" step="0.05" min="0" class="styled-input"
+                   [ngModel]="cut.local_element_size ?? 0" (ngModelChange)="updateSelectedCutoutLocalSize(+$event)" />
+          </div>
+        </div>
 
         <div class="action-row">
           <button type="button" class="btn-delete" (click)="store.removeCutout(cut.id)">🗑 Διαγραφή Οπής</button>
@@ -292,8 +353,13 @@
         </div>
         <div class="param-item">
           <label for="cdt-alpha" title="Συντελεστής Πύκνωσης Οπής h_hole = α · h">Συντελεστής &alpha;<sub>hole</sub>:</label>
-          <input id="cdt-alpha" type="number" step="0.05" min="0.05" max="1.0" class="styled-input"
+          <input id="cdt-alpha" type="number" step="0.05" min="0.1" max="1.0" class="styled-input"
                  [ngModel]="store.domain().meshing_profile.hole_refinement_factor" (ngModelChange)="store.updateMeshingProfile({ hole_refinement_factor: +$event })" />
+        </div>
+        <div class="param-item full-width">
+          <label for="cdt-min-ang">Ελάχιστη Γωνία &theta;<sub>min</sub> (&deg;):</label>
+          <input id="cdt-min-ang" type="number" step="1" min="15" max="32" class="styled-input"
+                 [ngModel]="store.domain().meshing_profile.min_angle_deg" (ngModelChange)="store.updateMeshingProfile({ min_angle_deg: +$event })" />
         </div>
       </div>
 
@@ -343,6 +409,18 @@
           <div class="mesh-stat-item">
             <span class="stat-label">Συνοριακά BEM:</span>
             <span class="stat-value">{{ handoff.mesh_data.stats.num_boundary_elements }}</span>
+          </div>
+          <div class="mesh-stat-item">
+            <span class="stat-label">&theta;<sub>min</sub>:</span>
+            <span class="stat-value">{{ handoff.quality_report.min_angle_deg.toFixed(1) }}&deg;</span>
+          </div>
+          <div class="mesh-stat-item">
+            <span class="stat-label">Max Aspect:</span>
+            <span class="stat-value">{{ handoff.quality_report.max_aspect_ratio.toFixed(2) }}</span>
+          </div>
+          <div class="mesh-stat-item">
+            <span class="stat-label">Conformal:</span>
+            <span class="stat-value">{{ handoff.quality_report.is_conformal ? '100% Ναι' : 'Όχι' }}</span>
           </div>
         </div>
       }

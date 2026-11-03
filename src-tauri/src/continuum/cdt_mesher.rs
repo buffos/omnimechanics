@@ -35,11 +35,6 @@ pub fn generate_conformal_mesh(domain: &ContinuumDomain) -> Result<ConformalMesh
     // 1. Validate domain
     validate_domain(domain)?;
 
-    let prof = &domain.meshing_profile;
-    let target_h = prof.target_element_size.max(0.01);
-    let hole_factor = prof.hole_refinement_factor.clamp(0.1, 1.0);
-    let target_h_hole = target_h * hole_factor;
-
     let is_rect = is_axis_aligned_rectangle(&domain.outer_boundary.vertices);
     let has_single_circ_cutout = domain.cutouts.len() == 1
         && matches!(domain.cutouts[0].shape, CutoutShape::Circle { .. })
@@ -57,6 +52,60 @@ pub fn generate_conformal_mesh(domain: &ContinuumDomain) -> Result<ConformalMesh
         generate_rectangle_grid_mesh(domain)
     } else {
         generate_general_conformal_mesh(domain)
+    }
+}
+
+pub(crate) fn finalize_conformal_handoff(
+    domain: &ContinuumDomain,
+    mut nodes: Vec<[f64; 3]>,
+    mut boundary_elements: Vec<BoundaryElement>,
+    volume_elements: Vec<VolumeElement>,
+    tag_element_counts: HashMap<String, usize>,
+    boundary_provenance: Vec<ElementProvenance>,
+    volume_provenance: Vec<VolumeProvenance>,
+) -> ConformalMeshHandoff {
+    let quality_report = evaluate_mesh_quality(&nodes, &volume_elements, &boundary_elements);
+    if domain.meshing_profile.boundary_element_type == BoundaryElementKind::Line3 {
+        for bnd in &mut boundary_elements {
+            if bnd.nodes.len() == 2 {
+                let n0 = bnd.nodes[0];
+                let n1 = bnd.nodes[1];
+                let mx = 0.5 * (nodes[n0][0] + nodes[n1][0]);
+                let my = 0.5 * (nodes[n0][1] + nodes[n1][1]);
+                let mid_idx = nodes.len();
+                nodes.push([mx, my, 0.0]);
+                bnd.elem_type = ElementType::Line3;
+                bnd.nodes = vec![n0, n1, mid_idx];
+            }
+        }
+    }
+
+    let mut final_report = quality_report;
+    final_report.num_nodes = nodes.len();
+    final_report.num_boundary_elements = boundary_elements.len();
+    final_report.num_volume_elements = volume_elements.len();
+
+    let mesh_data = MeshData {
+        dimension: 2,
+        stats: MeshStats {
+            num_nodes: nodes.len(),
+            num_boundary_elements: boundary_elements.len(),
+            num_volume_elements: volume_elements.len(),
+            dimension: 2,
+        },
+        nodes,
+        boundary_elements,
+        volume_elements,
+    };
+
+    ConformalMeshHandoff {
+        domain_id: domain.id.clone(),
+        domain_revision: domain.revision,
+        mesh_data,
+        quality_report: final_report,
+        tag_element_counts,
+        boundary_provenance,
+        volume_provenance,
     }
 }
 
@@ -148,14 +197,15 @@ fn generate_rectangle_grid_mesh(domain: &ContinuumDomain) -> Result<ConformalMes
     }
 
     let mut bnd_id = 0;
-    let get_tag = |name: &str| -> String {
+    let mut boundary_provenance: Vec<ElementProvenance> = Vec::new();
+    let get_seg_info = |name: &str, default_id: &str| -> (String, String) {
         domain.outer_boundary.segments.iter()
             .find(|s| s.tag.eq_ignore_ascii_case(name))
-            .map(|s| s.tag.clone())
-            .unwrap_or_else(|| name.to_string())
+            .map(|s| (s.tag.clone(), s.id.clone()))
+            .unwrap_or_else(|| (name.to_string(), default_id.to_string()))
     };
 
-    let bottom_tag = get_tag("Bottom");
+    let (bottom_tag, bottom_seg_id) = get_seg_info("Bottom", "S1");
     for i in 0..nx {
         let n0 = node_id(i, 0);
         let n1 = node_id(i + 1, 0);
@@ -166,11 +216,16 @@ fn generate_rectangle_grid_mesh(domain: &ContinuumDomain) -> Result<ConformalMes
             tag: bottom_tag.clone(),
             normal: [0.0, -1.0, 0.0],
         });
+        boundary_provenance.push(ElementProvenance {
+            element_id: bnd_id,
+            parent_feature_id: bottom_seg_id.clone(),
+            tag: bottom_tag.clone(),
+        });
         *tag_counts.entry(bottom_tag.clone()).or_insert(0) += 1;
         bnd_id += 1;
     }
 
-    let right_tag = get_tag("Right");
+    let (right_tag, right_seg_id) = get_seg_info("Right", "S2");
     for j in 0..ny {
         let n0 = node_id(nx, j);
         let n1 = node_id(nx, j + 1);
@@ -181,11 +236,16 @@ fn generate_rectangle_grid_mesh(domain: &ContinuumDomain) -> Result<ConformalMes
             tag: right_tag.clone(),
             normal: [1.0, 0.0, 0.0],
         });
+        boundary_provenance.push(ElementProvenance {
+            element_id: bnd_id,
+            parent_feature_id: right_seg_id.clone(),
+            tag: right_tag.clone(),
+        });
         *tag_counts.entry(right_tag.clone()).or_insert(0) += 1;
         bnd_id += 1;
     }
 
-    let top_tag = get_tag("Top");
+    let (top_tag, top_seg_id) = get_seg_info("Top", "S3");
     for i in 0..nx {
         let n0 = node_id(nx - i, ny);
         let n1 = node_id(nx - i - 1, ny);
@@ -196,11 +256,16 @@ fn generate_rectangle_grid_mesh(domain: &ContinuumDomain) -> Result<ConformalMes
             tag: top_tag.clone(),
             normal: [0.0, 1.0, 0.0],
         });
+        boundary_provenance.push(ElementProvenance {
+            element_id: bnd_id,
+            parent_feature_id: top_seg_id.clone(),
+            tag: top_tag.clone(),
+        });
         *tag_counts.entry(top_tag.clone()).or_insert(0) += 1;
         bnd_id += 1;
     }
 
-    let left_tag = get_tag("Left");
+    let (left_tag, left_seg_id) = get_seg_info("Left", "S4");
     for j in 0..ny {
         let n0 = node_id(0, ny - j);
         let n1 = node_id(0, ny - j - 1);
@@ -211,31 +276,32 @@ fn generate_rectangle_grid_mesh(domain: &ContinuumDomain) -> Result<ConformalMes
             tag: left_tag.clone(),
             normal: [-1.0, 0.0, 0.0],
         });
+        boundary_provenance.push(ElementProvenance {
+            element_id: bnd_id,
+            parent_feature_id: left_seg_id.clone(),
+            tag: left_tag.clone(),
+        });
         *tag_counts.entry(left_tag.clone()).or_insert(0) += 1;
         bnd_id += 1;
     }
 
-    let quality_report = evaluate_mesh_quality(&nodes, &volume_elements, &boundary_elements);
-    let mesh_data = MeshData {
-        dimension: 2,
-        stats: MeshStats {
-            num_nodes: nodes.len(),
-            num_boundary_elements: boundary_elements.len(),
-            num_volume_elements: volume_elements.len(),
-            dimension: 2,
-        },
+    let volume_provenance: Vec<VolumeProvenance> = volume_elements
+        .iter()
+        .map(|v| VolumeProvenance {
+            element_id: v.id,
+            subdomain_id: "matrix".to_string(),
+        })
+        .collect();
+
+    Ok(finalize_conformal_handoff(
+        domain,
         nodes,
         boundary_elements,
         volume_elements,
-    };
-
-    Ok(ConformalMeshHandoff {
-        domain_id: domain.id.clone(),
-        domain_revision: domain.revision,
-        mesh_data,
-        quality_report,
-        tag_element_counts: tag_counts,
-    })
+        tag_counts,
+        boundary_provenance,
+        volume_provenance,
+    ))
 }
 
 /// Computes comprehensive mesh quality metrics.
@@ -369,46 +435,63 @@ fn in_circumcircle(p: [f64; 2], a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> bool {
     dist_sq < r_sq - 1e-10
 }
 
-/// Robust general conformal mesher for arbitrary polygons and multi-element profiles.
+/// Robust general conformal mesher for arbitrary polygons, cutouts, and inclusions.
 fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<ConformalMeshHandoff, CanonicalError> {
     let prof = &domain.meshing_profile;
     let target_h = prof.target_element_size.max(0.05);
+    let alpha = prof.hole_refinement_factor.clamp(0.1, 1.0);
     let is_quad = prof.volume_element_type == VolumeElementKind::Quad4;
-    // For Quad4, before Catmull-Clark splitting, initial triangle size ~1.3*h splits into quads ~h
-    let h_geom = if is_quad { target_h * 1.3 } else { target_h };
+    let quad_scale = if is_quad { 1.3 } else { 1.0 };
+    let h_geom = target_h * quad_scale;
+    let h_hole_default = (target_h * alpha).max(0.02) * quad_scale;
 
-    let vertices = &domain.outer_boundary.vertices;
+    let outer_loop = close_and_normalize_loop("L_OUTER", &domain.outer_boundary.vertices, false)?;
+    let vertices = &outer_loop.vertices;
     let n_verts = vertices.len();
-    if n_verts < 3 {
-        return Err(CanonicalError::new(
-            "INVALID_POLYGON",
-            "Το πολύγωνο πρέπει να έχει τουλάχιστον 3 κορυφές.",
-            "Polygon must have at least 3 vertices.",
-        ));
-    }
-
     let outer_poly: Vec<(f64, f64)> = vertices.iter().map(|v| (v.x, v.y)).collect();
 
-    // 1. Discretize outer boundary segments based on target h
+    // 1. Discretize outer boundary segments based on local_element_size or target h
     let mut nodes: Vec<[f64; 3]> = Vec::new();
     let mut boundary_elements: Vec<BoundaryElement> = Vec::new();
+    let mut boundary_provenance: Vec<ElementProvenance> = Vec::new();
     let mut tag_counts: HashMap<String, usize> = HashMap::new();
     let mut bnd_nodes_chain: Vec<usize> = Vec::new();
+    let mut all_constraint_segments: Vec<((f64, f64), (f64, f64), f64)> = Vec::new();
 
     for i in 0..n_verts {
         let v1 = &vertices[i];
         let v2 = &vertices[(i + 1) % n_verts];
         let seg_len = (v2.x - v1.x).hypot(v2.y - v1.y);
-        let n_sub = ((seg_len / h_geom).round() as usize).max(1);
+        let orig_seg = domain
+            .outer_boundary
+            .segments
+            .iter()
+            .find(|s| (s.start_vertex_id == v1.id && s.end_vertex_id == v2.id) || (s.start_vertex_id == v2.id && s.end_vertex_id == v1.id))
+            .or_else(|| domain.outer_boundary.segments.get(i));
+        let seg_h = orig_seg
+            .and_then(|s| s.local_element_size)
+            .map(|lh| lh.max(0.02) * quad_scale)
+            .unwrap_or(h_geom);
+        let n_sub = ((seg_len / seg_h).round() as usize).max(1);
+        all_constraint_segments.push(((v1.x, v1.y), (v2.x, v2.y), seg_h));
 
-        let seg_meta = domain.outer_boundary.segments.get(i);
-        let tag = seg_meta.map(|s| s.tag.clone()).unwrap_or_else(|| format!("Outer_{}", i + 1));
-        let normal = seg_meta.map(|s| s.outward_normal).unwrap_or_else(|| {
-            let dx = v2.x - v1.x;
-            let dy = v2.y - v1.y;
-            let len = dx.hypot(dy).max(1e-9);
-            [dy / len, -dx / len, 0.0]
-        });
+        let tag = orig_seg
+            .map(|s| s.tag.clone())
+            .or_else(|| outer_loop.segments.get(i).map(|s| s.tag.clone()))
+            .unwrap_or_else(|| format!("Outer_{}", i + 1));
+        let seg_id = orig_seg
+            .map(|s| s.id.clone())
+            .unwrap_or_else(|| format!("S{}", i + 1));
+        let normal = outer_loop
+            .segments
+            .get(i)
+            .map(|s| s.outward_normal)
+            .unwrap_or_else(|| {
+                let dx = v2.x - v1.x;
+                let dy = v2.y - v1.y;
+                let len = dx.hypot(dy).max(1e-9);
+                [dy / len, -dx / len, 0.0]
+            });
 
         let start_node_idx = if i == 0 {
             nodes.push([v1.x, v1.y, 0.0]);
@@ -442,12 +525,165 @@ fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<Conformal
                 tag: tag.clone(),
                 normal,
             });
+            boundary_provenance.push(ElementProvenance {
+                element_id: bnd_id,
+                parent_feature_id: seg_id.clone(),
+                tag: tag.clone(),
+            });
             *tag_counts.entry(tag.clone()).or_insert(0) += 1;
             prev_idx = curr_idx;
         }
     }
 
-    // 2. Add interior grid nodes spaced by h_geom
+    // 1b. Discretize cutouts (CW loops emitting Hole boundary elements)
+    let mut cutout_polys: Vec<Vec<(f64, f64)>> = Vec::new();
+    for cutout in &domain.cutouts {
+        let h_cut = cutout
+            .local_element_size
+            .map(|lh| lh.max(0.02) * quad_scale)
+            .unwrap_or(h_hole_default);
+        let raw_pts = match &cutout.shape {
+            CutoutShape::Circle { center_x, center_y, radius, angular_divisions } => {
+                let circ = 2.0 * std::f64::consts::PI * radius;
+                let divs = ((circ / h_cut).ceil() as usize).max(*angular_divisions).max(16);
+                discretize_cutout_shape(
+                    &CutoutShape::Circle {
+                        center_x: *center_x,
+                        center_y: *center_y,
+                        radius: *radius,
+                        angular_divisions: divs,
+                    },
+                    divs,
+                )
+            }
+            _ => discretize_cutout_shape(&cutout.shape, 24),
+        };
+        let raw_verts: Vec<Vertex2D> = raw_pts
+            .iter()
+            .enumerate()
+            .map(|(idx, &(x, y))| Vertex2D {
+                id: format!("{}_V{}", cutout.id, idx + 1),
+                x,
+                y,
+            })
+            .collect();
+        let cw_loop = close_and_normalize_loop(&cutout.id, &raw_verts, true)?;
+        let cw_pts: Vec<(f64, f64)> = cw_loop.vertices.iter().map(|v| (v.x, v.y)).collect();
+        let m = cw_pts.len();
+        let first_cutout_node = nodes.len();
+        let mut loop_node_chain: Vec<usize> = Vec::new();
+
+        for k in 0..m {
+            let p1 = cw_pts[k];
+            let p2 = cw_pts[(k + 1) % m];
+            let seg_len = (p2.0 - p1.0).hypot(p2.1 - p1.1);
+            let n_sub = if matches!(cutout.shape, CutoutShape::Circle { .. }) {
+                1
+            } else {
+                ((seg_len / h_cut).round() as usize).max(1)
+            };
+            all_constraint_segments.push((p1, p2, h_cut));
+            let normal = cw_loop.segments[k].outward_normal;
+
+            let start_idx = if k == 0 {
+                let idx = nodes.len();
+                nodes.push([p1.0, p1.1, 0.0]);
+                loop_node_chain.push(idx);
+                idx
+            } else {
+                *loop_node_chain.last().unwrap()
+            };
+
+            let mut prev_idx = start_idx;
+            for s in 1..=n_sub {
+                let curr_idx = if k == m - 1 && s == n_sub {
+                    first_cutout_node
+                } else {
+                    let frac = s as f64 / n_sub as f64;
+                    let x = p1.0 + frac * (p2.0 - p1.0);
+                    let y = p1.1 + frac * (p2.1 - p1.1);
+                    let idx = nodes.len();
+                    nodes.push([x, y, 0.0]);
+                    loop_node_chain.push(idx);
+                    idx
+                };
+
+                let bnd_id = boundary_elements.len();
+                boundary_elements.push(BoundaryElement {
+                    id: bnd_id,
+                    elem_type: ElementType::Line2,
+                    nodes: vec![prev_idx, curr_idx],
+                    tag: cutout.tag.clone(),
+                    normal,
+                });
+                boundary_provenance.push(ElementProvenance {
+                    element_id: bnd_id,
+                    parent_feature_id: cutout.id.clone(),
+                    tag: cutout.tag.clone(),
+                });
+                *tag_counts.entry(cutout.tag.clone()).or_insert(0) += 1;
+                prev_idx = curr_idx;
+            }
+        }
+        cutout_polys.push(cw_pts);
+    }
+
+    // 1c. Discretize inclusions (internal interface nodes only; NO boundary elements emitted)
+    let mut inclusion_polys: Vec<(String, Vec<(f64, f64)>, f64)> = Vec::new();
+    for inc in &domain.inclusions {
+        let h_inc = inc
+            .local_element_size
+            .map(|lh| lh.max(0.02) * quad_scale)
+            .unwrap_or(h_hole_default);
+        let raw_pts = match &inc.shape {
+            CutoutShape::Circle { center_x, center_y, radius, angular_divisions } => {
+                let circ = 2.0 * std::f64::consts::PI * radius;
+                let divs = ((circ / h_inc).ceil() as usize).max(*angular_divisions).max(16);
+                discretize_cutout_shape(
+                    &CutoutShape::Circle {
+                        center_x: *center_x,
+                        center_y: *center_y,
+                        radius: *radius,
+                        angular_divisions: divs,
+                    },
+                    divs,
+                )
+            }
+            _ => discretize_cutout_shape(&inc.shape, 24),
+        };
+        let raw_verts: Vec<Vertex2D> = raw_pts
+            .iter()
+            .enumerate()
+            .map(|(idx, &(x, y))| Vertex2D {
+                id: format!("{}_V{}", inc.id, idx + 1),
+                x,
+                y,
+            })
+            .collect();
+        let ccw_loop = close_and_normalize_loop(&inc.id, &raw_verts, false)?;
+        let ccw_pts: Vec<(f64, f64)> = ccw_loop.vertices.iter().map(|v| (v.x, v.y)).collect();
+        let m = ccw_pts.len();
+        for k in 0..m {
+            let p1 = ccw_pts[k];
+            let p2 = ccw_pts[(k + 1) % m];
+            let seg_len = (p2.0 - p1.0).hypot(p2.1 - p1.1);
+            let n_sub = if matches!(inc.shape, CutoutShape::Circle { .. }) {
+                1
+            } else {
+                ((seg_len / h_inc).round() as usize).max(1)
+            };
+            all_constraint_segments.push((p1, p2, h_inc));
+            for s in 0..n_sub {
+                let frac = s as f64 / n_sub as f64;
+                let x = p1.0 + frac * (p2.0 - p1.0);
+                let y = p1.1 + frac * (p2.1 - p1.1);
+                nodes.push([x, y, 0.0]);
+            }
+        }
+        inclusion_polys.push((inc.id.clone(), ccw_pts, h_inc));
+    }
+
+    // 2. Add interior grid nodes spaced by h_geom (and finer inside inclusions)
     let mut min_x = f64::INFINITY;
     let mut max_x = f64::NEG_INFINITY;
     let mut min_y = f64::INFINITY;
@@ -459,7 +695,6 @@ fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<Conformal
         max_y = max_y.max(v.y);
     }
 
-    let margin = 0.55 * h_geom;
     let nx_grid = (((max_x - min_x) / h_geom).ceil() as usize).max(1);
     let ny_grid = (((max_y - min_y) / h_geom).ceil() as usize).max(1);
     let dx = (max_x - min_x) / nx_grid as f64;
@@ -469,16 +704,47 @@ fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<Conformal
         let py = min_y + j as f64 * dy;
         for i in 1..nx_grid {
             let px = min_x + i as f64 * dx;
-            if is_point_inside_polygon((px, py), &outer_poly) {
-                let mut min_dist = f64::INFINITY;
-                for k in 0..n_verts {
-                    let a = (vertices[k].x, vertices[k].y);
-                    let b = (vertices[(k + 1) % n_verts].x, vertices[(k + 1) % n_verts].y);
-                    let d = distance_point_to_segment((px, py), a, b);
-                    min_dist = min_dist.min(d);
-                }
-                if min_dist >= margin {
+            if is_point_inside_polygon((px, py), &outer_poly)
+                && !cutout_polys.iter().any(|cp| is_point_inside_polygon((px, py), cp))
+                && !inclusion_polys.iter().any(|(_, ip, _)| is_point_inside_polygon((px, py), ip))
+            {
+                let too_close = all_constraint_segments.iter().any(|&(a, b, seg_h)| {
+                    distance_point_to_segment((px, py), a, b) < 0.45 * seg_h
+                });
+                if !too_close {
                     nodes.push([px, py, 0.0]);
+                }
+            }
+        }
+    }
+
+    // Add interior Steiner points inside each inclusion
+    for (_, inc_poly, h_inc) in &inclusion_polys {
+        let mut imin_x = f64::INFINITY;
+        let mut imax_x = f64::NEG_INFINITY;
+        let mut imin_y = f64::INFINITY;
+        let mut imax_y = f64::NEG_INFINITY;
+        for &(ix, iy) in inc_poly {
+            imin_x = imin_x.min(ix);
+            imax_x = imax_x.max(ix);
+            imin_y = imin_y.min(iy);
+            imax_y = imax_y.max(iy);
+        }
+        let inx = (((imax_x - imin_x) / h_inc).ceil() as usize).max(2);
+        let iny = (((imax_y - imin_y) / h_inc).ceil() as usize).max(2);
+        let idx_step = (imax_x - imin_x) / inx as f64;
+        let idy_step = (imax_y - imin_y) / iny as f64;
+        for j in 1..iny {
+            let py = imin_y + j as f64 * idy_step;
+            for i in 1..inx {
+                let px = imin_x + i as f64 * idx_step;
+                if is_point_inside_polygon((px, py), inc_poly) {
+                    let too_close = all_constraint_segments.iter().any(|&(a, b, seg_h)| {
+                        distance_point_to_segment((px, py), a, b) < 0.45 * seg_h
+                    });
+                    if !too_close {
+                        nodes.push([px, py, 0.0]);
+                    }
                 }
             }
         }
@@ -544,21 +810,31 @@ fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<Conformal
         }
     }
 
-    // Filter triangles: remove super-triangle vertices and outside triangles
+    // Filter triangles: remove super-triangle vertices, outside triangles, and void cutout interiors
     let mut valid_triangles = Vec::new();
+    let mut tri_regions = Vec::new();
     for t in triangles {
         if t.a >= num_orig_nodes || t.b >= num_orig_nodes || t.c >= num_orig_nodes {
             continue;
         }
         let cx = (nodes[t.a][0] + nodes[t.b][0] + nodes[t.c][0]) / 3.0;
         let cy = (nodes[t.a][1] + nodes[t.b][1] + nodes[t.c][1]) / 3.0;
-        if is_point_inside_polygon((cx, cy), &outer_poly) {
+        if is_point_inside_polygon((cx, cy), &outer_poly)
+            && !cutout_polys.iter().any(|cp| is_point_inside_polygon((cx, cy), cp))
+        {
+            let region_id = inclusion_polys
+                .iter()
+                .find(|(_, ip, _)| is_point_inside_polygon((cx, cy), ip))
+                .map(|(id, _, _)| id.clone())
+                .unwrap_or_else(|| "matrix".to_string());
             valid_triangles.push(t);
+            tri_regions.push(region_id);
         }
     }
 
     // 4. Generate Volume Elements (Tri3 or pure Quad4)
     let mut volume_elements: Vec<VolumeElement> = Vec::new();
+    let mut volume_provenance: Vec<VolumeProvenance> = Vec::new();
 
     if !is_quad {
         for (i, t) in valid_triangles.iter().enumerate() {
@@ -566,6 +842,10 @@ fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<Conformal
                 id: i,
                 elem_type: ElementType::Tri3,
                 nodes: vec![t.a, t.b, t.c],
+            });
+            volume_provenance.push(VolumeProvenance {
+                element_id: i,
+                subdomain_id: tri_regions[i].clone(),
             });
         }
     } else {
@@ -586,7 +866,7 @@ fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<Conformal
         };
 
         let mut vol_id = 0;
-        for t in &valid_triangles {
+        for (t_idx, t) in valid_triangles.iter().enumerate() {
             let m_ab = get_or_create_mid(t.a, t.b, &mut nodes);
             let m_bc = get_or_create_mid(t.b, t.c, &mut nodes);
             let m_ca = get_or_create_mid(t.c, t.a, &mut nodes);
@@ -595,84 +875,77 @@ fn generate_general_conformal_mesh(domain: &ContinuumDomain) -> Result<Conformal
             let cy = (nodes[t.a][1] + nodes[t.b][1] + nodes[t.c][1]) / 3.0;
             let c_idx = nodes.len();
             nodes.push([cx, cy, 0.0]);
+            let reg = &tri_regions[t_idx];
 
-            volume_elements.push(VolumeElement {
-                id: vol_id,
-                elem_type: ElementType::Quad4,
-                nodes: vec![t.a, m_ab, c_idx, m_ca],
-            });
-            vol_id += 1;
-            volume_elements.push(VolumeElement {
-                id: vol_id,
-                elem_type: ElementType::Quad4,
-                nodes: vec![t.b, m_bc, c_idx, m_ab],
-            });
-            vol_id += 1;
-            volume_elements.push(VolumeElement {
-                id: vol_id,
-                elem_type: ElementType::Quad4,
-                nodes: vec![t.c, m_ca, c_idx, m_bc],
-            });
-            vol_id += 1;
+            for quad_nodes in [
+                vec![t.a, m_ab, c_idx, m_ca],
+                vec![t.b, m_bc, c_idx, m_ab],
+                vec![t.c, m_ca, c_idx, m_bc],
+            ] {
+                volume_elements.push(VolumeElement {
+                    id: vol_id,
+                    elem_type: ElementType::Quad4,
+                    nodes: quad_nodes,
+                });
+                volume_provenance.push(VolumeProvenance {
+                    element_id: vol_id,
+                    subdomain_id: reg.clone(),
+                });
+                vol_id += 1;
+            }
         }
 
         // Subdivide boundary elements at midpoints for strict 100% boundary-to-volume conformity
         let mut quad_bnd_elements = Vec::new();
+        let mut quad_bnd_prov = Vec::new();
         let mut quad_tag_counts: HashMap<String, usize> = HashMap::new();
-        for bnd in &boundary_elements {
+        for (b_idx, bnd) in boundary_elements.iter().enumerate() {
             let u = bnd.nodes[0];
             let v = bnd.nodes[1];
             let key = (u.min(v), u.max(v));
+            let prov = &boundary_provenance[b_idx];
             if let Some(&m_idx) = edge_midpoints.get(&key) {
-                let id1 = quad_bnd_elements.len();
-                quad_bnd_elements.push(BoundaryElement {
-                    id: id1,
-                    elem_type: ElementType::Line2,
-                    nodes: vec![u, m_idx],
-                    tag: bnd.tag.clone(),
-                    normal: bnd.normal,
-                });
-                let id2 = quad_bnd_elements.len();
-                quad_bnd_elements.push(BoundaryElement {
-                    id: id2,
-                    elem_type: ElementType::Line2,
-                    nodes: vec![m_idx, v],
-                    tag: bnd.tag.clone(),
-                    normal: bnd.normal,
-                });
+                for pair in [[u, m_idx], [m_idx, v]] {
+                    let id_new = quad_bnd_elements.len();
+                    quad_bnd_elements.push(BoundaryElement {
+                        id: id_new,
+                        elem_type: ElementType::Line2,
+                        nodes: vec![pair[0], pair[1]],
+                        tag: bnd.tag.clone(),
+                        normal: bnd.normal,
+                    });
+                    quad_bnd_prov.push(ElementProvenance {
+                        element_id: id_new,
+                        parent_feature_id: prov.parent_feature_id.clone(),
+                        tag: prov.tag.clone(),
+                    });
+                }
                 *quad_tag_counts.entry(bnd.tag.clone()).or_insert(0) += 2;
             } else {
                 let new_id = quad_bnd_elements.len();
                 let mut b = bnd.clone();
                 b.id = new_id;
                 quad_bnd_elements.push(b);
+                quad_bnd_prov.push(ElementProvenance {
+                    element_id: new_id,
+                    parent_feature_id: prov.parent_feature_id.clone(),
+                    tag: prov.tag.clone(),
+                });
                 *quad_tag_counts.entry(bnd.tag.clone()).or_insert(0) += 1;
             }
         }
         boundary_elements = quad_bnd_elements;
+        boundary_provenance = quad_bnd_prov;
         tag_counts = quad_tag_counts;
     }
 
-    let quality_report = evaluate_mesh_quality(&nodes, &volume_elements, &boundary_elements);
-
-    let mesh_data = MeshData {
-        dimension: 2,
-        stats: MeshStats {
-            num_nodes: nodes.len(),
-            num_boundary_elements: boundary_elements.len(),
-            num_volume_elements: volume_elements.len(),
-            dimension: 2,
-        },
+    Ok(finalize_conformal_handoff(
+        domain,
         nodes,
         boundary_elements,
         volume_elements,
-    };
-
-    Ok(ConformalMeshHandoff {
-        domain_id: domain.id.clone(),
-        domain_revision: domain.revision,
-        mesh_data,
-        quality_report,
-        tag_element_counts: tag_counts,
-    })
+        tag_counts,
+        boundary_provenance,
+        volume_provenance,
+    ))
 }
