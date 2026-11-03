@@ -3,8 +3,9 @@ type: project
 title: BemApp - BEM-FEM Hybrid Platform for Inhomogeneous Elastodynamics & Structural Mechanics
 description: High-performance computational platform coupling BEM as a homogeneous predictor with FEM as an inhomogeneous corrector for 2D and 3D elastodynamics, featuring 3 distinct application modes (Benchmark Workbench, Custom CAD Drafting & Import, and Structural Mechanics / Eurocode Step-by-Step Educational Studio).
 tags: [bem, fem, elastodynamics, structural-mechanics, eurocode, teaching-mode, cad-drafting, tauri, angular, threejs, rust]
-timestamp: 2026-10-30T14:55:00Z
-state: bounded
+timestamp: 2026-11-01T19:20:00Z
+state: specified
+state_changed: 2026-11-01T19:20:00Z
 children:
   - /capabilities/cap-geometry-meshing.md
   - /capabilities/cap-material-field.md
@@ -14,8 +15,17 @@ children:
   - /capabilities/cap-project-persistence.md
   - /capabilities/cap-structural-mechanics-teaching.md
   - /capabilities/cap-eurocode-rc-design.md
+  - /capabilities/cap-frame-analysis-engine.md
+  - /capabilities/cap-eurocode-actions-combinations.md
+prd: docs/prd.md
+architecture_summary: docs/architecture/application-architecture-summary.md
 verification:
-  policy: required
+  mode: required
+  deferred_requires_reason: true
+  surfaces:
+    backend-boundary: required
+    frontend-integration: required
+    end-to-end: catalog-only
 ---
 
 # Intent
@@ -58,3 +68,7 @@ Provide an advanced, accessible, and high-performance desktop engineering and ed
 - Child: [Project Persistence](/capabilities/cap-project-persistence.md)
 - Child: [Structural Mechanics Teaching Engine](/capabilities/cap-structural-mechanics-teaching.md)
 - Child: [Eurocode Structural Design Engine](/capabilities/cap-eurocode-rc-design.md)
+- Child: [2D Frame Analysis Engine](/capabilities/cap-frame-analysis-engine.md)
+- Child: [Eurocode Actions & Combinations (EN 1990/1998)](/capabilities/cap-eurocode-actions-combinations.md)
+- Application PRD: [docs/prd.md](../docs/prd.md)
+- Application architecture summary: [application-architecture-summary.md](../docs/architecture/application-architecture-summary.md)

@@ -1,15 +1,37 @@
 ## Issue Metadata
 
 - Issue number: `015`
-- Owning capability node: `/.okf/capabilities/cap-geometry-canvas-sketcher.md`
+- Owning capability node: `/.okf/capabilities/cap-geometry-canvas-sketcher.md` (now a roll-up)
 - Artifact root: `docs/architecture/cap-geometry-canvas-sketcher/`
-- Issue file: `docs/agents/issues/pending/20261031-015-interactive-canvas-sketcher.md`
+- Issue file: `docs/agents/issues/done/20261031-015-interactive-canvas-sketcher.md`
 - Category: `feature`
 - Execution type: `AFK`
 - Review gate: `visual-review`
-- Suggested state: `ready`
+- State: `superseded` (not implemented)
 
-## Parent Artifacts
+## Superseded Disposition (2026-10-31)
+
+This issue was **not implemented**. The `$process-reference-issue` pre-implementation gate found
+material gaps (recorded in `docs/architecture/cap-geometry-canvas-sketcher/requirements-gap-analysis.md`):
+
+- The application PRD and architecture summary were missing.
+- The teaching engine has no general frame solver, so the issue's own Portal Frame preset could not be analyzed.
+- The OKF node and this issue had divergent sketch domain models.
+- There were no scenarios for invalid topology and handoff failures, and no frontend test harness under the `required` policy.
+
+The user then ran fog-of-war planning (40 decisions in
+`docs/architecture/cap-geometry-canvas-sketcher/discovery-notes.md`), which set the target as "any 2D
+structure (beams, trusses, springs, cables) with live solutions, and step-by-step when possible".
+Replacement work:
+
+- `cap-frame-analysis-engine` (new): DSM solver and structural model owner.
+- `cap-eurocode-actions-combinations` (new): EN 1990/1998.
+- `cap-sketcher-frame-modeler` (new child): Mode 2 workspace.
+
+Replacement issues will be sliced after these nodes pass the architecture spec pipeline. None of the
+acceptance criteria below were delivered.
+
+## Original Parent Artifacts
 
 - `.okf/project.md`
 - `.okf/capabilities/cap-geometry-meshing.md`

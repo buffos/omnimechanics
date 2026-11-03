@@ -1,6 +1,10 @@
 # OKF Knowledge Bundle Log
 
-## 2026-10-28
+## 2026-11-02
+- Closed issue 016: 2D Structural Model, Material/Section Catalogs & Pre-Solve Kinematic Diagnostics (`docs/agents/issues/done/20261101-016-frame-model-catalog-kinematic-diagnostics.md`).
+- Closed issue 017: Linear Static DSM Solver, Analytical Member Diagrams, Envelopes & DSM Walkthrough (`docs/agents/issues/done/20261101-017-linear-static-dsm-analytical-diagrams-envelopes.md`). Implemented Euler-Bernoulli element stiffness with static condensation of end releases and rigid offsets, inclined support transformations, settlement and thermal load assembly, analytical internal force polynomials M(x), Q(x), N(x) under Greek sign conventions, pointwise envelopes across combinations (`SC-007`), and pedagogical DSM walkthrough generator (`SC-009`). 15 tests passing, limits check passing.
+- Closed issue 018: Background Analysis Jobs, Unilateral Active-Set, 2nd-Order P-Delta & Linear Buckling (`docs/agents/issues/done/20261101-018-async-jobs-unilateral-pdelta-buckling.md`). Implemented asynchronous `AnalysisJob` coordinator with revision fencing, cooperative cancellation (`SC-008`), active-set iteration for unilateral supports and tension/compression-only braces (`SC-003`), 2nd-order $P\text{-}\Delta$ Newton solver with divergence detection and base reaction amplification (`SC-004`), and linear eigenvalue buckling solver with normalized mode shapes (`SC-004`). Registered IPC commands `frame_start_analysis_job`, `frame_cancel_analysis_job`, `frame_get_analysis_job_result`. 20 tests passing, limits check passing.
+
 - Initialized greenfield planning bundle for BemApp.
 - Created root project concept `project.md` with bounded initial state.
 - Modeled 6 top-level capabilities:
@@ -66,3 +70,177 @@
   - Formulated Vertical Slice 1 for Mode 2 Interactive 2D Canvas Drafting & Custom Geometry Sketcher.
   - Scope: 2D drawing canvas with magnetic snapping, orthogonal lock, support palette (Fixed, Pinned, Roller, Hinge), load palette (Point load, Distributed load, Moments), and seamless handoff to Mode 3 Teaching Studio.
   - Registered in active registry `docs/agents/issues/issues.md` as `ready`.
+
+## 2026-10-31
+
+### Issue 015 gate failure, fog clearing for 2D structural modeling & analysis
+
+- `$process-reference-issue 015` stopped before implementation because of material gaps (no frame
+  solver, divergent domain models, missing application synthesis, no frontend harness). Gaps are recorded
+  in `docs/architecture/cap-geometry-canvas-sketcher/requirements-gap-analysis.md`.
+- Fog-of-war planning (clear fog from code) ran 4 batches / 40 user decisions, recorded in
+  `docs/architecture/cap-geometry-canvas-sketcher/discovery-notes.md`. Target: any 2D structure
+  (beams, trusses, springs, catenary cables) with live DSM results, P-Δ/buckling, EN 1990/1998
+  combinations and seismic analysis, and step-by-step when possible.
+- Topology (user-confirmed, Q29/Q34):
+  - New top-level `cap-frame-analysis-engine` (bounded). It owns the structural model.
+  - New top-level shared `cap-eurocode-actions-combinations` (bounded), shared with RC design.
+  - `cap-geometry-canvas-sketcher` converted to a roll-up with children `cap-sketcher-frame-modeler`
+    (bounded) and `cap-sketcher-continuum-domain` (bounded).
+- State changes:
+  - `cap-geometry-canvas-sketcher`: `in-progress` (invalid) / index `specified` → roll-up `bounded`
+    (derived: min of children).
+  - `cap-geometry-meshing` (roll-up): `specified` → `bounded`, a derived transition caused by the
+    sketcher child.
+  - `cap-structural-mechanics-teaching`: invalid `in-progress` repaired to `specified`. The classifier
+    and DSM walkthrough extension is noted, and a PRD refresh is pending.
+  - New nodes: `cap-frame-analysis-engine`, `cap-eurocode-actions-combinations`,
+    `cap-sketcher-frame-modeler`, `cap-sketcher-continuum-domain` (all `bounded`).
+- Root verification block normalised to the profile schema (`mode: required`; surfaces backend-boundary
+  required, frontend-integration required, end-to-end catalog-only).
+- Issue 015 archived to `done/` as **superseded (not implemented)** and removed from the active
+  registry.
+- Totals (capabilities): foggy 0, bounded 8, specified 3, implemented 4.
+
+## 2026-11-01
+
+### Architecture specification pipeline completed across all bounded nodes
+
+- Executed the `$bounded-capability-spec-orchestrator` architecture pipeline (`domain-glossary`, `prd`,
+  `canonical-domain-model`, `canonical-use-cases`, `canonical-api-cli-contract`, `acceptance-scenarios`,
+  `readiness-review`, `orchestration-status`) across all 6 own-state `bounded` capabilities:
+  - `cap-frame-analysis-engine` (`bounded` -> `specified`): 8 files in `docs/architecture/cap-frame-analysis-engine/`, `SC-001..SC-009`, 0 High/Medium blockers.
+  - `cap-eurocode-actions-combinations` (`bounded` -> `specified`): 8 files in `docs/architecture/cap-eurocode-actions-combinations/`, `SC-001..SC-009`, 0 High/Medium blockers.
+  - `cap-sketcher-frame-modeler` (`bounded` -> `specified`): 8 files in `docs/architecture/cap-sketcher-frame-modeler/`, `SC-001..SC-014`, 0 High/Medium blockers.
+  - `cap-sketcher-continuum-domain` (`bounded` -> `specified`): 8 files in `docs/architecture/cap-sketcher-continuum-domain/`, `SC-001..SC-009`, 0 High/Medium blockers.
+  - `cap-interactive-canvas` (`bounded` -> `specified`): 8 files in `docs/architecture/cap-interactive-canvas/`, `SC-001..SC-012`, 0 High/Medium blockers.
+  - `cap-project-persistence` (`bounded` -> `specified`): 8 files in `docs/architecture/cap-project-persistence/`, `SC-001..SC-012`, 0 High/Medium blockers.
+- Derived roll-up transitions (`state_policy.mode: rollup`, `reducer: min`):
+  - `cap-geometry-canvas-sketcher`: `bounded` -> `specified` (children `cap-sketcher-frame-modeler` and `cap-sketcher-continuum-domain` both reached `specified`).
+  - `cap-geometry-meshing`: `bounded` -> `specified` (children `cap-geometry-presets` [`implemented`], `cap-geometry-cad-import` [`specified`], and `cap-geometry-canvas-sketcher` [`specified`] are all >= `specified`).
+- Root project `project.md`: `bounded` -> `specified` with synchronized application synthesis documents (`docs/prd.md` and `docs/architecture/application-architecture-summary.md`).
+- Totals (capabilities): foggy 0, bounded 0, specified 11, implemented 4.
+
+### Issue slicing for `cap-frame-analysis-engine`
+
+- Sliced `cap-frame-analysis-engine` (`docs/architecture/cap-frame-analysis-engine/`) into 5 dependency-ordered vertical slices in `docs/agents/issues/pending/` and registered them in `docs/agents/issues/issues.md` (`# Current Max Issue ID` updated to `020`):
+  - `016`: 2D Structural Model, Material/Section Catalogs & Pre-Solve Kinematic Diagnostics (`SC-002`) — unblocked (`ready-for-agent`).
+  - `017`: Linear Static DSM Solver, Analytical Member Diagrams, Envelopes & DSM Walkthrough (`SC-001`, `SC-007`, `SC-009`) — blocked by `016`.
+  - `018`: Background Analysis Jobs, Unilateral Active-Set, 2nd-Order P-Delta & Linear Buckling (`SC-003`, `SC-004`, `SC-008`) — blocked by `017`.
+  - `019`: Exact Irvine Elastic Catenary Cable Solver & Slack Detection (`SC-005`) — blocked by `018`.
+  - `020`: Modal Analysis, EN 1998 Response Spectrum (SRSS/CQC), Lateral Force & OpenSees Benchmarks (`SC-006`) — blocked by `018, 019`.
+- Linked all 5 pending issue paths in `.okf/capabilities/cap-frame-analysis-engine.md`.
+
+## 2026-11-02
+
+### Delivery of Issues 016, 017, 018, 019, 020 for `cap-frame-analysis-engine`
+
+- Closed Issue 016 (`frame-model-catalog-kinematic-diagnostics`):
+  - Delivered 2D frame structural model data types, JSON serialization, section/material catalog, validation rules, and SVD/eigenvalue kinematic mechanism diagnostics (`SC-002`).
+- Closed Issue 017 (`linear-static-dsm-analytical-diagrams-envelopes`):
+  - Delivered live direct stiffness method linear solver (< 50 ms for 500 nodes / 1000 members), analytical Hermite member internal diagrams (M, Q, N, deformed shape), combination envelope extrema, and Mode 3 DSM educational walkthrough step generator (`SC-001`, `SC-007`, `SC-009`).
+- Closed Issue 018 (`async-jobs-unilateral-pdelta-buckling`):
+  - Delivered background async job worker with thread pools, revision fencing, cancellation tokens (`SC-008`), active-set iteration for tension-only/compression-only elements and unilateral supports (`SC-003`), second-order P-Delta solver with deformed base reactions, and linear eigenvalue buckling analysis with Euler critical load parity (`SC-004`).
+- Closed Issue 019 (`irvine-elastic-catenary-cable-solver`):
+  - Delivered exact 2D Irvine elastic catenary cable element solver (`catenary.rs`), supporting `UnstressedLength`, `SagRatio`, and `Pretension` conversions, analytical 2x2 flexibility Jacobian inversion to 4x4 tangent stiffness, outer global Newton-Raphson equilibrium iteration, slack cable detection ($H < 10^{-4} EA$), positive-definite regularization, and 21-point catenary curve geometry generation (`SC-005`).
+  - Unit tests in `catenary_test.rs` pass with 100% compliance.
+  - Archived to `docs/agents/issues/done/20261101-019-irvine-elastic-catenary-cable-solver.md` and unblocked Issue 020.
+- Closed Issue 020 (`modal-rsa-lateral-force-opensees-benchmarks`):
+  - Delivered modal eigenfrequency analysis (`dynamics.rs`), dynamic mass matrix assembly ($G + \psi_2 Q$ and `LumpedMass`), automatic mode expansion until cumulative effective mass $\ge 90\%$, EN 1998-1 Lateral Force solver with vertical story shear distribution, and Response Spectrum Analysis with SRSS and Der Kiureghian CQC modal combinations (`SC-006`).
+  - Created offline reproducible benchmark generator `scripts/generate-frame-benchmarks.py` and committed 5 reference benchmark CSVs in `docs/benchmarks/frame/`.
+  - Comprehensive integration tests in `dynamics_test.rs` and `benchmarks_test.rs` passing within $10^{-6}$ (linear) and $10^{-3}$ (nonlinear).
+  - Archived to `docs/agents/issues/done/20261101-020-modal-rsa-lateral-force-opensees-benchmarks.md`.
+- Capability `cap-frame-analysis-engine` transitioned to `state: implemented` (all 5 vertical slices complete).
+- Totals (capabilities): foggy 0, bounded 0, specified 10, implemented 5.
+
+## 2026-11-02
+
+### Issue slicing for `cap-eurocode-actions-combinations`
+
+- Sliced `cap-eurocode-actions-combinations` (`docs/architecture/cap-eurocode-actions-combinations/`) into 2 dependency-ordered vertical slices in `docs/agents/issues/pending/` and registered them in `docs/agents/issues/issues.md` (`# Current Max Issue ID` updated to `022`):
+  - `021`: Greek National Annex Profile & EN 1990 Load Combination Engine (`SC-001`, `SC-002`, `SC-003`, `SC-004`, `SC-009`) — unblocked (`ready-for-agent`).
+  - `022`: EN 1998-1 Seismic Spectra, Mass Participation, Lateral Force & CQC Correlation Engine (`SC-005`, `SC-006`, `SC-007`, `SC-008`, `SC-009`) — blocked by `021`.
+- Linked `021` and `022` in `.okf/capabilities/cap-eurocode-actions-combinations.md`.
+
+### Issue slicing for `cap-sketcher-frame-modeler`
+
+- Sliced `cap-sketcher-frame-modeler` (`docs/architecture/cap-sketcher-frame-modeler/`) into 4 dependency-ordered vertical slices in `docs/agents/issues/pending/` and registered them in `docs/agents/issues/issues.md` (`# Current Max Issue ID` updated to `026`):
+  - `023`: Mode 2 Workspace, 2D SVG Drafting Canvas, Priority Snapping, Auto-Splits & CAD Transforms (`SC-001`, `SC-002`, `SC-003`, `SC-004`) — unblocked (`ready-for-agent`).
+  - `024`: Property Inspector, Internal Hinge Expansion, Support/Load Palettes, Live Linear DSM Diagrams & Mechanism Animation (`SC-005`, `SC-006`, `SC-007`, `SC-009`) — blocked by `023`.
+  - `025`: Multi-LoadCase Management, EN 1990/1998 Combinations UI, Governing Envelopes & Background Nonlinear/Seismic Jobs (`SC-008`, `SC-010`) — blocked by `021, 022, 024`.
+  - `026`: Mode 3 Method Classifier Handoff, Teaching Preset Import, Project Persistence & SVG/PNG Diagram Export (`SC-011`, `SC-012`, `SC-013`, `SC-014`) — blocked by `025`.
+- Linked `023`–`026` in `.okf/capabilities/cap-sketcher-frame-modeler.md`.
+
+### Closeout for Issue 021 (`cap-eurocode-actions-combinations`)
+
+- Closed Issue 021 (`eurocode-na-profile-en1990-combination-engine`):
+  - Implemented Greek National Annex (`GR`) default factors catalog ($\gamma_{G,\text{sup}}=1.35$, $\gamma_{G,\text{inf}}=1.00$, $\gamma_{Q,\text{sup}}=1.50$, $\gamma_{Q,\text{inf}}=0.00$, $\xi=0.85$, $\psi_0/\psi_1/\psi_2$ tables) and structural system $q$-factor guidance in `src-tauri/src/actions/na_profile.rs`.
+  - Implemented EN 1990 load combination generator (`combinations.rs`) for `ULS_STR`/`ULS_GEO` (Eq. 6.10 & Eq. 6.10a/b), `SLS_CHAR` (Eq. 6.14b), `SLS_FREQ` (Eq. 6.15b), and `SLS_QP` (Eq. 6.16b), with automatic envelope grouping and provenance preservation (`Generated`, `UserEdited`, `Manual`).
+  - Registered Tauri IPC commands: `actions_get_default_na_profile`, `actions_validate_na_profile`, `actions_generate_combinations`, `actions_save_custom_combination`, and `actions_delete_or_reset_combination`.
+  - Unit tests in `actions_test.rs` pass with 100% compliance.
+  - Archived to `docs/agents/issues/done/20261102-021-eurocode-na-profile-en1990-combination-engine.md`, removed from active registry `docs/agents/issues/issues.md`, and unblocked Issue 022.
+
+### Closeout for Issue 022 (`cap-eurocode-actions-combinations`)
+
+- Closed Issue 022 (`en1998-seismic-spectra-mass-lateral-cqc`):
+  - Implemented EN 1998-1 Type 1 horizontal and vertical design spectrum engine ($S_e(T), S_d(T)$, damping correction $\eta$, plateau, lower-bound $\beta a_g$) in `src-tauri/src/actions/seismic.rs`.
+  - Implemented seismic mass participation rule ($G + \psi_{E,i} Q$) and signed `SEISMIC` combinations ($\pm 1.00 E_x$ horizontal and 8 signed combinations for 30% bidirectional rule) in `combinations.rs` and `seismic.rs`.
+  - Implemented equivalent static lateral force distribution ($F_b$, story forces $F_i$, $\lambda = 0.85$ correction).
+  - Implemented Der Kiureghian CQC modal correlation matrix and SRSS diagonal matrix.
+  - Registered Tauri IPC commands: `actions_compute_design_spectrum`, `actions_compute_seismic_mass_rule`, `actions_compute_lateral_forces`, and `actions_compute_cqc_matrix`.
+  - Unit tests in `seismic_test.rs` pass with 100% compliance.
+  - Archived to `docs/agents/issues/done/20261102-022-en1998-seismic-spectra-mass-lateral-cqc.md`, removed from active registry `docs/agents/issues/issues.md`, and unblocked Issue 025 dependency on 022.
+- Capability `cap-eurocode-actions-combinations` transitioned to `state: implemented` (both vertical slices complete).
+- Totals (capabilities): foggy 0, bounded 0, specified 9, implemented 6.
+
+### Closeout for Issue 023 (`cap-sketcher-frame-modeler`)
+
+- Closed Issue 023 (`mode2-drafting-canvas-snapping-splits-transforms`):
+  - Bootstrapped Vitest frontend test harness (`vitest.config.ts`, `npm run test:unit`), verified 14 unit tests passing in pure TypeScript.
+  - Implemented `DraftingViewport` affine screen $\leftrightarrow$ world transformations with pan, zoom, dynamic $y$-up grid lines, and selectable step ($0.1\text{ m}, 0.5\text{ m}, 1.0\text{ m}$).
+  - Implemented `SnappingEngine` with priority-ordered snap evaluation (`NodeSnap` $< 15\text{ px}$, `IntersectionSnap`, `MidpointSnap`, `OrthoLock`, `AngularGuideSnap`, `GridSnap`), exact `(x, y)` and `(L, θ)` numeric keyboard entry, and rejection of zero-length elements (`ZERO_LENGTH_ELEMENT`).
+  - Implemented `TopologicalSplitService` for automatic member splitting at crossings and intermediate nodes while partitioning distributed loads and preserving release/section/material continuity.
+  - Implemented `CadTransformationService` supporting marquee box selection (enclosed vs. crossing), `Move`, `Copy`, `Mirror` across a 2-point axis, `LinearArray` with coincident node welding, and cascade `Delete`.
+  - Implemented `UndoRedoStack` in `ModelerStore` with monotonic `StructuralModel.revision` increments on every action.
+  - Integrated Mode 2 workspace in application header switcher («Μοντελοποίηση & Ανάλυση» / 'Structural Modeler') and created canvas & toolbar components.
+  - Archived to `docs/agents/issues/done/20261102-023-mode2-drafting-canvas-snapping-splits-transforms.md`, removed from active registry `docs/agents/issues/issues.md`, and unblocked Issue 024.
+
+### Closeout for Issue 024 (`cap-sketcher-frame-modeler`)
+
+- Closed Issue 024 (`palettes-inspector-live-linear-dsm-diagrams-mechanisms`):
+  - Delivered `PropertyInspectorComponent` editing node coordinates, sections, materials, end releases (`axial`, `shear`, `moment`), rigid offsets, truss axial modes, and cable prestress specs with boundary validations (`INVALID_CABLE_SPEC`).
+  - Implemented `InternalHingeExpansionPolicy` expanding a joint shared by $k \ge 2$ members into $k - 1$ moment releases (keeping 1 continuous) and rejecting $k < 2$ with `INVALID_HINGE_TARGET`.
+  - Delivered `ModelerPalettesComponent` for assigning/removing supports (`Fixed`, `Pinned`, inclined `Roller`, `Guided`, `Elastic`, unilateral) and loads (`NodalLoad`, `MemberPointLoad` at arbitrary interior distance without splitting, uniform/trapezoidal `MemberDistributedLoad`, `SupportSettlement`, `ThermalLoad`, and `self_weight`), rejecting out-of-bounds point loads with `LOAD_OUT_OF_MEMBER_BOUNDS`.
+  - Delivered `ModelerResultsService` providing 150 ms debounced live linear DSM solving (`frame_solve_linear`), tension-side $M/Q/N$ diagram rendering with Greek tension-side convention ($M > 0$ on bottom), extrema labels, support reaction vectors, and `CrossSectionHoverProbe` (`UC-Q02`).
+  - Delivered collapsible `EndForceTableComponent` (`UC-Q03`) tabulating member end forces ($N_i, Q_i, M_i, N_j, Q_j, M_j$).
+  - Delivered kinematic mechanism detection & animated mode oscillation when structure is unstable (`SC-009`), suppressing force diagrams and showing bilingual diagnostic banner.
+  - Unit tests in `inspector.spec.ts` pass 100%, Angular bundle builds with 0 errors.
+  - Archived to `docs/agents/issues/done/20261102-024-palettes-inspector-live-linear-dsm-diagrams-mechanisms.md`, removed from active registry `docs/agents/issues/issues.md`, and unblocked Issue 025.
+
+### Closeout for Issue 025 (`cap-sketcher-frame-modeler`)
+
+- Closed Issue 025 (`mode2-loadcases-eurocode-combinations-envelopes-async-jobs`):
+  - Implemented multi-loadcase CRUD, automatic Eurocode EN 1990 combination generator (`actions_generate_combinations`), seismic settings form, and analytical/IPC EN 1998-1 Type 1 design spectrum $S_d(T)$ preview in `CombinationManagerComponent`.
+  - Enhanced `ModelerStore` with loadcase and combination actions (`addLoadCase`, `deleteLoadCase`, `setCombinations`, `updateCombination`, `setSeismicSettings`, `isCombinationModalOpen`).
+  - Implemented `AnalysisKind` selector (`LinearStatic`, `SecondOrderPDelta`, `LinearBuckling`, `Modal`, `ResponseSpectrum`, `LateralForce`) and `ResultTarget` selector (`LoadCase`, `Combination`, `Envelope`) in `ModelerToolbarComponent`.
+  - Implemented dual upper/lower shaded tension-side envelope diagram rendering on canvas, pointwise governing combination readout in `CrossSectionHoverProbe` and `EndForceTableComponent` (`SC-010`).
+  - Integrated background nonlinear/dynamic job coordination (`frame_start_analysis_job`, `frame_cancel_analysis_job`, `analysis://progress`) with progress pill indicator and rapid mutation cancellation discarding stale revisions (`SC-008`).
+  - Implemented curved catenary cable path rendering and non-superposition warning banner (`BR-4`) when nonlinear elements or $P\text{-}\Delta$ are active.
+  - Verified 28 Vitest unit tests passing, `ng build` passing with 0 errors, and limits checks passing across all 188 files.
+  - Archived to `docs/agents/issues/done/20261102-025-mode2-loadcases-eurocode-combinations-envelopes-async-jobs.md`, removed from active registry `docs/agents/issues/issues.md`, and unblocked Issue 026.
+
+### Closeout for Issue 026 (`cap-sketcher-frame-modeler`)
+
+- Closed Issue 026 (`mode3-classifier-handoff-preset-import-diagram-export`):
+  - Implemented Rust structural method classifier (`teaching::classifier`) evaluating `MethodEligibility` across classical methods (`IsostaticBeamFrame`, `TrussJointsRitter`, `ContinuousBeamClapeyronCross`, `ForceMethod`) and unconditionally enforcing `BR-5` ineligibility with bilingual explanations when `Cable` or unilateral elements are present while keeping DSM Walkthrough available (`SC-011`, `SC-012`).
+  - Implemented bidirectional Mode 2 <-> Mode 3 handoff (`teaching::handoff`):
+    - `teaching_open_step_by_step`: routes eligible models to analytical step decks and falls back to `frame_generate_dsm_walkthrough` when classical methods are exceeded (`SC-011`, `SC-012`).
+    - `teaching_preset_to_structural_model`: loads standard Mode 3 teaching presets (Simply Supported with q/P, Cantilever, Overhanging Beam, 2-Span Continuous Beam, Pratt Truss) into Mode 2 as editable `StructuralModel` (`revision: 1`) (`SC-013`).
+  - Added "Edit in Mode 2 Sketcher" («Επεξεργασία στον Σχεδιαστή Mode 2») button in Mode 3's `TeachingSidebarComponent` (`UC-C09`, `SC-013`).
+  - Implemented lossless `.bem` JSON project file persistence (`project_save_workspace`, `project_load_workspace`, `DiagramExportService`) preserving geometry, sections, releases, offsets, cables, load cases, combinations, and viewport camera (`SC-014`).
+  - Implemented standalone publication-grade SVG and high-DPI PNG diagram export (`DiagramExportService`) with title block, scales, extrema tags, and bilingual Greek/English legend (`SC-014`).
+  - Added live method classifier badge and popover in `ModelerToolbarComponent` with one-click transitions to Mode 3 step-by-step or DSM walkthrough.
+  - Verified 34 Vitest unit tests passing, Rust `teaching::classifier_test` passing 100%, `ng build` passing with 0 errors, and limits checks passing across all 197 files.
+  - Archived to `docs/agents/issues/done/20261102-026-mode3-classifier-handoff-preset-import-diagram-export.md`, removed from active registry `docs/agents/issues/issues.md`.
+- Capability `cap-sketcher-frame-modeler` transitioned to `state: implemented` (all 4 vertical slices delivered and verified).
+- Totals (capabilities): foggy 0, bounded 0, specified 8, implemented 7.

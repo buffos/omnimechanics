@@ -1,0 +1,4 @@
+benchmark,mode,period_s,omega_rad_s,gamma_x,effective_mass_ratio_x,cum_mass_ratio_x
+SC-006,1,0.301,20.87,1.28,0.78,0.78
+SC-006,2,0.095,66.14,0.45,0.16,0.94
+SC-006,3,0.048,130.90,0.21,0.06,1.00

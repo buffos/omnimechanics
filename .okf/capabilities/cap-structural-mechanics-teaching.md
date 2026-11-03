@@ -3,8 +3,8 @@ type: capability
 title: Structural Mechanics Step-by-Step Educational & Analysis Engine
 description: Pedagogical structural mechanics analysis platform for 2D isostatic and hyperstatic frames, trusses, and beams, offering interactive step-by-step analytical derivations, equilibrium cuts, internal force diagrams (M, Q, N), Cross & Kani iterative tables, virtual work deflections, and exportable handout sheets.
 tags: [teaching, structural-mechanics, isostatic, hyperstatic, clapeyron, cross, kani, slope-deflection, virtual-work, castigliano, m-q-n-diagrams, step-walker, latex-export]
-timestamp: 2026-10-30T21:15:00Z
-state: in-progress
+timestamp: 2026-10-31T11:00:00Z
+state: specified
 project: /project.md
 parent: /project.md
 issues:
@@ -210,6 +210,20 @@ pub struct KaniCycle {
 
 - Parent: [OmniMechanics Platform](/project.md)
 - Feeds into: [Eurocode Reinforced Concrete Structural Design & Detailing](/capabilities/cap-eurocode-rc-design.md)
-- Feeds from: [Interactive 2D/3D Canvas Drafting & Geometry Sketcher](/capabilities/cap-geometry-canvas-sketcher.md)
+- Feeds from: [Mode 2 Structural Frame Modeler](/capabilities/cap-sketcher-frame-modeler.md) ("Open step-by-step" handoff)
+- Feeds from: [2D Frame Analysis Engine](/capabilities/cap-frame-analysis-engine.md) (shared structural model, DSM walkthrough data)
+
+# Planned Extension (user-confirmed 2026-10-31, pending spec refresh)
+
+- **Method classifier for user sketches:** decides which classical step-by-step methods apply to a
+  sketched model. In order: isostatic beams and frames (inclined, three-hinged, compound with hinges),
+  trusses (joints/Ritter), continuous beams (Clapeyron/Cross), force method for degree ≤ 3. When a
+  structure is not eligible, the UI explains why. Models with cables are never eligible.
+- **DSM walkthrough:** a generic step-by-step method valid for any structure (full matrices for small
+  models, e.g. ≤ 6 nodes).
+- Mode 3 presets can open as editable sketches in Mode 2.
+- Source: `docs/architecture/cap-geometry-canvas-sketcher/discovery-notes.md` (Q4, Q5, Q22, Q25).
+- Brownfield note: this node has no linked node-scoped PRD yet. Its `specified` state rests on the inline
+  scope and scenarios. A PRD refresh is required before slicing the classifier work.
 - Shared with: [Interactive 3D Canvas & UI](/capabilities/cap-interactive-canvas.md)
 - Verification Baseline: [Solver Core Engine](/capabilities/cap-solver-core.md)

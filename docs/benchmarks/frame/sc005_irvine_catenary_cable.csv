@@ -1,0 +1,2 @@
+benchmark,span_m,dy_m,l0_m,ea_kn,w0_kn_m,h_kn,v_kn,max_tension_kn,mid_sag_m,is_slack
+SC-005,100.0,10.0,100.8,320000.0,0.157,56.598,13.609,58.21,4.10,false

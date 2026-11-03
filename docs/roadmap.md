@@ -27,28 +27,37 @@ Derived navigation roadmap based on Open Knowledge Format (`.okf/`) capability g
 | `cap-geometry-meshing` | Complete (Rollup) | Partial (Children) | In Progress | `specified` (rollup) |
 | ↳ `cap-geometry-presets` | Complete | Verified (2D/3D conformal tessellation) | Approved | `implemented` |
 | ↳ `cap-geometry-cad-import` | Complete | Pending Implementation | Specified | `specified` |
-| ↳ `cap-geometry-canvas-sketcher` | Complete | Pending Implementation | Specified | `specified` |
+| ↳ `cap-geometry-canvas-sketcher` | Complete (Rollup) | Issue 015 superseded | — | `specified` (rollup) |
+| ↳↳ `cap-sketcher-frame-modeler` | Complete (8-file spec set) | Ready for Slicing | Visual Review per slice | `specified` |
+| ↳↳ `cap-sketcher-continuum-domain` | Complete (8-file spec set) | Ready for Slicing | — | `specified` |
 | `cap-material-field` | Complete | Verified (5 Open-Closed FGM strategies) | Approved | `implemented` |
 | `cap-solver-core` | Complete | Verified (Static, Dynamic GMRES, Talbot, Newmark) | Approved | `implemented` |
-| `cap-interactive-canvas` | Ready | In Progress (Viewport, Modal Dialogs active) | Visual Review | `bounded` |
+| `cap-interactive-canvas` | Complete (8-file spec set) | In Progress (Viewport, Modal Dialogs active) | Visual Review | `specified` |
 | `cap-parametric-benchmarking` | Complete | Verified (Mini-Papers 1-5, Issues 008-013) | Approved | `implemented` |
-| `cap-project-persistence` | Bounded | Blocked on CAD / canvas state | Pending | `bounded` |
-| `cap-structural-mechanics-teaching` | Complete | Slice 1 Verified (Issue 014 closed) | Approved | `in-progress` |
+| `cap-project-persistence` | Complete (8-file spec set) | Ready for Slicing | Pending | `specified` |
+| `cap-structural-mechanics-teaching` | Complete | Slice 1 Verified (Issue 014 closed) | Approved | `specified` |
 | `cap-eurocode-rc-design` | Complete | Ready for Slicing | Specified | `specified` |
+| `cap-frame-analysis-engine` | Complete (8-file spec set) | Ready for Slicing | — | `specified` |
+| `cap-eurocode-actions-combinations` | Complete (8-file spec set) | Ready for Slicing | — | `specified` |
 
 ---
 
 ## Active Delivery Frontier & Next Transitions
 
-### 1. Mode 2 Frontier: Interactive Canvas Sketcher (`cap-geometry-canvas-sketcher`) [RECOMMENDED NEXT STEP]
-- **Capability Owner:** `cap-geometry-canvas-sketcher` (Parent: `cap-geometry-meshing`)
-- **Status:** Specified and ready for issue generation / implementation.
-- **Scope:** Interactive 2D drawing studio directly in the viewport:
-  - Click-and-drag drawing of 1D members (beams, columns, truss bars) with orthogonal lock and magnetic snapping.
-  - Support palette (fixed, pinned, roller, internal hinges).
-  - Load palette (point loads, distributed loads, concentrated moments).
-  - Seamless handoff to Mode 3 Teaching Engine (solving user-drawn custom frames) and Mode 1 continuum mesher.
-- **Why Now:** Solves the key user requirement: *"πώς θα γίνεται η εισαγωγή φορέα; Δεν έχουμε κάνει ακόμη τον Interactive Canvas Sketcher... Θα γίνει μετά λογικά."*
+### 1. Mode 2 Frontier: Structural Modeling & Analysis [RECOMMENDED NEXT STEP]
+- **Owners:** `cap-frame-analysis-engine` (DSM solver, structural model) and `cap-sketcher-frame-modeler` (Mode 2 UI).
+- **Status:** `specified` (all 8 canonical architecture artifacts and readiness reviews completed with 0 High/Medium blockers). Ready for issue slicing (`$reference-docs-to-issues`).
+- **Decisions:** `docs/architecture/cap-geometry-canvas-sketcher/discovery-notes.md`.
+- **Slices:**
+  1. Live linear DSM modeler
+  2. EN 1990 cases/combinations/envelopes
+  3. Classifier + step-by-step + DSM walkthrough
+  4. P-Δ + buckling
+  5. Catenary cables
+  6. Modal + EN 1998
+- **Why now:** the user needs to enter any 2D structure (beams, trusses, springs, cables) and see
+  solutions live, with step-by-step derivations when possible.
+- Issue 015 (sketcher → teaching handoff only) was superseded on 2026-10-31.
 
 ### 2. Mode 3 Frontier: Advanced Analytical Structural Mechanics & Eurocode
 - **Alternative A (`cap-structural-mechanics-teaching` Slice 2):**

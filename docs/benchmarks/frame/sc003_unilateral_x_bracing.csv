@@ -1,0 +1,3 @@
+benchmark,element_id,behavior,axial_force_kn,is_active
+SC-003,BRACE_TENSION,TensionOnly,42.4264,true
+SC-003,BRACE_SLACK,TensionOnly,0.0,false

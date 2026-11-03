@@ -3,8 +3,9 @@ type: capability
 title: Geometry Definition, CAD Modeling & Conformal Meshing Studio
 description: Umbrella capability governing Mode 2 (Custom Modeling & CAD Drafting Studio) and Mode 1 geometry generation, integrating parametric benchmark presets, external CAD file ingestion (DXF, STL, SVG), interactive canvas drafting, and automated conformal BEM/FEM meshing.
 tags: [geometry, meshing, cad, drafting, tessellation, 2d, 3d, mode2]
-timestamp: 2026-10-30T21:15:00Z
+timestamp: 2026-11-01T19:20:00Z
 state: specified
+state_changed: 2026-11-01T19:20:00Z
 state_policy:
   mode: rollup
   source: structural_children
@@ -27,7 +28,7 @@ Provide a unified, multi-faceted geometry modeling environment for OmniMechanics
 - **Structural Sub-capabilities:**
   - [Parametric Benchmark Presets & Conformal Meshing](/capabilities/cap-geometry-presets.md) (`implemented`): Pre-configured 2D/3D benchmarks with verified conformal tessellation.
   - [External CAD Ingestion & Polyline Healing](/capabilities/cap-geometry-cad-import.md) (`specified`): 2D DXF/SVG and 3D STL geometry parsers with topological gap healing.
-  - [Interactive Canvas Drafting & Geometry Sketcher](/capabilities/cap-geometry-canvas-sketcher.md) (`specified`): Direct viewport member and polygon sketching with snapping and boundary/load tagging.
+  - [Interactive Canvas Drafting & Geometry Sketcher](/capabilities/cap-geometry-canvas-sketcher.md) (roll-up, `specified`): split into the Mode 2 Structural Frame Modeler (`specified`) and the Continuum Domain Sketcher (`specified`).
 - **Conformal Meshing Pipeline:**
   - 1D/2D boundary elements for BEM strictly conforming to 2D/3D interior elements for FEM.
   - Global mesh density control ($h$-refinement) and local adaptive refinement around cutouts and stress concentrations.

@@ -3,10 +3,20 @@ type: capability
 title: Project Persistence & Self-Contained Workspace Storage
 description: Serialization and deserialization of complete simulation states into self-contained .bem files (JSON/binary schema containing geometry, mesh, material fields, boundary conditions, and solution datasets).
 tags: [persistence, file-io, serialization, project-management, bem-file]
-timestamp: 2026-10-28T05:18:00Z
-state: bounded
+timestamp: 2026-11-01T19:20:00Z
+state: specified
+state_changed: 2026-11-01T19:20:00Z
 project: /project.md
 parent: /project.md
+artifact_root: docs/architecture/cap-project-persistence
+orchestration_status: docs/architecture/cap-project-persistence/orchestration-status.md
+prd: docs/architecture/cap-project-persistence/prd.md
+glossary: docs/architecture/cap-project-persistence/domain-glossary.md
+domain_model: docs/architecture/cap-project-persistence/canonical-domain-model.md
+use_cases: docs/architecture/cap-project-persistence/canonical-use-cases.md
+contract: docs/architecture/cap-project-persistence/canonical-api-cli-contract.md
+scenarios: docs/architecture/cap-project-persistence/acceptance-scenarios.md
+readiness_review: docs/architecture/cap-project-persistence/readiness-review.md
 ---
 
 # Intent

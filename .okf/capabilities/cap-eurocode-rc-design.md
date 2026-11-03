@@ -7,6 +7,8 @@ timestamp: 2026-10-30T21:15:00Z
 state: specified
 project: /project.md
 parent: /project.md
+shared_with:
+  - /capabilities/cap-eurocode-actions-combinations.md
 ---
 
 # Intent
@@ -152,6 +154,8 @@ pub struct SlsVerificationResult {
 
 # Relationships
 
+- Shared concern: [Eurocode Actions & Combinations (EN 1990/1998)](/capabilities/cap-eurocode-actions-combinations.md) (combination factors and envelopes)
+- Feeds from: [2D Frame Analysis Engine](/capabilities/cap-frame-analysis-engine.md) (M_Ed, V_Ed, N_Ed envelopes)
 - Parent: [OmniMechanics Platform](/project.md)
 - Ingests internal force envelopes from: [Structural Mechanics Teaching Engine](/capabilities/cap-structural-mechanics-teaching.md)
 - Feeds interactive drawings into: [Interactive 3D Canvas & UI](/capabilities/cap-interactive-canvas.md)
