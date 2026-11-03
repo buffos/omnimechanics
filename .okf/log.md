@@ -244,3 +244,29 @@
   - Archived to `docs/agents/issues/done/20261102-026-mode3-classifier-handoff-preset-import-diagram-export.md`, removed from active registry `docs/agents/issues/issues.md`.
 - Capability `cap-sketcher-frame-modeler` transitioned to `state: implemented` (all 4 vertical slices delivered and verified).
 - Totals (capabilities): foggy 0, bounded 0, specified 8, implemented 7.
+
+## 2026-11-03
+
+### Issue slicing across all remaining specified capabilities (`027`–`039`)
+
+- Sliced all 6 remaining own-state `specified` capabilities into 13 dependency-ordered vertical slices in `docs/agents/issues/pending/` and registered them in `docs/agents/issues/issues.md` (`# Current Max Issue ID` updated to `039`):
+  - **`cap-sketcher-continuum-domain`** (`027`–`029`):
+    - `027`: Continuum Domain Polygon, Cutout & Topological Clearance Validation Engine (`SC-002..SC-005`) — unblocked (`ready-for-agent`).
+    - `028`: Conformal Constrained Delaunay (CDT) Mesher, Boundary Tagging & Inclusion Subdomains (`SC-001`, `SC-006..SC-009`) — blocked by `027`.
+    - `029`: Mode 1 Interactive 2D Continuum Sketcher UI, Inspector & Solver Handoff (`SC-001..SC-009`) — blocked by `028`.
+  - **`cap-interactive-canvas`** (`030`–`031`):
+    - `030`: 3D/2D Viewport Orthographic Camera, Clipping Plane, Raycast Boundary Picking & Scientific Colormaps (`SC-005..SC-009`) — unblocked (`ready-for-agent`).
+    - `031`: Shared 2D SVG Viewport Kernel, Dialog Guard, Toast Deduplication & Dock Synchronization (`SC-001..SC-004`, `SC-010..SC-012`) — blocked by `030`.
+  - **`cap-project-persistence`** (`032`–`033`):
+    - `032`: Canonical `.bem` v1.0 Schema, SHA-256 Digest, Migration Pipeline & Atomic File I/O (`SC-001..SC-008`) — unblocked (`ready-for-agent`).
+    - `033`: Revision Dirty Tracking, Unsaved-Changes Guard, Recent Projects (MRU) & Header Project Menu (`SC-001..SC-002`, `SC-004..SC-012`) — blocked by `032`.
+  - **`cap-structural-mechanics-teaching`** (`034`–`035`):
+    - `034`: Mode 3 Clapeyron Three-Moment Equation & Force Method (Flexibility) Step-by-Step Solvers (`Scenario 4` + Force Method) — unblocked (`ready-for-agent`).
+    - `035`: Principle of Virtual Work (ΑΔΕ) Deflections, Interactive Cross/Kani Spreadsheets & LuaLaTeX Handout Export (`Scenario 5..8`) — blocked by `034`.
+  - **`cap-geometry-cad-import`** (`036`–`037`):
+    - `036`: 2D DXF/SVG Vector CAD Parser, Layer Filtering, Polyline Healing & Mode 1/2/3 Handoff (`Scenario 1`, `Scenario 2`) — blocked by `028`.
+    - `037`: 3D Binary/ASCII STL Manifold Ingestion, Normal Orientation & Conformal Tet4/BEM Meshing (`Scenario 3`) — blocked by `036`.
+  - **`cap-eurocode-rc-design`** (`038`–`039`):
+    - `038`: Eurocode 2 (EN 1992-1-1) ULS Beam Flexural & Variable-Angle Shear Design Engine (`Scenario 1`, `Scenario 2`) — unblocked (`ready-for-agent`).
+    - `039`: EC2 Column N-M Interaction, SLS Crack/Deflection Checks & Interactive 2D Rebar Detailing Studio (`Scenario 1..4`) — blocked by `038`.
+- Linked `027`–`039` in their respective `.okf/capabilities/*.md` nodes. Roll-up capabilities (`cap-geometry-canvas-sketcher`, `cap-geometry-meshing`) derive their completion from their structural children.

@@ -9,6 +9,9 @@ project: /project.md
 parent: /project.md
 shared_with:
   - /capabilities/cap-eurocode-actions-combinations.md
+issues:
+  - docs/agents/issues/pending/20261103-038-ec2-uls-beam-flexural-shear-design-engine.md
+  - docs/agents/issues/pending/20261103-039-ec2-column-nm-interaction-sls-cracks-rebar-detailing-ui.md
 ---
 
 # Intent

@@ -1,5 +1,6 @@
 pub mod actions;
 pub mod benchmarks;
+pub mod continuum;
 pub mod frame;
 pub mod material;
 pub mod mesh;
@@ -231,6 +232,42 @@ fn project_load_workspace(
     teaching::load_workspace(&request)
 }
 
+#[tauri::command]
+fn continuum_validate_domain(
+    request: continuum::types::ValidateDomainRequest,
+) -> Result<continuum::types::DomainValidationResponse, frame::CanonicalError> {
+    continuum::validation::validate_domain(&request.domain)
+}
+
+#[tauri::command]
+fn continuum_preview_segment(
+    request: continuum::types::PreviewSegmentRequest,
+) -> Result<continuum::types::CandidateSegmentPreview, frame::CanonicalError> {
+    Ok(continuum::validation::preview_segment(
+        &request.existing_vertices,
+        &request.candidate_point,
+        request.closing_loop,
+    ))
+}
+
+#[tauri::command]
+fn continuum_close_and_normalize_loop(
+    request: continuum::types::CloseLoopRequest,
+) -> Result<continuum::types::BoundaryLoop, frame::CanonicalError> {
+    continuum::validation::close_and_normalize_loop(
+        &request.loop_id,
+        &request.vertices,
+        request.is_hole,
+    )
+}
+
+#[tauri::command]
+fn continuum_generate_mesh(
+    request: continuum::types::ValidateDomainRequest,
+) -> Result<continuum::types::ConformalMeshHandoff, frame::CanonicalError> {
+    continuum::cdt_mesher::generate_conformal_mesh(&request.domain)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -271,7 +308,11 @@ pub fn run() {
             teaching_open_step_by_step,
             teaching_preset_to_structural_model,
             project_save_workspace,
-            project_load_workspace
+            project_load_workspace,
+            continuum_validate_domain,
+            continuum_preview_segment,
+            continuum_close_and_normalize_loop,
+            continuum_generate_mesh
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

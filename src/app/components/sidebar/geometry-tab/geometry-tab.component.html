@@ -185,9 +185,31 @@
     </button>
   </div>
 
+  <div class="sketcher-launch-box">
+    <div class="sketcher-launch-text">
+      <strong>Custom 2D Continuum Sketcher</strong>
+      <span>Σχεδιαστής 2D Συνεχούς Φορέα, Οπών &amp; CDT Mesh</span>
+    </div>
+    <button
+      type="button"
+      class="btn btn-secondary w-full"
+      (click)="openSketcherModal()"
+    >
+      📐 Άνοιγμα Σχεδιαστή Φορέα
+    </button>
+  </div>
+
   @if (meshService.generationError()) {
     <div class="error-banner">
       {{ meshService.generationError() }}
+    </div>
+  }
+
+  @if (isSketcherOpen()) {
+    <div class="sketcher-modal-backdrop">
+      <div class="sketcher-modal-content">
+        <app-continuum-sketcher (close)="closeSketcherModal()" />
+      </div>
     </div>
   }
 </section>

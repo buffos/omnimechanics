@@ -17,6 +17,9 @@ use_cases: docs/architecture/cap-project-persistence/canonical-use-cases.md
 contract: docs/architecture/cap-project-persistence/canonical-api-cli-contract.md
 scenarios: docs/architecture/cap-project-persistence/acceptance-scenarios.md
 readiness_review: docs/architecture/cap-project-persistence/readiness-review.md
+issues:
+  - docs/agents/issues/pending/20261103-032-canonical-bem-schema-sha256-migration-atomic-io.md
+  - docs/agents/issues/pending/20261103-033-session-dirty-tracking-unsaved-guard-mru-header-menu.md
 ---
 
 # Intent

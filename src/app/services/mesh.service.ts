@@ -92,6 +92,11 @@ export class MeshService {
   readonly isGenerating = signal<boolean>(false);
   readonly generationError = signal<string | null>(null);
 
+  setMesh(mesh: MeshData): void {
+    this.currentMesh.set(mesh);
+    this.generationError.set(null);
+  }
+
   async generateMesh(request: MeshGeneratorRequest): Promise<MeshData> {
     this.isGenerating.set(true);
     this.generationError.set(null);

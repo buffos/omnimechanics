@@ -19,6 +19,8 @@ scenarios: docs/architecture/cap-interactive-canvas/acceptance-scenarios.md
 readiness_review: docs/architecture/cap-interactive-canvas/readiness-review.md
 issues:
   - docs/agents/issues/done/20261028-001-scaffold-tauri-angular-rust.md
+  - docs/agents/issues/pending/20261103-030-3d-viewport-orthographic-clipping-raycast-picking-colormaps.md
+  - docs/agents/issues/pending/20261103-031-shared-2d-svg-kernel-shell-dialog-dock-verification.md
 ---
 
 # Intent

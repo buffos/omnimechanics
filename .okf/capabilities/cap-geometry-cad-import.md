@@ -7,6 +7,9 @@ timestamp: 2026-10-30T21:15:00Z
 state: specified
 project: /project.md
 parent: /capabilities/cap-geometry-meshing.md
+issues:
+  - docs/agents/issues/pending/20261103-036-cad-2d-dxf-svg-parser-polyline-healing-handoff.md
+  - docs/agents/issues/pending/20261103-037-cad-3d-stl-manifold-ingestion-tet4-bem-meshing.md
 ---
 
 # Intent

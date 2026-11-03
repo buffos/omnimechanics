@@ -9,6 +9,8 @@ project: /project.md
 parent: /project.md
 issues:
   - docs/agents/issues/done/20261030-014-structural-mechanics-teaching-slice1.md
+  - docs/agents/issues/pending/20261103-034-teaching-clapeyron-force-method-vereshchagin-steps.md
+  - docs/agents/issues/pending/20261103-035-teaching-virtual-work-deflections-lualatex-handout-export.md
 ---
 
 # Intent
