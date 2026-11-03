@@ -263,21 +263,9 @@ fn continuum_close_and_normalize_loop(
 
 #[tauri::command]
 fn continuum_generate_mesh(
-    request: Option<continuum::types::ValidateDomainRequest>,
-    domain: Option<continuum::types::ContinuumDomain>,
+    request: continuum::types::ValidateDomainRequest,
 ) -> Result<continuum::types::ConformalMeshHandoff, frame::CanonicalError> {
-    let d = if let Some(req) = request {
-        req.domain
-    } else if let Some(dom) = domain {
-        dom
-    } else {
-        return Err(frame::CanonicalError::new(
-            "MISSING_DOMAIN",
-            "Δεν βρέθηκε γεωμετρία φορέα προς πλεγματοποίηση.".into(),
-            "No domain geometry provided for meshing.".into(),
-        ));
-    };
-    continuum::cdt_mesher::generate_conformal_mesh(&d)
+    continuum::cdt_mesher::generate_conformal_mesh(&request.domain)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
