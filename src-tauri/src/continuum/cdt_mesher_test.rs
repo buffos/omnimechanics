@@ -255,4 +255,87 @@ mod tests {
         assert!(handoff.quality_report.is_conformal, "Quad4 mesh must be 100% conformal");
         assert!(handoff.mesh_data.volume_elements.len() > 0);
     }
+
+    #[test]
+    fn test_sc011_frontend_template_quad4_mesh_generation() {
+        // EXACT coordinates of the frontend default template domain (0..10, 0..10 with hole at (5,5))
+        let outer_vertices = vec![
+            Vertex2D { id: "v0".into(), x: 0.0, y: 0.0 },
+            Vertex2D { id: "v1".into(), x: 10.0, y: 0.0 },
+            Vertex2D { id: "v2".into(), x: 10.0, y: 10.0 },
+            Vertex2D { id: "v3".into(), x: 0.0, y: 10.0 },
+        ];
+        let outer = close_and_normalize_loop("OuterLoop", &outer_vertices, false).unwrap();
+
+        let domain = ContinuumDomain {
+            id: "CD1".into(),
+            revision: 1,
+            outer_boundary: outer,
+            cutouts: vec![Cutout {
+                id: "cutout_center_hole".into(),
+                shape: CutoutShape::Circle {
+                    center_x: 5.0,
+                    center_y: 5.0,
+                    radius: 1.5,
+                    angular_divisions: 24,
+                },
+                tag: "Hole".into(),
+                local_element_size: None,
+            }],
+            inclusions: vec![],
+            tag_conditions: Default::default(),
+            meshing_profile: MeshingProfile {
+                target_element_size: 0.8,
+                hole_refinement_factor: 0.35,
+                min_angle_deg: 25.0,
+                volume_element_type: VolumeElementKind::Quad4,
+                boundary_element_type: BoundaryElementKind::Line2,
+            },
+        };
+
+        let handoff = generate_conformal_mesh(&domain).expect("Frontend template Quad4 meshing must succeed");
+        assert!(
+            handoff.mesh_data.volume_elements.iter().all(|e| e.elem_type == crate::mesh::types::ElementType::Quad4),
+            "All volume elements must be Quad4"
+        );
+        assert!(handoff.quality_report.is_conformal, "Mesh must be conformal");
+        assert!(handoff.mesh_data.volume_elements.len() >= 64, "Must generate dense mesh of quads");
+        assert!(handoff.mesh_data.boundary_elements.iter().any(|b| b.tag == "Hole"), "Must have Hole boundary elements");
+    }
+
+    #[test]
+    fn test_sc012_solid_rectangle_grid_mesh() {
+        // 10x6 m solid beam with Quad4
+        let outer_vertices = vec![
+            Vertex2D { id: "v0".into(), x: 0.0, y: 0.0 },
+            Vertex2D { id: "v1".into(), x: 10.0, y: 0.0 },
+            Vertex2D { id: "v2".into(), x: 10.0, y: 6.0 },
+            Vertex2D { id: "v3".into(), x: 0.0, y: 6.0 },
+        ];
+        let outer = close_and_normalize_loop("OuterLoop", &outer_vertices, false).unwrap();
+
+        let domain = ContinuumDomain {
+            id: "CD_Beam".into(),
+            revision: 1,
+            outer_boundary: outer,
+            cutouts: vec![],
+            inclusions: vec![],
+            tag_conditions: Default::default(),
+            meshing_profile: MeshingProfile {
+                target_element_size: 1.0,
+                hole_refinement_factor: 1.0,
+                min_angle_deg: 25.0,
+                volume_element_type: VolumeElementKind::Quad4,
+                boundary_element_type: BoundaryElementKind::Line2,
+            },
+        };
+
+        let handoff = generate_conformal_mesh(&domain).expect("Solid rectangle Quad4 meshing must succeed");
+        assert!(
+            handoff.mesh_data.volume_elements.iter().all(|e| e.elem_type == crate::mesh::types::ElementType::Quad4),
+            "All elements must be Quad4"
+        );
+        assert_eq!(handoff.mesh_data.volume_elements.len(), 10 * 6, "10x6 m with h=1.0m must produce exactly 60 quads");
+        assert!(handoff.quality_report.is_conformal, "Must be conformal");
+    }
 }

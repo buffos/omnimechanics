@@ -40,7 +40,7 @@ pub fn generate_conformal_mesh(domain: &ContinuumDomain) -> Result<ConformalMesh
     let hole_factor = prof.hole_refinement_factor.clamp(0.1, 1.0);
     let target_h_hole = target_h * hole_factor;
 
-    // Check if domain is a centered box with single circular cutout or inclusion
+    let is_rect = is_axis_aligned_rectangle(&domain.outer_boundary.vertices);
     let has_single_circ_cutout = domain.cutouts.len() == 1
         && matches!(domain.cutouts[0].shape, CutoutShape::Circle { .. })
         && domain.inclusions.is_empty();
@@ -49,14 +49,221 @@ pub fn generate_conformal_mesh(domain: &ContinuumDomain) -> Result<ConformalMesh
         && domain.inclusions.len() == 1
         && matches!(domain.inclusions[0].shape, CutoutShape::Circle { .. });
 
-    let is_axis_aligned_box = domain.outer_boundary.vertices.len() == 4
-        && domain.outer_boundary.vertices.iter().all(|v| v.x.abs() > 0.1 && v.y.abs() > 0.1);
+    let has_no_features = domain.cutouts.is_empty() && domain.inclusions.is_empty();
 
-    if (has_single_circ_cutout || has_single_circ_inclusion) && is_axis_aligned_box {
+    if is_rect && (has_single_circ_cutout || has_single_circ_inclusion) {
         generate_radial_conformal_mesh(domain, has_single_circ_cutout)
+    } else if is_rect && has_no_features {
+        generate_rectangle_grid_mesh(domain)
     } else {
         generate_general_conformal_mesh(domain)
     }
+}
+
+fn is_axis_aligned_rectangle(vertices: &[Vertex2D]) -> bool {
+    if vertices.len() != 4 {
+        return false;
+    }
+    for i in 0..4 {
+        let v1 = &vertices[i];
+        let v2 = &vertices[(i + 1) % 4];
+        let dx = (v2.x - v1.x).abs();
+        let dy = (v2.y - v1.y).abs();
+        let is_horiz = dy < 1e-4 && dx > 1e-4;
+        let is_vert = dx < 1e-4 && dy > 1e-4;
+        if !is_horiz && !is_vert {
+            return false;
+        }
+    }
+    true
+}
+
+fn ray_from_point_to_box(
+    px: f64,
+    py: f64,
+    dx: f64,
+    dy: f64,
+    min_x: f64,
+    max_x: f64,
+    min_y: f64,
+    max_y: f64,
+) -> (f64, f64) {
+    let tx = if dx > 1e-9 {
+        (max_x - px) / dx
+    } else if dx < -1e-9 {
+        (min_x - px) / dx
+    } else {
+        f64::MAX
+    };
+    let ty = if dy > 1e-9 {
+        (max_y - py) / dy
+    } else if dy < -1e-9 {
+        (min_y - py) / dy
+    } else {
+        f64::MAX
+    };
+    let t = tx.min(ty).max(0.0);
+    (px + t * dx, py + t * dy)
+}
+
+fn generate_rectangle_grid_mesh(domain: &ContinuumDomain) -> Result<ConformalMeshHandoff, CanonicalError> {
+    let mut min_x = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+    for v in &domain.outer_boundary.vertices {
+        min_x = min_x.min(v.x);
+        max_x = max_x.max(v.x);
+        min_y = min_y.min(v.y);
+        max_y = max_y.max(v.y);
+    }
+
+    let w = max_x - min_x;
+    let h_dim = max_y - min_y;
+    let prof = &domain.meshing_profile;
+    let h = prof.target_element_size.max(0.05);
+
+    let nx = ((w / h).round() as usize).max(2);
+    let ny = ((h_dim / h).round() as usize).max(2);
+
+    let mut nodes: Vec<[f64; 3]> = Vec::new();
+    let mut boundary_elements: Vec<BoundaryElement> = Vec::new();
+    let mut volume_elements: Vec<VolumeElement> = Vec::new();
+    let mut tag_counts: HashMap<String, usize> = HashMap::new();
+
+    let node_id = |i: usize, j: usize| -> usize {
+        j * (nx + 1) + i
+    };
+
+    for j in 0..=ny {
+        let y = min_y + (j as f64 / ny as f64) * h_dim;
+        for i in 0..=nx {
+            let x = min_x + (i as f64 / nx as f64) * w;
+            nodes.push([x, y, 0.0]);
+        }
+    }
+
+    let mut vol_id = 0;
+    for j in 0..ny {
+        for i in 0..nx {
+            let n0 = node_id(i, j);
+            let n1 = node_id(i + 1, j);
+            let n2 = node_id(i + 1, j + 1);
+            let n3 = node_id(i, j + 1);
+
+            if prof.volume_element_type == VolumeElementKind::Quad4 {
+                volume_elements.push(VolumeElement {
+                    id: vol_id,
+                    elem_type: ElementType::Quad4,
+                    nodes: vec![n0, n1, n2, n3],
+                });
+                vol_id += 1;
+            } else {
+                volume_elements.push(VolumeElement {
+                    id: vol_id,
+                    elem_type: ElementType::Tri3,
+                    nodes: vec![n0, n1, n2],
+                });
+                vol_id += 1;
+                volume_elements.push(VolumeElement {
+                    id: vol_id,
+                    elem_type: ElementType::Tri3,
+                    nodes: vec![n0, n2, n3],
+                });
+                vol_id += 1;
+            }
+        }
+    }
+
+    let mut bnd_id = 0;
+    let get_tag = |name: &str| -> String {
+        domain.outer_boundary.segments.iter()
+            .find(|s| s.tag.eq_ignore_ascii_case(name))
+            .map(|s| s.tag.clone())
+            .unwrap_or_else(|| name.to_string())
+    };
+
+    let bottom_tag = get_tag("Bottom");
+    for i in 0..nx {
+        let n0 = node_id(i, 0);
+        let n1 = node_id(i + 1, 0);
+        boundary_elements.push(BoundaryElement {
+            id: bnd_id,
+            elem_type: ElementType::Line2,
+            nodes: vec![n0, n1],
+            tag: bottom_tag.clone(),
+            normal: [0.0, -1.0, 0.0],
+        });
+        *tag_counts.entry(bottom_tag.clone()).or_insert(0) += 1;
+        bnd_id += 1;
+    }
+
+    let right_tag = get_tag("Right");
+    for j in 0..ny {
+        let n0 = node_id(nx, j);
+        let n1 = node_id(nx, j + 1);
+        boundary_elements.push(BoundaryElement {
+            id: bnd_id,
+            elem_type: ElementType::Line2,
+            nodes: vec![n0, n1],
+            tag: right_tag.clone(),
+            normal: [1.0, 0.0, 0.0],
+        });
+        *tag_counts.entry(right_tag.clone()).or_insert(0) += 1;
+        bnd_id += 1;
+    }
+
+    let top_tag = get_tag("Top");
+    for i in 0..nx {
+        let n0 = node_id(nx - i, ny);
+        let n1 = node_id(nx - i - 1, ny);
+        boundary_elements.push(BoundaryElement {
+            id: bnd_id,
+            elem_type: ElementType::Line2,
+            nodes: vec![n0, n1],
+            tag: top_tag.clone(),
+            normal: [0.0, 1.0, 0.0],
+        });
+        *tag_counts.entry(top_tag.clone()).or_insert(0) += 1;
+        bnd_id += 1;
+    }
+
+    let left_tag = get_tag("Left");
+    for j in 0..ny {
+        let n0 = node_id(0, ny - j);
+        let n1 = node_id(0, ny - j - 1);
+        boundary_elements.push(BoundaryElement {
+            id: bnd_id,
+            elem_type: ElementType::Line2,
+            nodes: vec![n0, n1],
+            tag: left_tag.clone(),
+            normal: [-1.0, 0.0, 0.0],
+        });
+        *tag_counts.entry(left_tag.clone()).or_insert(0) += 1;
+        bnd_id += 1;
+    }
+
+    let quality_report = evaluate_mesh_quality(&nodes, &volume_elements, &boundary_elements);
+    let mesh_data = MeshData {
+        dimension: 2,
+        stats: MeshStats {
+            num_nodes: nodes.len(),
+            num_boundary_elements: boundary_elements.len(),
+            num_volume_elements: volume_elements.len(),
+            dimension: 2,
+        },
+        nodes,
+        boundary_elements,
+        volume_elements,
+    };
+
+    Ok(ConformalMeshHandoff {
+        domain_id: domain.id.clone(),
+        domain_revision: domain.revision,
+        mesh_data,
+        quality_report,
+        tag_element_counts: tag_counts,
+    })
 }
 
 /// Generates graded radial conformal mesh for plates with circular cutout or inclusion.
@@ -219,9 +426,9 @@ fn generate_radial_conformal_mesh(
             let x_inner = center_x + radius * cos_th;
             let y_inner = center_y + radius * sin_th;
 
-            let (bx, by) = ray_to_box(cos_th, sin_th, half_w, half_h);
-            let x_outer = mid_x + bx;
-            let y_outer = mid_y + by;
+            let (x_outer, y_outer) = ray_from_point_to_box(
+                center_x, center_y, cos_th, sin_th, min_x, max_x, min_y, max_y,
+            );
 
             let x = (1.0 - s_graded) * x_inner + s_graded * x_outer;
             let y = (1.0 - s_graded) * y_inner + s_graded * y_outer;
@@ -325,14 +532,20 @@ fn generate_radial_conformal_mesh(
         let n0 = get_matrix_node(nr, th);
         let n1 = get_matrix_node(nr, th + 1);
 
-        let seg_tag = if th < quarter / 2 || th >= n_theta - quarter / 2 {
-            "Right"
-        } else if th < quarter + quarter / 2 {
-            "Top"
-        } else if th < 2 * quarter + quarter / 2 {
-            "Left"
+        let (x_mid_bnd, y_mid_bnd) = {
+            let p0 = nodes[n0];
+            let p1 = nodes[n1];
+            (0.5 * (p0[0] + p1[0]), 0.5 * (p0[1] + p1[1]))
+        };
+
+        let (seg_tag, normal) = if (x_mid_bnd - max_x).abs() < 1e-3 {
+            ("Right", [1.0, 0.0, 0.0])
+        } else if (y_mid_bnd - max_y).abs() < 1e-3 {
+            ("Top", [0.0, 1.0, 0.0])
+        } else if (x_mid_bnd - min_x).abs() < 1e-3 {
+            ("Left", [-1.0, 0.0, 0.0])
         } else {
-            "Bottom"
+            ("Bottom", [0.0, -1.0, 0.0])
         };
 
         // Match with user segment tag if user tagged segments
@@ -340,13 +553,6 @@ fn generate_radial_conformal_mesh(
             .find(|s| s.tag.eq_ignore_ascii_case(seg_tag))
             .map(|s| s.tag.clone())
             .unwrap_or_else(|| seg_tag.to_string());
-
-        let normal = match seg_tag {
-            "Right" => [1.0, 0.0, 0.0],
-            "Top" => [0.0, 1.0, 0.0],
-            "Left" => [-1.0, 0.0, 0.0],
-            _ => [0.0, -1.0, 0.0],
-        };
 
         boundary_elements.push(BoundaryElement {
             id: bnd_id,
@@ -381,13 +587,6 @@ fn generate_radial_conformal_mesh(
         quality_report,
         tag_element_counts: tag_counts,
     })
-}
-
-fn ray_to_box(dx: f64, dy: f64, half_w: f64, half_h: f64) -> (f64, f64) {
-    let tx = if dx.abs() > 1e-9 { half_w / dx.abs() } else { f64::MAX };
-    let ty = if dy.abs() > 1e-9 { half_h / dy.abs() } else { f64::MAX };
-    let t = tx.min(ty);
-    (t * dx, t * dy)
 }
 
 /// Computes comprehensive mesh quality metrics.
