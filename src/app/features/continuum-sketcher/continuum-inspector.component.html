@@ -1,0 +1,376 @@
+<div class="inspector-container">
+  <div class="inspector-header">
+    <h3 class="inspector-title">Ιδιότητες / Inspector</h3>
+  </div>
+
+  @if (selectedSegment; as seg) {
+    <div class="panel-section">
+      <div class="section-title-row">
+        <span class="element-badge segment-badge">Συνοριακό Τμήμα</span>
+        <span class="element-id">{{ seg.tag }}</span>
+      </div>
+
+      <div class="control-row">
+        <label for="seg-tag-select">Ετικέτα (Tag):</label>
+        <select
+          id="seg-tag-select"
+          class="styled-select"
+          [ngModel]="seg.tag"
+          (ngModelChange)="updateSegmentTag($event)"
+        >
+          <option value="Bottom">Bottom</option>
+          <option value="Right">Right</option>
+          <option value="Top">Top</option>
+          <option value="Left">Left</option>
+          <option value="Cutout">Cutout</option>
+          <option value="Interface">Interface</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <label for="seg-bc-select">Συνθήκη (BC):</label>
+        <select
+          id="seg-bc-select"
+          class="styled-select"
+          [ngModel]="store.domain().tag_conditions[seg.tag]?.kind ?? 'Free'"
+          (ngModelChange)="updateSegmentBcKind($event)"
+        >
+          <option value="Free">Ελεύθερο (Free)</option>
+          <option value="DirichletDisplacement">Πάκτωση / Μετατόπιση (Dirichlet)</option>
+          <option value="NeumannTraction">Τάση / Φόρτιση (Neumann)</option>
+          <option value="RobinImpedance">Έδραση / Ελατήριο (Robin)</option>
+        </select>
+      </div>
+
+      <div class="dim-display">
+        <span class="dim-label">Μήκος Τμήματος:</span>
+        <span class="dim-value">{{ getSegmentLength(seg).toFixed(3) }} m</span>
+      </div>
+    </div>
+  }
+
+  @if (selectedCutout; as cut) {
+    <div class="panel-section">
+      <div class="section-title-row">
+        <span class="element-badge cutout-badge">Οπή / Cutout</span>
+        <span class="element-id">{{ cut.id }}</span>
+      </div>
+
+      @if (cut.shape.kind === 'Circle') {
+        <div class="shape-type-info">Κυκλική Οπή</div>
+        <div class="param-grid">
+          <div class="param-item">
+            <label for="cut-cx">Κέντρο X (m)</label>
+            <input
+              id="cut-cx"
+              type="number"
+              step="0.1"
+              class="styled-input"
+              [ngModel]="cut.shape.center_x"
+              (ngModelChange)="updateSelectedCutoutCenter($event, cut.shape.center_y)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="cut-cy">Κέντρο Y (m)</label>
+            <input
+              id="cut-cy"
+              type="number"
+              step="0.1"
+              class="styled-input"
+              [ngModel]="cut.shape.center_y"
+              (ngModelChange)="updateSelectedCutoutCenter(cut.shape.center_x, $event)"
+            />
+          </div>
+          <div class="param-item full-width">
+            <label for="cut-rad">Ακτίνα R (m) [Διάμετρος: {{ (cut.shape.radius * 2).toFixed(2) }} m]</label>
+            <input
+              id="cut-rad"
+              type="number"
+              step="0.05"
+              min="0.05"
+              class="styled-input"
+              [ngModel]="cut.shape.radius"
+              (ngModelChange)="updateSelectedCutoutRadius($event)"
+            />
+          </div>
+        </div>
+      }
+
+      @if (cut.shape.kind === 'Rectangle') {
+        <div class="shape-type-info">Ορθογώνια Οπή</div>
+        <div class="param-grid">
+          <div class="param-item">
+            <label for="cut-rcx">Κέντρο X (m)</label>
+            <input
+              id="cut-rcx"
+              type="number"
+              step="0.1"
+              class="styled-input"
+              [ngModel]="cut.shape.center_x"
+              (ngModelChange)="updateSelectedCutoutCenter($event, cut.shape.center_y)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="cut-rcy">Κέντρο Y (m)</label>
+            <input
+              id="cut-rcy"
+              type="number"
+              step="0.1"
+              class="styled-input"
+              [ngModel]="cut.shape.center_y"
+              (ngModelChange)="updateSelectedCutoutCenter(cut.shape.center_x, $event)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="cut-w">Πλάτος W (m)</label>
+            <input
+              id="cut-w"
+              type="number"
+              step="0.1"
+              min="0.1"
+              class="styled-input"
+              [ngModel]="cut.shape.width"
+              (ngModelChange)="updateSelectedCutoutRectDims($event, cut.shape.height)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="cut-h">Ύψος H (m)</label>
+            <input
+              id="cut-h"
+              type="number"
+              step="0.1"
+              min="0.1"
+              class="styled-input"
+              [ngModel]="cut.shape.height"
+              (ngModelChange)="updateSelectedCutoutRectDims(cut.shape.width, $event)"
+            />
+          </div>
+        </div>
+      }
+
+      @if (cut.shape.kind === 'Polygon') {
+        <div class="shape-type-info">Πολυγωνική Οπή ({{ cut.shape.vertices.length }} κορυφές)</div>
+      }
+
+      <div class="action-row">
+        <button
+          type="button"
+          class="btn-delete"
+          (click)="store.removeCutout(cut.id)"
+        >
+          🗑 Διαγραφή Οπής
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (selectedInclusion; as inc) {
+    <div class="panel-section">
+      <div class="section-title-row">
+        <span class="element-badge inclusion-badge">Εγκλεισμός / Inclusion</span>
+        <span class="element-id">{{ inc.id }}</span>
+      </div>
+
+      @if (inc.shape.kind === 'Circle') {
+        <div class="shape-type-info">Κυκλικός Εγκλεισμός</div>
+        <div class="param-grid">
+          <div class="param-item">
+            <label for="inc-cx">Κέντρο X (m)</label>
+            <input
+              id="inc-cx"
+              type="number"
+              step="0.1"
+              class="styled-input"
+              [ngModel]="inc.shape.center_x"
+              (ngModelChange)="updateSelectedInclusionCenter($event, inc.shape.center_y)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="inc-cy">Κέντρο Y (m)</label>
+            <input
+              id="inc-cy"
+              type="number"
+              step="0.1"
+              class="styled-input"
+              [ngModel]="inc.shape.center_y"
+              (ngModelChange)="updateSelectedInclusionCenter(inc.shape.center_x, $event)"
+            />
+          </div>
+          <div class="param-item full-width">
+            <label for="inc-rad">Ακτίνα R (m) [Διάμετρος: {{ (inc.shape.radius * 2).toFixed(2) }} m]</label>
+            <input
+              id="inc-rad"
+              type="number"
+              step="0.05"
+              min="0.05"
+              class="styled-input"
+              [ngModel]="inc.shape.radius"
+              (ngModelChange)="updateSelectedInclusionRadius($event)"
+            />
+          </div>
+        </div>
+      }
+
+      @if (inc.shape.kind === 'Rectangle') {
+        <div class="shape-type-info">Ορθογώνιος Εγκλεισμός</div>
+        <div class="param-grid">
+          <div class="param-item">
+            <label for="inc-rcx">Κέντρο X (m)</label>
+            <input
+              id="inc-rcx"
+              type="number"
+              step="0.1"
+              class="styled-input"
+              [ngModel]="inc.shape.center_x"
+              (ngModelChange)="updateSelectedInclusionCenter($event, inc.shape.center_y)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="inc-rcy">Κέντρο Y (m)</label>
+            <input
+              id="inc-rcy"
+              type="number"
+              step="0.1"
+              class="styled-input"
+              [ngModel]="inc.shape.center_y"
+              (ngModelChange)="updateSelectedInclusionCenter(inc.shape.center_x, $event)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="inc-w">Πλάτος W (m)</label>
+            <input
+              id="inc-w"
+              type="number"
+              step="0.1"
+              min="0.1"
+              class="styled-input"
+              [ngModel]="inc.shape.width"
+              (ngModelChange)="updateSelectedInclusionRectDims($event, inc.shape.height)"
+            />
+          </div>
+          <div class="param-item">
+            <label for="inc-h">Ύψος H (m)</label>
+            <input
+              id="inc-h"
+              type="number"
+              step="0.1"
+              min="0.1"
+              class="styled-input"
+              [ngModel]="inc.shape.height"
+              (ngModelChange)="updateSelectedInclusionRectDims(inc.shape.width, $event)"
+            />
+          </div>
+        </div>
+      }
+
+      <div class="param-grid material-grid">
+        <div class="param-item full-width">
+          <label for="inc-mat">Υλικό / Περιγραφή</label>
+          <input
+            id="inc-mat"
+            type="text"
+            class="styled-input"
+            [ngModel]="inc.material_label"
+            (ngModelChange)="updateSelectedInclusionMaterial($event, inc.youngs_modulus_override_gpa ?? 210, inc.poisson_ratio_override ?? 0.3)"
+          />
+        </div>
+        <div class="param-item">
+          <label for="inc-e">E (GPa)</label>
+          <input
+            id="inc-e"
+            type="number"
+            step="1"
+            class="styled-input"
+            [ngModel]="inc.youngs_modulus_override_gpa ?? 210"
+            (ngModelChange)="updateSelectedInclusionMaterial(inc.material_label, $event, inc.poisson_ratio_override ?? 0.3)"
+          />
+        </div>
+        <div class="param-item">
+          <label for="inc-nu">Poisson &nu;</label>
+          <input
+            id="inc-nu"
+            type="number"
+            step="0.01"
+            min="0"
+            max="0.49"
+            class="styled-input"
+            [ngModel]="inc.poisson_ratio_override ?? 0.3"
+            (ngModelChange)="updateSelectedInclusionMaterial(inc.material_label, inc.youngs_modulus_override_gpa ?? 210, $event)"
+          />
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button
+          type="button"
+          class="btn-delete"
+          (click)="store.removeInclusion(inc.id)"
+        >
+          🗑 Διαγραφή Εγκλεισμού
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- CDT Meshing Settings Section -->
+  <div class="panel-section cdt-section">
+    <div class="section-title">Ρυθμίσεις Πλέγματος (CDT)</div>
+    <div class="param-grid">
+      <div class="param-item">
+        <label for="cdt-h">Μέγεθος h (m):</label>
+        <input
+          id="cdt-h"
+          type="number"
+          step="0.05"
+          min="0.05"
+          class="styled-input"
+          [ngModel]="store.domain().meshing_profile.target_element_size"
+          (ngModelChange)="store.updateMeshingProfile({ target_element_size: +$event })"
+        />
+      </div>
+      <div class="param-item">
+        <label for="cdt-alpha" title="Συντελεστής Πύκνωσης Οπής h_hole = α · h">
+          Συντελεστής &alpha;<sub>hole</sub>:
+        </label>
+        <input
+          id="cdt-alpha"
+          type="number"
+          step="0.05"
+          min="0.05"
+          max="1.0"
+          class="styled-input"
+          [ngModel]="store.domain().meshing_profile.hole_refinement_factor"
+          (ngModelChange)="store.updateMeshingProfile({ hole_refinement_factor: +$event })"
+        />
+      </div>
+    </div>
+
+    <div class="help-hint">
+      <strong>Συντελεστής Πύκνωσης Οπής (&alpha;<sub>hole</sub>):</strong>
+      Ορίζει το τοπικό μέγεθος στοιχείων γύρω από οπές ως <em>h<sub>hole</sub> = &alpha; &middot; h</em>.
+      Μικρότερη τιμή (π.χ. 0.3) παράγει πυκνότερο πλέγμα για ακριβή υπολογισμό συγκέντρωσης τάσεων (stress concentration).
+    </div>
+
+    <button
+      type="button"
+      class="btn-action btn-mesh"
+      [disabled]="store.isMeshing() || store.domain().outer_boundary.closure_state !== 'ClosedValid'"
+      (click)="store.generateMesh()"
+    >
+      @if (store.isMeshing()) {
+        <span>⏳ Υπολογισμός Πλέγματος...</span>
+      } @else {
+        <span>⚡ Δημιουργία Conformal Mesh</span>
+      }
+    </button>
+
+    <button
+      type="button"
+      class="btn-action btn-send"
+      [disabled]="store.meshStatus() !== 'Current'"
+      (click)="store.sendToMode1Solver()"
+    >
+      🚀 Αποστολή στον Επιλυτή Mode 1
+    </button>
+  </div>
+</div>

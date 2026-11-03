@@ -355,6 +355,42 @@ export class ContinuumSketcherStore {
     this.selectedCutoutId.set(newCutout.id);
   }
 
+  addPolygonalCutout(centerX: number, centerY: number, radius = 1.2, sides = 6): void {
+    const vertices: Vertex2D[] = [];
+    for (let i = 0; i < sides; i++) {
+      const angle = (i / sides) * 2 * Math.PI;
+      vertices.push({
+        id: `v_hole_${i}`,
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle),
+      });
+    }
+
+    const newCutout: Cutout = {
+      id: `cutout_${Date.now()}`,
+      shape: {
+        kind: 'Polygon',
+        vertices,
+      },
+      tag: 'Hole',
+    };
+
+    this.domain.update((d) => ({
+      ...d,
+      revision: d.revision + 1,
+      cutouts: [...d.cutouts, newCutout],
+    }));
+    this.selectedCutoutId.set(newCutout.id);
+  }
+
+  updateCutout(id: string, updates: Partial<Cutout>): void {
+    this.domain.update((d) => ({
+      ...d,
+      revision: d.revision + 1,
+      cutouts: d.cutouts.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    }));
+  }
+
   removeCutout(id: string): void {
     this.domain.update((d) => ({
       ...d,
@@ -387,6 +423,46 @@ export class ContinuumSketcherStore {
       inclusions: [...d.inclusions, newInclusion],
     }));
     this.selectedInclusionId.set(newInclusion.id);
+  }
+
+  addRectangularInclusion(
+    centerX: number,
+    centerY: number,
+    width = 2.0,
+    height = 2.0,
+    material = 'Steel_Inclusion',
+    youngs = 210.0,
+    nu = 0.3
+  ): void {
+    const newInclusion: InclusionRegion = {
+      id: `inclusion_${Date.now()}`,
+      shape: {
+        kind: 'Rectangle',
+        center_x: centerX,
+        center_y: centerY,
+        width,
+        height,
+        rotation_deg: 0.0,
+      },
+      material_label: material,
+      youngs_modulus_override_gpa: youngs,
+      poisson_ratio_override: nu,
+    };
+
+    this.domain.update((d) => ({
+      ...d,
+      revision: d.revision + 1,
+      inclusions: [...d.inclusions, newInclusion],
+    }));
+    this.selectedInclusionId.set(newInclusion.id);
+  }
+
+  updateInclusion(id: string, updates: Partial<InclusionRegion>): void {
+    this.domain.update((d) => ({
+      ...d,
+      revision: d.revision + 1,
+      inclusions: d.inclusions.map((inc) => (inc.id === id ? { ...inc, ...updates } : inc)),
+    }));
   }
 
   removeInclusion(id: string): void {

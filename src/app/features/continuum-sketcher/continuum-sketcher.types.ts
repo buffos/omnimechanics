@@ -154,4 +154,6 @@ export type SketcherTool =
   | 'QuickPlateWithHole'
   | 'AddCircularCutout'
   | 'AddRectangularCutout'
-  | 'AddCircularInclusion';
+  | 'AddPolygonalCutout'
+  | 'AddCircularInclusion'
+  | 'AddRectangularInclusion';

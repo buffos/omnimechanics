@@ -8,6 +8,7 @@ import {
   output,
   signal,
   viewChild,
+  OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -20,23 +21,28 @@ import {
   SketcherTool,
   Vertex2D,
 } from './continuum-sketcher.types';
+import { DraftingViewport } from '../modeler/core/viewport';
+import { ContinuumInspectorComponent } from './continuum-inspector.component';
 
 @Component({
   selector: 'app-continuum-sketcher',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ContinuumInspectorComponent],
   templateUrl: './continuum-sketcher.component.html',
   styleUrl: './continuum-sketcher.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ContinuumSketcherComponent {
+export class ContinuumSketcherComponent implements OnInit {
   readonly store = inject(ContinuumSketcherStore);
   readonly close = output<void>();
 
   readonly svgRef = viewChild<ElementRef<SVGSVGElement>>('sketchSvg');
   readonly coordInputRef = viewChild<ElementRef<HTMLInputElement>>('coordInput');
 
-  // Mouse coordinate readout in domain space (meters)
+  // Engineering Viewport (Y-up convention, pan & zoom)
+  readonly viewport = signal<DraftingViewport>(new DraftingViewport(1200, 800, 45, 600, 450, 0.5));
+
+  // Mouse coordinate readout in world Cartesian meters (X to right, Y upwards)
   readonly cursorCoord = signal<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Coordinate entry input value
@@ -45,28 +51,28 @@ export class ContinuumSketcherComponent {
   // Flyout menu states
   readonly isDrawFlyoutOpen = signal<boolean>(false);
   readonly isCutoutFlyoutOpen = signal<boolean>(false);
+  readonly isInclusionFlyoutOpen = signal<boolean>(false);
   readonly isTemplateMenuOpen = signal<boolean>(false);
 
-  // ViewBox bounds [minX, minY, width, height]
-  readonly viewBox = computed(() => {
-    const domain = this.store.domain();
-    const verts = domain.outer_boundary.vertices;
-    if (verts.length === 0) {
-      return '-5 -5 20 20';
+  // Pan interaction state
+  private isPanning = false;
+  private panStartScreen = { x: 0, y: 0 };
+
+  ngOnInit(): void {
+    // Center viewport around initial domain
+    this.fitViewToDomain();
+  }
+
+  fitViewToDomain(): void {
+    const verts = this.store.domain().outer_boundary.vertices;
+    if (verts.length > 0) {
+      this.viewport.update((vp) => {
+        const next = vp.clone();
+        next.zoomExtents(verts, 120);
+        return next;
+      });
     }
-    let minX = 0;
-    let maxX = 10;
-    let minY = 0;
-    let maxY = 10;
-    for (const v of verts) {
-      if (v.x < minX) minX = v.x;
-      if (v.x > maxX) maxX = v.x;
-      if (v.y < minY) minY = v.y;
-      if (v.y > maxY) maxY = v.y;
-    }
-    const pad = 2.5;
-    return `${(minX - pad).toFixed(2)} ${(minY - pad).toFixed(2)} ${(maxX - minX + 2 * pad).toFixed(2)} ${(maxY - minY + 2 * pad).toFixed(2)}`;
-  });
+  }
 
   readonly selectedSegment = computed<BoundarySegment | null>(() => {
     const idx = this.store.selectedSegmentIdx();
@@ -113,6 +119,7 @@ export class ContinuumSketcherComponent {
   closeFlyouts(): void {
     this.isDrawFlyoutOpen.set(false);
     this.isCutoutFlyoutOpen.set(false);
+    this.isInclusionFlyoutOpen.set(false);
     this.isTemplateMenuOpen.set(false);
   }
 
@@ -121,28 +128,59 @@ export class ContinuumSketcherComponent {
     if (tool === 'QuickPlateWithHole') {
       this.store.loadTemplatePerforatedPlate();
       this.store.setTool('Select');
+      this.fitViewToDomain();
     } else if (tool === 'QuickRectangle') {
       this.store.addRectangleBoundary(10.0, 6.0);
       this.store.setTool('Select');
+      this.fitViewToDomain();
     } else {
       this.store.setTool(tool);
     }
   }
 
-  onSvgMouseMove(event: MouseEvent): void {
+  // --- Coordinate Transformations (World Y-up <-> Screen Y-down) ---
+  w2s(x: number, y: number): { x: number; y: number } {
+    return this.viewport().worldToScreen(x, y);
+  }
+
+  getScreenCoords(event: MouseEvent): { screenX: number; screenY: number } {
     const svg = this.svgRef()?.nativeElement;
-    if (!svg) return;
+    if (!svg) return { screenX: 0, screenY: 0 };
+    const rect = svg.getBoundingClientRect();
+    return {
+      screenX: event.clientX - rect.left,
+      screenY: event.clientY - rect.top,
+    };
+  }
 
-    const pt = svg.createSVGPoint();
-    pt.x = event.clientX;
-    pt.y = event.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const svgP = pt.matrixTransform(ctm.inverse());
+  onSvgMouseDown(event: MouseEvent): void {
+    if (event.button === 1 || event.altKey) {
+      // Middle mouse button pan
+      event.preventDefault();
+      this.isPanning = true;
+      this.panStartScreen = { x: event.clientX, y: event.clientY };
+    }
+  }
 
-    // Snapping to 0.25m grid
-    const snapX = Math.round(svgP.x * 4) / 4;
-    const snapY = Math.round(svgP.y * 4) / 4;
+  onSvgMouseMove(event: MouseEvent): void {
+    if (this.isPanning) {
+      const dx = event.clientX - this.panStartScreen.x;
+      const dy = event.clientY - this.panStartScreen.y;
+      this.panStartScreen = { x: event.clientX, y: event.clientY };
+      this.viewport.update((vp) => {
+        const next = vp.clone();
+        next.pan(dx, dy);
+        return next;
+      });
+      return;
+    }
+
+    const { screenX, screenY } = this.getScreenCoords(event);
+    const world = this.viewport().screenToWorld(screenX, screenY);
+
+    // Grid snapping: 0.25m step (Y is positive UPWARDS)
+    const snapX = Math.round(world.x * 4) / 4;
+    const snapY = Math.round(world.y * 4) / 4;
     this.cursorCoord.set({ x: snapX, y: snapY });
 
     if (this.store.activeTool() === 'OuterPolygon') {
@@ -151,7 +189,25 @@ export class ContinuumSketcherComponent {
     }
   }
 
+  onSvgMouseUp(event: MouseEvent): void {
+    if (this.isPanning) {
+      this.isPanning = false;
+    }
+  }
+
+  onSvgWheel(event: WheelEvent): void {
+    event.preventDefault();
+    const { screenX, screenY } = this.getScreenCoords(event);
+    const zoomFactor = event.deltaY < 0 ? 1.15 : 0.87;
+    this.viewport.update((vp) => {
+      const next = vp.clone();
+      next.zoomAt(screenX, screenY, zoomFactor);
+      return next;
+    });
+  }
+
   onSvgClick(event: MouseEvent): void {
+    if (this.isPanning) return;
     this.closeFlyouts();
     const coord = this.cursorCoord();
     const tool = this.store.activeTool();
@@ -164,11 +220,16 @@ export class ContinuumSketcherComponent {
     } else if (tool === 'AddRectangularCutout') {
       this.store.addRectangularCutout(coord.x, coord.y, 2.0, 2.0);
       this.store.setTool('Select');
+    } else if (tool === 'AddPolygonalCutout') {
+      this.store.addPolygonalCutout(coord.x, coord.y, 1.2, 6);
+      this.store.setTool('Select');
     } else if (tool === 'AddCircularInclusion') {
       this.store.addCircularInclusion(coord.x, coord.y, 1.2);
       this.store.setTool('Select');
+    } else if (tool === 'AddRectangularInclusion') {
+      this.store.addRectangularInclusion(coord.x, coord.y, 2.0, 2.0);
+      this.store.setTool('Select');
     } else {
-      // Clear selection if clicking empty canvas
       this.store.selectedSegmentIdx.set(null);
       this.store.selectedCutoutId.set(null);
       this.store.selectedInclusionId.set(null);
@@ -206,7 +267,7 @@ export class ContinuumSketcherComponent {
     this.store.selectedCutoutId.set(null);
   }
 
-  // Coordinate Input Parser: handles x,y or @dx,dy or @L<deg
+  // --- AutoCAD-Style Coordinate Input Parser (Y-up) ---
   submitCoordinateEntry(): void {
     const raw = this.coordInputValue().trim();
     if (!raw) return;
@@ -217,7 +278,7 @@ export class ContinuumSketcherComponent {
     if (raw.startsWith('@')) {
       const payload = raw.substring(1).trim();
       if (payload.includes('<')) {
-        // Polar: @L<angle
+        // Polar relative: @L<angle (angle in degrees CCW, Y is positive UP)
         const [lenStr, angStr] = payload.split('<');
         const length = parseFloat(lenStr);
         const angleDeg = parseFloat(angStr);
@@ -229,7 +290,7 @@ export class ContinuumSketcherComponent {
           this.coordInputValue.set('');
         }
       } else if (payload.includes(',')) {
-        // Relative cartesian: @dx,dy
+        // Cartesian relative: @dx,dy (dy > 0 is UPWARDS!)
         const [dxStr, dyStr] = payload.split(',');
         const dx = parseFloat(dxStr);
         const dy = parseFloat(dyStr);
@@ -239,7 +300,7 @@ export class ContinuumSketcherComponent {
         }
       }
     } else if (raw.includes(',')) {
-      // Absolute cartesian: x,y
+      // Cartesian absolute: x,y
       const [xStr, yStr] = raw.split(',');
       const x = parseFloat(xStr);
       const y = parseFloat(yStr);
@@ -250,45 +311,27 @@ export class ContinuumSketcherComponent {
     }
   }
 
-  updateSegmentTag(tag: string): void {
-    const idx = this.store.selectedSegmentIdx();
-    if (idx === null) return;
-    const currentSpec = this.store.domain().tag_conditions[tag] ?? { kind: 'Free' };
-    this.store.updateSegmentTag(idx, tag, currentSpec);
+  // --- Draft Segment Helpers (Live Dimensions in OpenDraft) ---
+  getDraftSegmentLength(v1: Vertex2D, v2: Vertex2D): number {
+    return Math.hypot(v2.x - v1.x, v2.y - v1.y);
   }
 
-  updateSegmentBcKind(kind: string): void {
-    const seg = this.selectedSegment();
-    const idx = this.store.selectedSegmentIdx();
-    if (!seg || idx === null) return;
+  getDraftSegmentMid(v1: Vertex2D, v2: Vertex2D): { x: number; y: number } {
+    return this.w2s((v1.x + v2.x) / 2, (v1.y + v2.y) / 2);
+  }
 
-    let spec: BoundaryConditionSpec = { kind: 'Free' };
-    if (kind === 'DirichletDisplacement') {
-      spec = {
-        kind: 'DirichletDisplacement',
-        fix_x: true,
-        fix_y: true,
-        ux_m: 0.0,
-        uy_m: 0.0,
-      };
-    } else if (kind === 'NeumannTraction') {
-      spec = {
-        kind: 'NeumannTraction',
-        tx_kn_m2: 0.0,
-        ty_kn_m2: 100.0,
-        coordinate_frame: 'Global',
-      };
-    } else if (kind === 'RobinImpedance') {
-      spec = {
-        kind: 'RobinImpedance',
-        kn_kn_m3: 10000.0,
-        ks_kn_m3: 5000.0,
-        cn_kn_s_m3: 0.0,
-        cs_kn_s_m3: 0.0,
-      };
-    }
+  getCandidateLength(cand: Vertex2D): number {
+    const verts = this.store.domain().outer_boundary.vertices;
+    if (verts.length === 0) return 0;
+    const last = verts[verts.length - 1];
+    return Math.hypot(cand.x - last.x, cand.y - last.y);
+  }
 
-    this.store.updateSegmentTag(idx, seg.tag, spec);
+  getCandidateScreenMid(cand: Vertex2D): { x: number; y: number } {
+    const verts = this.store.domain().outer_boundary.vertices;
+    if (verts.length === 0) return this.w2s(cand.x, cand.y);
+    const last = verts[verts.length - 1];
+    return this.w2s((last.x + cand.x) / 2, (last.y + cand.y) / 2);
   }
 
   handleSolveAndHandoff(): void {
@@ -301,42 +344,48 @@ export class ContinuumSketcherComponent {
   getTagColor(tag: string): string {
     switch (tag.toLowerCase()) {
       case 'bottom':
-        return '#3b82f6'; // blue
+        return 'var(--accent-primary, #0284c7)';
       case 'top':
-        return '#ef4444'; // red
+        return 'var(--accent-danger, #ef4444)';
       case 'left':
-        return '#10b981'; // emerald
+        return 'var(--accent-success, #10b981)';
       case 'right':
-        return '#f59e0b'; // amber
+        return 'var(--accent-warning, #f59e0b)';
       case 'hole':
-        return '#ec4899'; // pink
+        return '#ec4899';
       default:
-        return '#8b5cf6'; // violet
+        return 'var(--accent-glow, #38bdf8)';
     }
   }
 
-  getNormalArrowEnd(seg: BoundarySegment): { x: number; y: number } {
+  getSegmentLength(seg: BoundarySegment): number {
+    const verts = this.store.domain().outer_boundary.vertices;
+    const v1 = verts.find((v) => v.id === seg.start_vertex_id);
+    const v2 = verts.find((v) => v.id === seg.end_vertex_id);
+    if (!v1 || !v2) return 0;
+    return Math.hypot(v2.x - v1.x, v2.y - v1.y);
+  }
+
+  getSegmentScreenMid(seg: BoundarySegment): { x: number; y: number } {
+    const verts = this.store.domain().outer_boundary.vertices;
+    const v1 = verts.find((v) => v.id === seg.start_vertex_id);
+    const v2 = verts.find((v) => v.id === seg.end_vertex_id);
+    if (!v1 || !v2) return { x: 0, y: 0 };
+    return this.w2s((v1.x + v2.x) / 2, (v1.y + v2.y) / 2);
+  }
+
+  getNormalArrowScreenEnd(seg: BoundarySegment): { x: number; y: number } {
     const verts = this.store.domain().outer_boundary.vertices;
     const v1 = verts.find((v) => v.id === seg.start_vertex_id);
     const v2 = verts.find((v) => v.id === seg.end_vertex_id);
     if (!v1 || !v2) return { x: 0, y: 0 };
     const midX = (v1.x + v2.x) / 2;
     const midY = (v1.y + v2.y) / 2;
-    const len = 0.5; // arrow length in meters
-    return {
-      x: midX + seg.outward_normal[0] * len,
-      y: midY + seg.outward_normal[1] * len,
-    };
+    const len = 0.6; // 0.6 meters outward
+    return this.w2s(midX + seg.outward_normal[0] * len, midY + seg.outward_normal[1] * len);
   }
 
-  getSegmentMid(seg: BoundarySegment): { x: number; y: number } {
-    const verts = this.store.domain().outer_boundary.vertices;
-    const v1 = verts.find((v) => v.id === seg.start_vertex_id);
-    const v2 = verts.find((v) => v.id === seg.end_vertex_id);
-    if (!v1 || !v2) return { x: 0, y: 0 };
-    return {
-      x: (v1.x + v2.x) / 2,
-      y: (v1.y + v2.y) / 2,
-    };
+  getPolygonPointsSvg(verts: Vertex2D[]): string {
+    return verts.map((v) => `${this.w2s(v.x, v.y).x},${this.w2s(v.x, v.y).y}`).join(' ');
   }
 }

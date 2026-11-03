@@ -146,17 +146,24 @@ textarea {
 .styled-select {
   width: 100%;
   box-sizing: border-box;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
+  background: var(--bg-surface-elevated, #1e293b);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  color: var(--text-primary, #f8fafc);
   padding: 8px 10px;
   border-radius: 6px;
   font-size: 0.85rem;
   outline: none;
+  color-scheme: dark;
+}
+
+.styled-select option {
+  background-color: var(--bg-surface-elevated, #1e293b);
+  color: var(--text-primary, #f8fafc);
+  padding: 6px 10px;
 }
 
 .styled-select:focus {
-  border-color: #38bdf8;
+  border-color: var(--border-color-focus, #38bdf8);
 }
 
 .param-grid {
