@@ -338,4 +338,79 @@ mod tests {
         assert_eq!(handoff.mesh_data.volume_elements.len(), 10 * 6, "10x6 m with h=1.0m must produce exactly 60 quads");
         assert!(handoff.quality_report.is_conformal, "Must be conformal");
     }
+
+    #[test]
+    fn test_sc013_arbitrary_pentagon_quad4_and_size_sensitivity() {
+        // Arbitrary 5-sided polygon (similar to user's sketch)
+        let outer_vertices = vec![
+            Vertex2D { id: "p0".into(), x: 0.0, y: 0.0 },
+            Vertex2D { id: "p1".into(), x: 5.5, y: -0.5 },
+            Vertex2D { id: "p2".into(), x: 7.0, y: 2.5 },
+            Vertex2D { id: "p3".into(), x: 3.5, y: 5.0 },
+            Vertex2D { id: "p4".into(), x: -1.0, y: 3.0 },
+        ];
+        let outer = close_and_normalize_loop("PentagonLoop", &outer_vertices, false).unwrap();
+
+        // 1. Mesh with h = 1.0 m, Quad4
+        let domain_coarse = ContinuumDomain {
+            id: "CD_Pentagon".into(),
+            revision: 1,
+            outer_boundary: outer.clone(),
+            cutouts: vec![],
+            inclusions: vec![],
+            tag_conditions: Default::default(),
+            meshing_profile: MeshingProfile {
+                target_element_size: 1.0,
+                hole_refinement_factor: 1.0,
+                min_angle_deg: 25.0,
+                volume_element_type: VolumeElementKind::Quad4,
+                boundary_element_type: BoundaryElementKind::Line2,
+            },
+        };
+
+        let handoff_coarse = generate_conformal_mesh(&domain_coarse)
+            .expect("Arbitrary pentagon Quad4 meshing must succeed");
+
+        assert!(
+            handoff_coarse.mesh_data.volume_elements.iter().all(|e| e.elem_type == crate::mesh::types::ElementType::Quad4),
+            "ALL elements in Quad4 mode must be Quad4! Zero Tri3 allowed."
+        );
+        assert!(handoff_coarse.quality_report.is_conformal, "Coarse pentagon mesh must be 100% conformal");
+        let n_coarse = handoff_coarse.mesh_data.volume_elements.len();
+        assert!(n_coarse >= 10, "Must produce multiple quads (got {})", n_coarse);
+
+        // 2. Mesh with h = 0.5 m, Quad4 (finer size)
+        let domain_fine = ContinuumDomain {
+            id: "CD_Pentagon".into(),
+            revision: 2,
+            outer_boundary: outer,
+            cutouts: vec![],
+            inclusions: vec![],
+            tag_conditions: Default::default(),
+            meshing_profile: MeshingProfile {
+                target_element_size: 0.5,
+                hole_refinement_factor: 1.0,
+                min_angle_deg: 25.0,
+                volume_element_type: VolumeElementKind::Quad4,
+                boundary_element_type: BoundaryElementKind::Line2,
+            },
+        };
+
+        let handoff_fine = generate_conformal_mesh(&domain_fine)
+            .expect("Finer arbitrary pentagon Quad4 meshing must succeed");
+
+        assert!(
+            handoff_fine.mesh_data.volume_elements.iter().all(|e| e.elem_type == crate::mesh::types::ElementType::Quad4),
+            "ALL elements in fine Quad4 mode must be Quad4!"
+        );
+        assert!(handoff_fine.quality_report.is_conformal, "Fine pentagon mesh must be 100% conformal");
+        let n_fine = handoff_fine.mesh_data.volume_elements.len();
+
+        // Verifying size sensitivity: reducing h from 1.0 to 0.5 MUST produce more elements!
+        assert!(
+            n_fine > n_coarse * 2,
+            "Reducing h from 1.0 to 0.5 must significantly increase element count (coarse: {}, fine: {})",
+            n_coarse, n_fine
+        );
+    }
 }
