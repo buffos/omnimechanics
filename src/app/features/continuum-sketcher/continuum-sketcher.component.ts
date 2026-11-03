@@ -249,6 +249,7 @@ export class ContinuumSketcherComponent implements OnInit {
     this.store.selectedSegmentIdx.set(idx);
     this.store.selectedCutoutId.set(null);
     this.store.selectedInclusionId.set(null);
+    this.store.inspectorTab.set('element');
   }
 
   selectCutout(id: string, e: MouseEvent): void {
@@ -257,6 +258,7 @@ export class ContinuumSketcherComponent implements OnInit {
     this.store.selectedCutoutId.set(id);
     this.store.selectedSegmentIdx.set(null);
     this.store.selectedInclusionId.set(null);
+    this.store.inspectorTab.set('element');
   }
 
   selectInclusion(id: string, e: MouseEvent): void {
@@ -265,6 +267,11 @@ export class ContinuumSketcherComponent implements OnInit {
     this.store.selectedInclusionId.set(id);
     this.store.selectedSegmentIdx.set(null);
     this.store.selectedCutoutId.set(null);
+    this.store.inspectorTab.set('element');
+  }
+
+  openMeshSettings(): void {
+    this.store.inspectorTab.set('mesh');
   }
 
   // --- AutoCAD-Style Coordinate Input Parser (Y-up) ---
@@ -387,5 +394,66 @@ export class ContinuumSketcherComponent implements OnInit {
 
   getPolygonPointsSvg(verts: Vertex2D[]): string {
     return verts.map((v) => `${this.w2s(v.x, v.y).x},${this.w2s(v.x, v.y).y}`).join(' ');
+  }
+
+  getMeshElementPointsSvg(nodes: [number, number, number][], nodeIndices: number[]): string {
+    return nodeIndices
+      .map((idx) => {
+        const n = nodes[idx];
+        if (!n) return '0,0';
+        const pt = this.w2s(n[0], n[1]);
+        return `${pt.x},${pt.y}`;
+      })
+      .join(' ');
+  }
+
+  getSegmentTractionArrows(seg: BoundarySegment): { x1: number; y1: number; x2: number; y2: number }[] {
+    const condition = this.store.domain().tag_conditions[seg.tag];
+    if (!condition || condition.kind !== 'NeumannTraction') return [];
+    const { tx_kn_m2, ty_kn_m2 } = condition;
+    if (tx_kn_m2 === 0 && ty_kn_m2 === 0) return [];
+
+    const verts = this.store.domain().outer_boundary.vertices;
+    const v1 = verts.find((v) => v.id === seg.start_vertex_id);
+    const v2 = verts.find((v) => v.id === seg.end_vertex_id);
+    if (!v1 || !v2) return [];
+
+    const mag = Math.hypot(tx_kn_m2, ty_kn_m2);
+    const arrowPx = Math.min(45, Math.max(22, Math.log10(mag + 1) * 20));
+    const dirX = tx_kn_m2 / mag;
+    const dirY = ty_kn_m2 / mag;
+
+    // In screen coordinates: Y is down, so positive world Y is negative screen Y
+    const dx = dirX * arrowPx;
+    const dy = -dirY * arrowPx;
+
+    const arrows: { x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (const t of [0.25, 0.5, 0.75]) {
+      const wx = v1.x + t * (v2.x - v1.x);
+      const wy = v1.y + t * (v2.y - v1.y);
+      const s = this.w2s(wx, wy);
+      arrows.push({
+        x1: s.x,
+        y1: s.y,
+        x2: s.x + dx,
+        y2: s.y + dy,
+      });
+    }
+    return arrows;
+  }
+
+  getSegmentTractionLabel(seg: BoundarySegment): string | null {
+    const condition = this.store.domain().tag_conditions[seg.tag];
+    if (!condition || condition.kind !== 'NeumannTraction') return null;
+    const { tx_kn_m2, ty_kn_m2 } = condition;
+    if (tx_kn_m2 === 0 && ty_kn_m2 === 0) return null;
+    if (tx_kn_m2 === 0) return `ty = ${ty_kn_m2} kN/m²`;
+    if (ty_kn_m2 === 0) return `tx = ${tx_kn_m2} kN/m²`;
+    return `t = (${tx_kn_m2}, ${ty_kn_m2}) kN/m²`;
+  }
+
+  isSegmentFixed(seg: BoundarySegment): boolean {
+    const condition = this.store.domain().tag_conditions[seg.tag];
+    return !!condition && condition.kind === 'DirichletDisplacement' && (condition.fix_x || condition.fix_y);
   }
 }

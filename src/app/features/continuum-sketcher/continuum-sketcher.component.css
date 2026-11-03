@@ -269,6 +269,17 @@
   transition: all 0.15s ease;
 }
 
+.btn-settings {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-settings:hover {
+  background: var(--bg-panel);
+  border-color: var(--accent-glow);
+}
+
 .btn-mesh {
   background: var(--accent-primary);
   color: var(--text-primary);
@@ -377,6 +388,14 @@
   text-anchor: middle;
 }
 
+.segment-traction-text {
+  fill: var(--accent-warning);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-anchor: middle;
+}
+
 .draft-line {
   stroke: var(--accent-glow);
   stroke-width: 2.5;
@@ -441,10 +460,10 @@
 
 .mesh-triangle {
   fill: var(--accent-primary);
-  fill-opacity: 0.08;
+  fill-opacity: 0.15;
   stroke: var(--accent-glow);
-  stroke-opacity: 0.35;
-  stroke-width: 0.8;
+  stroke-opacity: 0.75;
+  stroke-width: 1.2;
 }
 
 .selected-feature {

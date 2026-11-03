@@ -131,6 +131,7 @@ export class ContinuumSketcherStore {
   readonly selectedSegmentIdx = signal<number | null>(null);
   readonly selectedCutoutId = signal<string | null>(null);
   readonly selectedInclusionId = signal<string | null>(null);
+  readonly inspectorTab = signal<'element' | 'mesh'>('element');
 
   readonly candidatePoint = signal<Vertex2D | null>(null);
   readonly candidatePreview = signal<CandidateSegmentPreview | null>(null);
@@ -535,6 +536,7 @@ export class ContinuumSketcherStore {
       }
 
       const handoff = await invoke<ConformalMeshHandoff>('continuum_generate_mesh', {
+        request: { domain: this.domain() },
         domain: this.domain(),
       });
 

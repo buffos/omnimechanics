@@ -11,15 +11,109 @@
 }
 
 .inspector-header {
-  padding-bottom: 6px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border-color);
 }
 
-.inspector-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
+.inspector-tab-control {
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 3px;
+  border-radius: 8px;
+  gap: 3px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.775rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.tab-btn:hover {
   color: var(--text-primary);
+}
+
+.tab-btn.active {
+  background: var(--accent-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.error-banner {
+  padding: 8px 10px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--accent-danger);
+  border-left: 3px solid var(--accent-danger);
+  color: var(--accent-danger);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.no-selection-panel {
+  align-items: center;
+  text-align: center;
+  padding: 20px 12px;
+}
+
+.no-selection-hint {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.btn-switch-mesh {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--accent-glow);
+}
+
+.btn-switch-mesh:hover {
+  background: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.mesh-stats-card {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 6px;
+  margin-top: 4px;
+}
+
+.mesh-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 0.675rem;
+  color: var(--text-muted);
+}
+
+.stat-value {
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-glow);
 }
 
 .panel-section {

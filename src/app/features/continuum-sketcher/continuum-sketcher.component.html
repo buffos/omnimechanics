@@ -4,36 +4,17 @@
     <!-- CAD Creation Tools -->
     <div class="toolbar-group">
       <!-- Select Tool -->
-      <button
-        type="button"
-        class="tool-btn"
-        [class.active]="store.activeTool() === 'Select'"
-        (click)="selectTool('Select')"
-        title="Επιλογή & Επεξεργασία Στοιχείων (V)"
-      >
-        <span class="icon">↖</span>
-        <span class="label">Select</span>
+      <button type="button" class="tool-btn" [class.active]="store.activeTool() === 'Select'"
+              (click)="selectTool('Select')" title="Επιλογή & Επεξεργασία Στοιχείων (V)">
+        <span class="icon">↖</span> <span class="label">Select</span>
       </button>
 
       <!-- Outer Boundary Flyout -->
       <div class="flyout-btn-group" [class.active]="store.activeTool() === 'OuterPolygon' || store.activeTool() === 'QuickRectangle'">
-        <button
-          type="button"
-          class="flyout-main-btn"
-          (click)="selectTool('OuterPolygon')"
-          title="Σχεδίαση εξωτερικού περιγράμματος πολυγώνου"
-        >
-          <span class="icon">✏️</span>
-          <span class="label">Περίγραμμα</span>
+        <button type="button" class="flyout-main-btn" (click)="selectTool('OuterPolygon')" title="Σχεδίαση εξωτερικού περιγράμματος πολυγώνου">
+          <span class="icon">✏️</span> <span class="label">Περίγραμμα</span>
         </button>
-        <button
-          type="button"
-          class="flyout-chevron-btn"
-          (click)="isDrawFlyoutOpen.set(!isDrawFlyoutOpen()); $event.stopPropagation()"
-          title="Επιλογές περιγράμματος"
-        >
-          ▼
-        </button>
+        <button type="button" class="flyout-chevron-btn" (click)="isDrawFlyoutOpen.set(!isDrawFlyoutOpen()); $event.stopPropagation()" title="Επιλογές περιγράμματος">▼</button>
 
         @if (isDrawFlyoutOpen()) {
           <div class="flyout-menu" (click)="$event.stopPropagation()">
@@ -49,23 +30,10 @@
 
       <!-- Cutouts Flyout -->
       <div class="flyout-btn-group" [class.active]="store.activeTool() === 'AddCircularCutout' || store.activeTool() === 'AddRectangularCutout' || store.activeTool() === 'AddPolygonalCutout'">
-        <button
-          type="button"
-          class="flyout-main-btn"
-          (click)="selectTool('AddCircularCutout')"
-          title="Προσθήκη οπής"
-        >
-          <span class="icon">⭕</span>
-          <span class="label">Οπή</span>
+        <button type="button" class="flyout-main-btn" (click)="selectTool('AddCircularCutout')" title="Προσθήκη οπής">
+          <span class="icon">⭕</span> <span class="label">Οπή</span>
         </button>
-        <button
-          type="button"
-          class="flyout-chevron-btn"
-          (click)="isCutoutFlyoutOpen.set(!isCutoutFlyoutOpen()); $event.stopPropagation()"
-          title="Επιλογές οπών"
-        >
-          ▼
-        </button>
+        <button type="button" class="flyout-chevron-btn" (click)="isCutoutFlyoutOpen.set(!isCutoutFlyoutOpen()); $event.stopPropagation()" title="Επιλογές οπών">▼</button>
 
         @if (isCutoutFlyoutOpen()) {
           <div class="flyout-menu" (click)="$event.stopPropagation()">
@@ -84,23 +52,10 @@
 
       <!-- Inclusions Flyout -->
       <div class="flyout-btn-group" [class.active]="store.activeTool() === 'AddCircularInclusion' || store.activeTool() === 'AddRectangularInclusion'">
-        <button
-          type="button"
-          class="flyout-main-btn"
-          (click)="selectTool('AddCircularInclusion')"
-          title="Προσθήκη εγκλείσματος άλλου υλικού"
-        >
-          <span class="icon">🔵</span>
-          <span class="label">Εγκλεισμός</span>
+        <button type="button" class="flyout-main-btn" (click)="selectTool('AddCircularInclusion')" title="Προσθήκη εγκλείσματος άλλου υλικού">
+          <span class="icon">🔵</span> <span class="label">Εγκλεισμός</span>
         </button>
-        <button
-          type="button"
-          class="flyout-chevron-btn"
-          (click)="isInclusionFlyoutOpen.set(!isInclusionFlyoutOpen()); $event.stopPropagation()"
-          title="Επιλογές εγκλεισμάτων"
-        >
-          ▼
-        </button>
+        <button type="button" class="flyout-chevron-btn" (click)="isInclusionFlyoutOpen.set(!isInclusionFlyoutOpen()); $event.stopPropagation()" title="Επιλογές εγκλεισμάτων">▼</button>
 
         @if (isInclusionFlyoutOpen()) {
           <div class="flyout-menu" (click)="$event.stopPropagation()">
@@ -121,15 +76,9 @@
     <div class="toolbar-group">
       <div class="coord-entry-container" title="Εισαγωγή συντεταγμένων AutoCAD-style: x,y ή @dx,dy ή @L<deg. Πατήστε @ για αυτόματη εστίαση.">
         <span class="coord-icon">⌨</span>
-        <input
-          #coordInput
-          type="text"
-          class="coord-input"
-          placeholder="x,y or @3<45"
-          [value]="coordInputValue()"
-          (input)="coordInputValue.set($any($event.target).value)"
-          (keydown.enter)="submitCoordinateEntry()"
-        />
+        <input #coordInput type="text" class="coord-input" placeholder="x,y or @3<45"
+               [value]="coordInputValue()" (input)="coordInputValue.set($any($event.target).value)"
+               (keydown.enter)="submitCoordinateEntry()" />
       </div>
     </div>
 
@@ -138,17 +87,9 @@
     <!-- Templates Dropdown -->
     <div class="toolbar-group">
       <div class="flyout-btn-group">
-        <button
-          type="button"
-          class="flyout-main-btn"
-          (click)="isTemplateMenuOpen.set(!isTemplateMenuOpen()); $event.stopPropagation()"
-          title="Έτοιμα πρότυπα"
-        >
-          <span class="icon">📁</span>
-          <span class="label">Πρότυπα</span>
-          <span class="chevron">▼</span>
+        <button type="button" class="flyout-main-btn" (click)="isTemplateMenuOpen.set(!isTemplateMenuOpen()); $event.stopPropagation()" title="Έτοιμα πρότυπα">
+          <span class="icon">📁</span> <span class="label">Πρότυπα</span> <span class="chevron">▼</span>
         </button>
-
         @if (isTemplateMenuOpen()) {
           <div class="flyout-menu" (click)="$event.stopPropagation()">
             <button type="button" class="flyout-item" (click)="selectTool('QuickPlateWithHole')">
@@ -165,47 +106,31 @@
     <!-- Right Actions & Handoff -->
     <div class="toolbar-right">
       <div class="badge-group">
-        <span class="badge"
-              [class.badge--success]="store.domain().outer_boundary.closure_state === 'ClosedValid'"
+        <span class="badge" [class.badge--success]="store.domain().outer_boundary.closure_state === 'ClosedValid'"
               [class.badge--warning]="store.domain().outer_boundary.closure_state !== 'ClosedValid'">
           {{ store.domain().outer_boundary.closure_state === 'ClosedValid' ? 'Κλειστός Βρόχος' : 'Σχεδίαση' }} (Rev {{ store.domain().revision }})
         </span>
-        <span class="badge"
-              [class.badge--success]="store.meshStatus() === 'Current'"
-              [class.badge--warning]="store.meshStatus() === 'Stale'"
-              [class.badge--secondary]="store.meshStatus() === 'Unmeshed'">
+        <span class="badge" [class.badge--success]="store.meshStatus() === 'Current'"
+              [class.badge--warning]="store.meshStatus() === 'Stale'" [class.badge--secondary]="store.meshStatus() === 'Unmeshed'">
           Mesh: {{ store.meshStatus() }}
         </span>
       </div>
 
-      <button
-        type="button"
-        class="btn-action btn-mesh"
-        [disabled]="store.isMeshing() || store.domain().outer_boundary.closure_state !== 'ClosedValid'"
-        (click)="store.generateMesh()"
-        title="Δημιουργία σύμμορφου πλέγματος CDT Tri3 + Line2"
-      >
-        <span class="icon">⚡</span>
-        <span>{{ store.isMeshing() ? 'Πλεγματοποίηση...' : 'Δημιουργία Mesh' }}</span>
+      <button type="button" class="btn-action btn-settings" (click)="openMeshSettings()" title="Άνοιγμα ρυθμίσεων πλέγματος (CDT)">
+        <span class="icon">⚙️</span> <span>Ρυθμίσεις</span>
       </button>
 
-      <button
-        type="button"
-        class="btn-action btn-solve"
-        [disabled]="!store.meshHandoff() || store.meshStatus() === 'Stale'"
-        (click)="handleSolveAndHandoff()"
-        title="Μεταφορά πλέγματος στον επιλυτή και επιστροφή στην 3D προβολή"
-      >
-        <span class="icon">🚀</span>
-        <span>Επίλυση &amp; 3D Προβολή</span>
+      <button type="button" class="btn-action btn-mesh" [disabled]="store.isMeshing() || store.domain().outer_boundary.closure_state !== 'ClosedValid'"
+              (click)="store.generateMesh()" title="Δημιουργία σύμμορφου πλέγματος CDT Tri3 + Line2">
+        <span class="icon">⚡</span> <span>{{ store.isMeshing() ? 'Υπολογισμός...' : 'Δημιουργία Mesh' }}</span>
       </button>
 
-      <button
-        type="button"
-        class="btn-action btn-close"
-        (click)="close.emit()"
-        title="Επιστροφή στο κύριο περιβάλλον"
-      >
+      <button type="button" class="btn-action btn-solve" [disabled]="!store.meshHandoff() || store.meshStatus() === 'Stale'"
+              (click)="handleSolveAndHandoff()" title="Μεταφορά πλέγματος στον επιλυτή και επιστροφή στην 3D προβολή">
+        <span class="icon">🚀</span> <span>Επίλυση &amp; 3D Προβολή</span>
+      </button>
+
+      <button type="button" class="btn-action btn-close" (click)="close.emit()" title="Επιστροφή στο κύριο περιβάλλον">
         <span>↩ Επιστροφή</span>
       </button>
     </div>
@@ -213,117 +138,83 @@
 
   <!-- 2. Main Workspace Layout -->
   <div class="continuum-main-area">
-    <!-- Center: 2D Full SVG Drafting Canvas -->
     <div class="canvas-center-column">
-      <svg
-        #sketchSvg
-        class="sketch-svg"
-        (mousedown)="onSvgMouseDown($event)"
-        (mousemove)="onSvgMouseMove($event)"
-        (mouseup)="onSvgMouseUp($event)"
-        (wheel)="onSvgWheel($event)"
-        (click)="onSvgClick($event)"
-      >
-        <!-- Background Grid Pattern -->
+      <svg #sketchSvg class="sketch-svg"
+           (mousedown)="onSvgMouseDown($event)" (mousemove)="onSvgMouseMove($event)"
+           (mouseup)="onSvgMouseUp($event)" (wheel)="onSvgWheel($event)" (click)="onSvgClick($event)">
         <defs>
           <pattern id="cad-grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
             <circle cx="10" cy="10" r="1" fill="var(--border-color-subtle, rgba(255, 255, 255, 0.08))" />
           </pattern>
+          <marker id="traction-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="var(--accent-warning)" />
+          </marker>
         </defs>
         <rect width="100%" height="100%" fill="url(#cad-grid-pattern)" />
 
         <!-- Origin Crosshair (0,0) in World Space -->
         <g class="origin-axes">
-          <line
-            [attr.x1]="w2s(0, 0).x - 15" [attr.y1]="w2s(0, 0).y"
-            [attr.x2]="w2s(0, 0).x + 15" [attr.y2]="w2s(0, 0).y"
-            stroke="var(--border-color, rgba(255, 255, 255, 0.25))" stroke-width="1.5"
-          />
-          <line
-            [attr.x1]="w2s(0, 0).x" [attr.y1]="w2s(0, 0).y - 15"
-            [attr.x2]="w2s(0, 0).x" [attr.y2]="w2s(0, 0).y + 15"
-            stroke="var(--border-color, rgba(255, 255, 255, 0.25))" stroke-width="1.5"
-          />
+          <line [attr.x1]="w2s(0, 0).x - 15" [attr.y1]="w2s(0, 0).y" [attr.x2]="w2s(0, 0).x + 15" [attr.y2]="w2s(0, 0).y"
+                stroke="var(--border-color, rgba(255, 255, 255, 0.25))" stroke-width="1.5" />
+          <line [attr.x1]="w2s(0, 0).x" [attr.y1]="w2s(0, 0).y - 15" [attr.x2]="w2s(0, 0).x" [attr.y2]="w2s(0, 0).y + 15"
+                stroke="var(--border-color, rgba(255, 255, 255, 0.25))" stroke-width="1.5" />
           <circle [attr.cx]="w2s(0, 0).x" [attr.cy]="w2s(0, 0).y" r="4" fill="none" stroke="var(--accent-glow, #38bdf8)" stroke-width="1.5" />
         </g>
 
-        <!-- 1. Mesh Volume Overlay (Tri3) -->
+        <!-- 1. Mesh Volume Overlay (Tri3 / Quad4) -->
         @if (store.meshHandoff(); as handoff) {
           <g class="mesh-overlay-group">
             @for (elem of handoff.mesh_data.volume_elements; track elem.id) {
-              @if (elem.nodes.length === 3) {
-                <polygon
-                  [attr.points]="w2s(handoff.mesh_data.nodes[elem.nodes[0]][0], handoff.mesh_data.nodes[elem.nodes[0]][1]).x + ',' +
-                                 w2s(handoff.mesh_data.nodes[elem.nodes[0]][0], handoff.mesh_data.nodes[elem.nodes[0]][1]).y + ' ' +
-                                 w2s(handoff.mesh_data.nodes[elem.nodes[1]][0], handoff.mesh_data.nodes[elem.nodes[1]][1]).x + ',' +
-                                 w2s(handoff.mesh_data.nodes[elem.nodes[1]][0], handoff.mesh_data.nodes[elem.nodes[1]][1]).y + ' ' +
-                                 w2s(handoff.mesh_data.nodes[elem.nodes[2]][0], handoff.mesh_data.nodes[elem.nodes[2]][1]).x + ',' +
-                                 w2s(handoff.mesh_data.nodes[elem.nodes[2]][0], handoff.mesh_data.nodes[elem.nodes[2]][1]).y"
-                  class="mesh-triangle"
-                />
-              }
+              <polygon [attr.points]="getMeshElementPointsSvg(handoff.mesh_data.nodes, elem.nodes)" class="mesh-triangle" />
             }
           </g>
         }
 
         <!-- 2. Outer Boundary Domain Fill -->
         @if (store.domain().outer_boundary.closure_state === 'ClosedValid') {
-          <polygon
-            [attr.points]="getPolygonPointsSvg(store.domain().outer_boundary.vertices)"
-            class="domain-fill"
-          />
+          <polygon [attr.points]="getPolygonPointsSvg(store.domain().outer_boundary.vertices)" class="domain-fill" />
         }
 
         <!-- 3. Outer Boundary Segments with Normal Ticks & Dimensions -->
         @for (seg of store.domain().outer_boundary.segments; track seg.id; let idx = $index) {
           <g (click)="selectSegment(idx, $event)" class="boundary-segment-group">
-            <!-- Line -->
-            <line
-              [attr.x1]="w2s(store.domain().outer_boundary.vertices[idx].x, store.domain().outer_boundary.vertices[idx].y).x"
-              [attr.y1]="w2s(store.domain().outer_boundary.vertices[idx].x, store.domain().outer_boundary.vertices[idx].y).y"
-              [attr.x2]="w2s(store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].x, store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].y).x"
-              [attr.y2]="w2s(store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].x, store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].y).y"
-              [attr.stroke]="getTagColor(seg.tag)"
-              [attr.stroke-width]="store.selectedSegmentIdx() === idx ? 4 : 2.5"
-              class="boundary-segment-line"
-            />
+            <line [attr.x1]="w2s(store.domain().outer_boundary.vertices[idx].x, store.domain().outer_boundary.vertices[idx].y).x"
+                  [attr.y1]="w2s(store.domain().outer_boundary.vertices[idx].x, store.domain().outer_boundary.vertices[idx].y).y"
+                  [attr.x2]="w2s(store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].x, store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].y).x"
+                  [attr.y2]="w2s(store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].x, store.domain().outer_boundary.vertices[(idx + 1) % store.domain().outer_boundary.vertices.length].y).y"
+                  [attr.stroke]="getTagColor(seg.tag)" [attr.stroke-width]="store.selectedSegmentIdx() === idx ? 4 : 2.5" class="boundary-segment-line" />
 
             <!-- Outward Normal Tick -->
-            <line
-              [attr.x1]="getSegmentScreenMid(seg).x"
-              [attr.y1]="getSegmentScreenMid(seg).y"
-              [attr.x2]="getNormalArrowScreenEnd(seg).x"
-              [attr.y2]="getNormalArrowScreenEnd(seg).y"
-              class="normal-tick"
-            />
+            <line [attr.x1]="getSegmentScreenMid(seg).x" [attr.y1]="getSegmentScreenMid(seg).y"
+                  [attr.x2]="getNormalArrowScreenEnd(seg).x" [attr.y2]="getNormalArrowScreenEnd(seg).y" class="normal-tick" />
+
+            <!-- Traction Load Arrows (Neumann) -->
+            @for (arrow of getSegmentTractionArrows(seg); track $index) {
+              <line [attr.x1]="arrow.x1" [attr.y1]="arrow.y1" [attr.x2]="arrow.x2" [attr.y2]="arrow.y2"
+                    stroke="var(--accent-warning)" stroke-width="2.5" marker-end="url(#traction-arrow)" />
+            }
+
+            <!-- Traction Label -->
+            @if (getSegmentTractionLabel(seg); as tLabel) {
+              <text [attr.x]="getSegmentScreenMid(seg).x" [attr.y]="getSegmentScreenMid(seg).y + 26" class="segment-traction-text">{{ tLabel }}</text>
+            }
+
+            <!-- Fixed Restraint Symbol (Dirichlet) -->
+            @if (isSegmentFixed(seg)) {
+              <circle [attr.cx]="getSegmentScreenMid(seg).x" [attr.cy]="getSegmentScreenMid(seg).y" r="6"
+                      fill="var(--accent-danger)" stroke="var(--text-primary)" stroke-width="1.5" />
+            }
 
             <!-- Dimension Badge (Length in meters) -->
             <g class="dim-badge-group">
-              <rect
-                [attr.x]="getSegmentScreenMid(seg).x - 28"
-                [attr.y]="getSegmentScreenMid(seg).y - 20"
-                width="56"
-                height="16"
-                rx="3"
-                class="dim-badge-bg"
-              />
-              <text
-                [attr.x]="getSegmentScreenMid(seg).x"
-                [attr.y]="getSegmentScreenMid(seg).y - 8"
-                class="segment-dim-text"
-              >
+              <rect [attr.x]="getSegmentScreenMid(seg).x - 28" [attr.y]="getSegmentScreenMid(seg).y - 20"
+                    width="56" height="16" rx="3" class="dim-badge-bg" />
+              <text [attr.x]="getSegmentScreenMid(seg).x" [attr.y]="getSegmentScreenMid(seg).y - 8" class="segment-dim-text">
                 {{ getSegmentLength(seg).toFixed(2) }} m
               </text>
             </g>
 
-            <!-- Tag Label -->
-            <text
-              [attr.x]="getSegmentScreenMid(seg).x"
-              [attr.y]="getSegmentScreenMid(seg).y + 14"
-              class="segment-tag-text"
-            >
-              {{ seg.tag }}
-            </text>
+            <text [attr.x]="getSegmentScreenMid(seg).x" [attr.y]="getSegmentScreenMid(seg).y + 14" class="segment-tag-text">{{ seg.tag }}</text>
           </g>
         }
 
@@ -331,28 +222,15 @@
         @if (store.domain().outer_boundary.closure_state === 'OpenDraft') {
           @for (v of store.domain().outer_boundary.vertices; track v.id; let i = $index) {
             @if (i > 0) {
-              <line
-                [attr.x1]="w2s(store.domain().outer_boundary.vertices[i - 1].x, store.domain().outer_boundary.vertices[i - 1].y).x"
-                [attr.y1]="w2s(store.domain().outer_boundary.vertices[i - 1].x, store.domain().outer_boundary.vertices[i - 1].y).y"
-                [attr.x2]="w2s(v.x, v.y).x"
-                [attr.y2]="w2s(v.x, v.y).y"
-                class="draft-line"
-              />
-              <!-- Draft Segment Dimension Badge -->
+              <line [attr.x1]="w2s(store.domain().outer_boundary.vertices[i - 1].x, store.domain().outer_boundary.vertices[i - 1].y).x"
+                    [attr.y1]="w2s(store.domain().outer_boundary.vertices[i - 1].x, store.domain().outer_boundary.vertices[i - 1].y).y"
+                    [attr.x2]="w2s(v.x, v.y).x" [attr.y2]="w2s(v.x, v.y).y" class="draft-line" />
               <g class="dim-badge-group">
-                <rect
-                  [attr.x]="getDraftSegmentMid(store.domain().outer_boundary.vertices[i - 1], v).x - 28"
-                  [attr.y]="getDraftSegmentMid(store.domain().outer_boundary.vertices[i - 1], v).y - 20"
-                  width="56"
-                  height="16"
-                  rx="3"
-                  class="dim-badge-bg"
-                />
-                <text
-                  [attr.x]="getDraftSegmentMid(store.domain().outer_boundary.vertices[i - 1], v).x"
-                  [attr.y]="getDraftSegmentMid(store.domain().outer_boundary.vertices[i - 1], v).y - 8"
-                  class="segment-dim-text"
-                >
+                <rect [attr.x]="getDraftSegmentMid(store.domain().outer_boundary.vertices[i - 1], v).x - 28"
+                      [attr.y]="getDraftSegmentMid(store.domain().outer_boundary.vertices[i - 1], v).y - 20"
+                      width="56" height="16" rx="3" class="dim-badge-bg" />
+                <text [attr.x]="getDraftSegmentMid(store.domain().outer_boundary.vertices[i - 1], v).x"
+                      [attr.y]="getDraftSegmentMid(store.domain().outer_boundary.vertices[i - 1], v).y - 8" class="segment-dim-text">
                   {{ getDraftSegmentLength(store.domain().outer_boundary.vertices[i - 1], v).toFixed(2) }} m
                 </text>
               </g>
@@ -360,32 +238,17 @@
             <circle [attr.cx]="w2s(v.x, v.y).x" [attr.cy]="w2s(v.x, v.y).y" r="5" class="vertex-dot" />
           }
 
-          <!-- Candidate Segment Preview with Dimension -->
           @if (store.candidatePoint(); as cand) {
             @if (store.domain().outer_boundary.vertices.length > 0) {
-              <line
-                [attr.x1]="w2s(store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].x, store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].y).x"
-                [attr.y1]="w2s(store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].x, store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].y).y"
-                [attr.x2]="w2s(cand.x, cand.y).x"
-                [attr.y2]="w2s(cand.x, cand.y).y"
-                [class.candidate-invalid]="store.candidatePreview()?.is_valid === false"
-                [class.candidate-valid]="store.candidatePreview()?.is_valid !== false"
-                class="candidate-line"
-              />
+              <line [attr.x1]="w2s(store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].x, store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].y).x"
+                    [attr.y1]="w2s(store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].x, store.domain().outer_boundary.vertices[store.domain().outer_boundary.vertices.length - 1].y).y"
+                    [attr.x2]="w2s(cand.x, cand.y).x" [attr.y2]="w2s(cand.x, cand.y).y"
+                    [class.candidate-invalid]="store.candidatePreview()?.is_valid === false"
+                    [class.candidate-valid]="store.candidatePreview()?.is_valid !== false" class="candidate-line" />
               <g class="dim-badge-group">
-                <rect
-                  [attr.x]="getCandidateScreenMid(cand).x - 28"
-                  [attr.y]="getCandidateScreenMid(cand).y - 20"
-                  width="56"
-                  height="16"
-                  rx="3"
-                  class="dim-badge-bg"
-                />
-                <text
-                  [attr.x]="getCandidateScreenMid(cand).x"
-                  [attr.y]="getCandidateScreenMid(cand).y - 8"
-                  class="segment-dim-text"
-                >
+                <rect [attr.x]="getCandidateScreenMid(cand).x - 28" [attr.y]="getCandidateScreenMid(cand).y - 20"
+                      width="56" height="16" rx="3" class="dim-badge-bg" />
+                <text [attr.x]="getCandidateScreenMid(cand).x" [attr.y]="getCandidateScreenMid(cand).y - 8" class="segment-dim-text">
                   {{ getCandidateLength(cand).toFixed(2) }} m
                 </text>
               </g>
@@ -396,38 +259,31 @@
         <!-- 5. Cutouts (Holes) -->
         @for (cutout of store.domain().cutouts; track cutout.id) {
           @if (cutout.shape.kind === 'Circle') {
-            <circle
-              [attr.cx]="w2s(cutout.shape.center_x, cutout.shape.center_y).x"
-              [attr.cy]="w2s(cutout.shape.center_x, cutout.shape.center_y).y"
-              [attr.r]="cutout.shape.radius * viewport().scale"
-              [class.selected-feature]="store.selectedCutoutId() === cutout.id"
-              (click)="selectCutout(cutout.id, $event)"
-              class="cutout-circle"
-            />
-            <text [attr.x]="w2s(cutout.shape.center_x, cutout.shape.center_y).x" [attr.y]="w2s(cutout.shape.center_x, cutout.shape.center_y).y" class="cutout-label">
+            <circle [attr.cx]="w2s(cutout.shape.center_x, cutout.shape.center_y).x"
+                    [attr.cy]="w2s(cutout.shape.center_x, cutout.shape.center_y).y"
+                    [attr.r]="cutout.shape.radius * viewport().scale"
+                    [class.selected-feature]="store.selectedCutoutId() === cutout.id"
+                    (click)="selectCutout(cutout.id, $event)" class="cutout-circle" />
+            <text [attr.x]="w2s(cutout.shape.center_x, cutout.shape.center_y).x"
+                  [attr.y]="w2s(cutout.shape.center_x, cutout.shape.center_y).y" class="cutout-label">
               Ø{{ (cutout.shape.radius * 2).toFixed(2) }} m
             </text>
           } @else if (cutout.shape.kind === 'Rectangle') {
-            <rect
-              [attr.x]="w2s(cutout.shape.center_x - cutout.shape.width / 2, cutout.shape.center_y + cutout.shape.height / 2).x"
-              [attr.y]="w2s(cutout.shape.center_x - cutout.shape.width / 2, cutout.shape.center_y + cutout.shape.height / 2).y"
-              [attr.width]="cutout.shape.width * viewport().scale"
-              [attr.height]="cutout.shape.height * viewport().scale"
-              [class.selected-feature]="store.selectedCutoutId() === cutout.id"
-              (click)="selectCutout(cutout.id, $event)"
-              class="cutout-rect"
-            />
-            <text [attr.x]="w2s(cutout.shape.center_x, cutout.shape.center_y).x" [attr.y]="w2s(cutout.shape.center_x, cutout.shape.center_y).y" class="cutout-label">
+            <rect [attr.x]="w2s(cutout.shape.center_x - cutout.shape.width / 2, cutout.shape.center_y + cutout.shape.height / 2).x"
+                  [attr.y]="w2s(cutout.shape.center_x - cutout.shape.width / 2, cutout.shape.center_y + cutout.shape.height / 2).y"
+                  [attr.width]="cutout.shape.width * viewport().scale" [attr.height]="cutout.shape.height * viewport().scale"
+                  [class.selected-feature]="store.selectedCutoutId() === cutout.id"
+                  (click)="selectCutout(cutout.id, $event)" class="cutout-rect" />
+            <text [attr.x]="w2s(cutout.shape.center_x, cutout.shape.center_y).x"
+                  [attr.y]="w2s(cutout.shape.center_x, cutout.shape.center_y).y" class="cutout-label">
               {{ cutout.shape.width.toFixed(2) }}×{{ cutout.shape.height.toFixed(2) }} m
             </text>
           } @else if (cutout.shape.kind === 'Polygon') {
-            <polygon
-              [attr.points]="getPolygonPointsSvg(cutout.shape.vertices)"
-              [class.selected-feature]="store.selectedCutoutId() === cutout.id"
-              (click)="selectCutout(cutout.id, $event)"
-              class="cutout-polygon"
-            />
-            <text [attr.x]="w2s(cutout.shape.vertices[0].x, cutout.shape.vertices[0].y).x" [attr.y]="w2s(cutout.shape.vertices[0].y, cutout.shape.vertices[0].y).y" class="cutout-label">
+            <polygon [attr.points]="getPolygonPointsSvg(cutout.shape.vertices)"
+                     [class.selected-feature]="store.selectedCutoutId() === cutout.id"
+                     (click)="selectCutout(cutout.id, $event)" class="cutout-polygon" />
+            <text [attr.x]="w2s(cutout.shape.vertices[0].x, cutout.shape.vertices[0].y).x"
+                  [attr.y]="w2s(cutout.shape.vertices[0].y, cutout.shape.vertices[0].y).y" class="cutout-label">
               Πολύγωνο ({{ cutout.shape.vertices.length }})
             </text>
           }
@@ -436,28 +292,23 @@
         <!-- 6. Inclusions -->
         @for (inc of store.domain().inclusions; track inc.id) {
           @if (inc.shape.kind === 'Circle') {
-            <circle
-              [attr.cx]="w2s(inc.shape.center_x, inc.shape.center_y).x"
-              [attr.cy]="w2s(inc.shape.center_x, inc.shape.center_y).y"
-              [attr.r]="inc.shape.radius * viewport().scale"
-              [class.selected-feature]="store.selectedInclusionId() === inc.id"
-              (click)="selectInclusion(inc.id, $event)"
-              class="inclusion-circle"
-            />
-            <text [attr.x]="w2s(inc.shape.center_x, inc.shape.center_y).x" [attr.y]="w2s(inc.shape.center_x, inc.shape.center_y).y" class="inclusion-label">
+            <circle [attr.cx]="w2s(inc.shape.center_x, inc.shape.center_y).x"
+                    [attr.cy]="w2s(inc.shape.center_x, inc.shape.center_y).y"
+                    [attr.r]="inc.shape.radius * viewport().scale"
+                    [class.selected-feature]="store.selectedInclusionId() === inc.id"
+                    (click)="selectInclusion(inc.id, $event)" class="inclusion-circle" />
+            <text [attr.x]="w2s(inc.shape.center_x, inc.shape.center_y).x"
+                  [attr.y]="w2s(inc.shape.center_x, inc.shape.center_y).y" class="inclusion-label">
               {{ inc.material_label }} (Ø{{ (inc.shape.radius * 2).toFixed(2) }}m)
             </text>
           } @else if (inc.shape.kind === 'Rectangle') {
-            <rect
-              [attr.x]="w2s(inc.shape.center_x - inc.shape.width / 2, inc.shape.center_y + inc.shape.height / 2).x"
-              [attr.y]="w2s(inc.shape.center_x - inc.shape.width / 2, inc.shape.center_y + inc.shape.height / 2).y"
-              [attr.width]="inc.shape.width * viewport().scale"
-              [attr.height]="inc.shape.height * viewport().scale"
-              [class.selected-feature]="store.selectedInclusionId() === inc.id"
-              (click)="selectInclusion(inc.id, $event)"
-              class="inclusion-rect"
-            />
-            <text [attr.x]="w2s(inc.shape.center_x, inc.shape.center_y).x" [attr.y]="w2s(inc.shape.center_x, inc.shape.center_y).y" class="inclusion-label">
+            <rect [attr.x]="w2s(inc.shape.center_x - inc.shape.width / 2, inc.shape.center_y + inc.shape.height / 2).x"
+                  [attr.y]="w2s(inc.shape.center_x - inc.shape.width / 2, inc.shape.center_y + inc.shape.height / 2).y"
+                  [attr.width]="inc.shape.width * viewport().scale" [attr.height]="inc.shape.height * viewport().scale"
+                  [class.selected-feature]="store.selectedInclusionId() === inc.id"
+                  (click)="selectInclusion(inc.id, $event)" class="inclusion-rect" />
+            <text [attr.x]="w2s(inc.shape.center_x, inc.shape.center_y).x"
+                  [attr.y]="w2s(inc.shape.center_x, inc.shape.center_y).y" class="inclusion-label">
               {{ inc.material_label }} ({{ inc.shape.width.toFixed(2) }}×{{ inc.shape.height.toFixed(2) }}m)
             </text>
           }
